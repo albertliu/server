@@ -1,13 +1,13 @@
 ///引入依赖
 const mssql = require('mssql');
 const config = {
-      user: 'sa',
-      password: 'Admin12345',
+      user: 'sqlrw',
+      password: process.env.NODE_ENV_DB_PASSWD,
       //server: 'DESKTOP-017P07F\\ALBERTSQL2012',
       server: process.env.NODE_ENV_DB,
       //server: 'iZ8ccky8b15s0lZ\\ELEARNINGSQL2012',
       database: 'elearning',
-      port: 1433,
+      port: 14333,
       options:{
           encrypt: false
       },
