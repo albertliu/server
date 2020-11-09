@@ -60,6 +60,9 @@ var storage = multer.diskStorage({
       case "host_QR":
         uploadFolder = "companies/qr/";
         break;
+      case "project_brochure":
+        uploadFolder = "others/project/";
+        break;
       case "student_list":
         uploadFolder = "students/studentList";
         break;
@@ -113,6 +116,9 @@ var storage = multer.diskStorage({
         key = req.query.username;
         break;
       case "host_QR":   //courseware image will keep the original name(hostNo) and type, and write the path to hostInfo.
+        fn = req.query.username;
+        key = req.query.username;
+      case "project_brochure":   //project brochure file will keep the original name(hostNo) and type, and write the path to hostInfo.
         fn = req.query.username;
         key = req.query.username;
       case "student_list":   //courseware image will keep the original name(hostNo) and type, and write the path to hostInfo.
@@ -379,67 +385,4 @@ router.get('/testPDF', function(req, res, next) {
   });
 });
 
-/*
-var upload = multer({ 
-  storage: storage,
-  limits:{
-    //在这里设置最多能上传多少个文件，那么就不用在下面upload.array('field1', 5)设置了
-    files: 1, //一次只允许上传n个文件
-    fileSize: 10*1000*1024  // 设置文件大小不能超过 n MB n*1000*1024
-  },
-  fileFilter: uploadFilter
-});
-
-const uploadFilter = function(req, file, cb) {
-  // filter rules here
-  var typeArray = file.mimetype.split('/');
-  var fileType = typeArray[1];
-  var kind = '';
-  upID = req.query.upID;
-  currUser = req.query.currUser;
-  host = req.query.host;
-  switch(upID){
-    case "student_photo":   //student photo will name with the username and original type, and write the path to studentInfo.
-      kind = 'image';
-      break;
-    case "student_IDcardA":   //IDcard image will name with the username and original type, and write the path to studentInfo(if need two faces, will deal with two files).
-      kind = 'image';
-      break;
-    case "student_IDcardB":   //IDcard image will name with the username and original type, and write the path to studentInfo(if need two faces, will deal with two files).
-      kind = 'image';
-      break;
-    case "student_education":   //student education will name with the username and original type, and write the path to studentInfo.
-      kind = 'image';
-      break;
-    case "student_diploma":   //diploma image will keep the original name and type, and write the path to diplomaInfo(if not exist, add new record.).
-      kind = '';
-      break;
-    case "course_video":   //video image will keep the original name and type, and write the path to videoInfo(if not exist, add new record.).
-      kind = 'mp4';
-      break;
-    case "course_courseware":   //courseware image will keep the original name and type, and write the path to coursewareInfo(if not exist, add new record.).
-      kind = 'pdf';
-      break;
-    case "host_logo": 
-      kind = 'image';
-      break;
-    case "host_QR": 
-      kind = 'image';
-      break;
-    case "student_list": 
-      kind = 'xlsx';
-      break;
-    case "score_list": 
-      kind = 'xlsx';
-      break;
-    default:
-      kind = '';
-  }
-  if (kind=='' || (kind == 'image' && (fileType == 'jpg' || fileType == 'jpeg' || fileType == 'png')) || (kind == 'pdf' && fileType == 'pdf') || (kind == 'mp4' && (fileType == 'mp4' || fileType=='mpeg')) || (kind == 'xlsx' && fileType == 'xlsx')) {
-    cb(null, true);
-  } else {
-    cb(null, false)
-  }
-}
-*/
 module.exports = router;
