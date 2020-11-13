@@ -53,6 +53,23 @@ router.get('/getDeptListByPID', function(req, res, next) {
   });
 });
 
+//6b. getDicListByKind
+router.get('/getDicListByKind', function(req, res, next) {
+  sqlstr = "select ID,item from dictionaryDoc where kind=@kindID";
+  params = {kindID:req.query.kindID};
+  //console.log("params:", params);
+  db.excuteSQL(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      let response = {"status":9};
+      return res.send(response);
+    }
+    response = data.recordset;
+    return res.send(response);
+    return next();
+  });
+});
+
 //23. getDiplomaListByBatchID
 router.get('/getDiplomaListByBatchID', function(req, res) {
   sqlstr = "SELECT diplomaID,name,certID,certName,startDate,term,host,dept1Name,title,job,logo,photo_filename FROM v_diplomaInfo where batchID=@refID";
