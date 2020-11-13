@@ -61,13 +61,13 @@ var storage = multer.diskStorage({
         uploadFolder = "companies/qr/";
         break;
       case "project_brochure":
-        uploadFolder = "others/project/";
+        uploadFolder = "projects/brochures/";
         break;
       case "student_list":
-        uploadFolder = "students/studentList";
+        uploadFolder = "students/studentList/";
         break;
       case "score_list":
-        uploadFolder = "students/scoreList";
+        uploadFolder = "students/scoreList/";
         break;
       default:
         uploadFolder = "others/";
@@ -119,7 +119,7 @@ var storage = multer.diskStorage({
         fn = req.query.username;
         key = req.query.username;
       case "project_brochure":   //project brochure file will keep the original name(hostNo) and type, and write the path to hostInfo.
-        fn = req.query.username;
+        fn = "project_brochure_" + req.query.username;
         key = req.query.username;
       case "student_list":   //courseware image will keep the original name(hostNo) and type, and write the path to hostInfo.
         fn = 'studentlist' + req.query.username;
@@ -132,6 +132,7 @@ var storage = multer.diskStorage({
       default:
         fn = file.originalname;
         fn = fn.substr(0,fn.lastIndexOf(".")) + '-' + Date.now();
+        key = req.query.username;
     }
     cb(null, fn + "." + filenameArr[filenameArr.length-1]);
   }
@@ -204,7 +205,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
   response.file = file.path.substr(file.path.indexOf("\\"));
   response.count = 1;
   sqlstr = "setUploadSingleFileLink";
-  params = {"upID":upID, "key":key, "file":response.file, "multiple":0};
+  params = {"upID":upID, "key":key, "file":response.file, "multiple":0, "registerID":currUser};
   //console.log("params:", params);
   db.excuteProc(sqlstr, params, function(err, data){
     if (err) {
