@@ -29,6 +29,7 @@
     "q": "^1.5.1",
     "redis": "^3.0.2",
     "session-file-store": "^1.4.0",
+    "silly-datetime": "^0.1.2",
     "step": "^1.0.0",
     "tedious": "^8.3.0",
     "webpack-dev-server": "^3.11.0",

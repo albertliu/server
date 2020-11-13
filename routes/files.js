@@ -4,12 +4,14 @@ var db = require("../utils/mssqldb");
 var multer = require('multer');
 var util = require('util');
 var fs = require('fs');
+var date = require("silly-datetime");
 let xlsx = require('xlsx');
 
 var response, sqlstr, params;
 var uploadHome = './users/upload/';
 var pdf = require("../utils/pdf");
-var upID = "", key = "", mark = "", currUser = "", host = "";
+var docx = require("../utils/docx");
+var upID = "", key = "", mark = "", currUser = "", host = "", today = date.format(new Date(),'YYYY-MM-DD');
 
 var createFolder = function(folder){
   try{
@@ -205,7 +207,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
   response.file = file.path.substr(file.path.indexOf("\\"));
   response.count = 1;
   sqlstr = "setUploadSingleFileLink";
-  params = {"upID":upID, "key":key, "file":response.file, "multiple":0, "registerID":currUser};
+  params = {"upID":upID, "key":key, "file":response.file, "multiple":0, "registerID":key};
   //console.log("params:", params);
   db.excuteProc(sqlstr, params, function(err, data){
     if (err) {
@@ -358,6 +360,49 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
       response = [];
       return res.send(response);
     }
+  });
+});
+
+//generate_entryform_byProjectID
+//status: 0 成功  9 其他  msg, filename
+router.get('/generate_entryform_byProjectID', function(req, res, next) {
+  let projectID = req.query.projectID;
+  let certID = req.query.certID;
+  let path1 = 'users/upload/projects/templates/entry_form_' + certID + '.docx';
+  let path2 = 'users/upload/projects/entryforms/培训报名表[' + projectID + '].docx';
+  sqlstr = "select a.* from v_studentInfo a, studentCourseList b where a.username=b.username and b.checked=1 and b.projectID='" + projectID + "'";   //获取指定招生批次下的已确认名单
+  params = {};
+  db.excuteSQL(sqlstr, params, function(err, data1){
+    if (err) {
+      console.log(err);
+      response = [];
+      return res.send(response);
+    }
+    //delete the destination folder if it exist
+    fs.unlinkSync(path2);
+    //generate entry form to a single file include all the students.
+    for (var i in data1.recordset){
+      params = {code:'', ID:data1.recordset[i]["username"], name:data1.recordset[i]["name"], sex:data1.recordset[i]["sexName"], birthday:data1.recordset[i]["birthday"], age:data1.recordset[i]["age"], dept:data1.recordset[i]["dept1Name"], job:data1.recordset[i]["job"], education:data1.recordset[i]["educationName"], phone:data1.recordset[i]["phone"], mobile:data1.recordset[i]["mobile"], company:data1.recordset[i]["hostName"], address:'', date:today};
+      //console.log(params);
+      docx.writeDoc(params, path1, path2);
+    }
+    
+    //link the filename to the project
+    sqlstr = "setUploadSingleFileLink";
+    params = {"upID":'project_entryform', "key":projectID, "file":path2, "multiple":0, "registerID":req.query.registerID};
+    //console.log("params:", params);
+    db.excuteProc(sqlstr, params, function(err, data){
+      if (err) {
+        console.log(err);
+        let response = {"status":9};
+        return res.send(response);
+      }
+      response.count = 1;
+    });
+    
+    //return file path
+    response = [path2];
+    return res.send(response);
   });
 });
 
