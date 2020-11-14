@@ -11,6 +11,7 @@ var response, sqlstr, params;
 var uploadHome = './users/upload/';
 var pdf = require("../utils/pdf");
 var docx = require("../utils/docx");
+const { array } = require('pizzip/js/support');
 var upID = "", key = "", mark = "", currUser = "", host = "", today = date.format(new Date(),'YYYY-MM-DD');
 
 var createFolder = function(folder){
@@ -370,6 +371,7 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
   let certID = req.query.certID;
   let path1 = 'users/upload/projects/templates/entry_form_' + certID + '.docx';
   let path2 = 'users/upload/projects/entryforms/培训报名表[' + projectID + '].docx';
+  let arr = new Array();
   sqlstr = "select a.* from v_studentInfo a, studentCourseList b where a.username=b.username and b.checked=1 and b.projectID='" + projectID + "'";   //获取指定招生批次下的已确认名单
   params = {};
   db.excuteSQL(sqlstr, params, function(err, data1){
@@ -378,7 +380,7 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
       response = [];
       return res.send(response);
     }
-    //delete the destination folder if it exist
+    //delete the destination file if it exist
     if(fs.existsSync(path2)) {
       fs.unlinkSync(path2, function(err){
         if(err){
@@ -387,15 +389,19 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
         }
       });
     }
-    //generate entry form to a single file include all the students.
+    //generate entry form to a single file for every student.
     for (var i in data1.recordset){
       params = {ID:data1.recordset[i]["username"], name:data1.recordset[i]["name"], sex:data1.recordset[i]["sexName"], birthday:data1.recordset[i]["birthday"], age:data1.recordset[i]["age"], dept:data1.recordset[i]["dept1Name"] + data1.recordset[i]["dept2Name"], job:data1.recordset[i]["job"], education:data1.recordset[i]["educationName"], phone:data1.recordset[i]["phone"], mobile:data1.recordset[i]["mobile"], company:data1.recordset[i]["hostName"], address:'', date:today};
-      console.log(params);
-      docx.writeDoc(params, path1, path2);
+      //console.log(params);
+      let path0 = 'users/upload/projects/entryforms/projectID' + i + '.docx';
+      arr.push(path0);
+      docx.writeDoc(params, path1, path0);
     }
-    
+    //merge all the single file to one big file, and delete them after merging.
+    docx.mergeDocx(arr,path2);
     //link the filename to the project
     sqlstr = "setUploadSingleFileLink";
+    path2 = path2.substr(path2.indexOf("\\"));
     params = {"upID":'project_entryform', "key":projectID, "file":path2, "multiple":0, "registerID":req.query.registerID};
     //console.log("params:", params);
     db.excuteProc(sqlstr, params, function(err, data){

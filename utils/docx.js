@@ -7,6 +7,7 @@ var fs = require('fs');
 var path = require('path');
 const PizZip = require('pizzip');
 const Docxtemplater = require('docxtemplater');
+const DocxMerger = require('docx-merger');
 var uploadHome = './users/upload/';
 
 var createFolder = function(folder){
@@ -85,9 +86,46 @@ const docx ={
 
         // buf is a nodejs buffer, you can either write it to a file or do anything else with it.
         //fs.writeFileSync(path.resolve(__dirname, 'output.docx'), buf);
-        fs.appendFileSync(fileDest, buf);  //append data to a file, creating the file if it does not yet exist. data can be a string or a Buffer.
-        //fs.writeFileSync(fileDest, buf);    //When file is a filename, writes data to the file, replacing the file if it already exists. data can be a string or a buffer.
+        //fs.appendFileSync(fileDest, buf);  //append data to a file, creating the file if it does not yet exist. data can be a string or a Buffer.
+        fs.writeFileSync(fileDest, buf);    //When file is a filename, writes data to the file, replacing the file if it already exists. data can be a string or a buffer.
+    },
+
+    //merge docx files to one file
+    async mergeDocx(fileSource, fileDest) {
+        //delete the destination file if it exist
+        if(fs.existsSync(fileDest)) {
+            fs.unlinkSync(fileDest, function(err){
+                if(err){
+                    res.send("文件删除失败。");
+                    return;
+                }
+            });
+        }
+        //read files
+        let arr = new Aarry();
+        for (var i in fileSource){
+            arr.push(fs.readFileSync(fileSource[i], 'binary'));
+        }
+
+        //merge them
+        var files = new DocxMerger({},arr);
+        
+        //SAVING THE DOCX FILE
+        files.save('nodebuffer',function (data) {
+            // fs.writeFile("output.zip", data, function(err){/*...*/});
+            fs.writeFile(fileDest, data, function(err){/*...*/});
+        });
+
+        //delete files
+        for (var i in fileSource){
+            if(fs.existsSync(fileSource[i])) {
+                fs.unlink(fileSource[i], function(err){
+                    if(err){
+                        return;
+                    }
+                });
+            }
+        }
     }
 }
-
 module.exports = docx;
