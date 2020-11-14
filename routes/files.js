@@ -404,7 +404,7 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
     docx.mergeDocx(arr,path2);
     //link the filename to the project
     sqlstr = "setUploadSingleFileLink";
-    path2 = path2.substr(path2.indexOf("\\"));
+    path2 = path2.substr(path2.indexOf("\/"));
     params = {"upID":'project_entryform', "key":projectID, "file":path2, "multiple":0, "registerID":req.query.registerID};
     //console.log("params:", params);
     db.excuteProc(sqlstr, params, function(err, data){
