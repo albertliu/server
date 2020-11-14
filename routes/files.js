@@ -381,7 +381,7 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
     //delete the destination folder if it exist
     fs.unlinkSync(path2, function(err){
       if(err){
-       throw err;
+        //throw err;
       }
     });
     //generate entry form to a single file include all the students.
