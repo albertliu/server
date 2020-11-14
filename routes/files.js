@@ -381,6 +381,7 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
       return res.send(response);
     }
     //delete the destination file if it exist
+    /*
     if(fs.existsSync(path2)) {
       fs.unlinkSync(path2, function(err){
         if(err){
@@ -389,6 +390,7 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
         }
       });
     }
+    */
     //generate entry form to a single file for every student.
     for (var i in data1.recordset){
       params = {ID:data1.recordset[i]["username"], name:data1.recordset[i]["name"], sex:data1.recordset[i]["sexName"], birthday:data1.recordset[i]["birthday"], age:data1.recordset[i]["age"], dept:data1.recordset[i]["dept1Name"] + data1.recordset[i]["dept2Name"], job:data1.recordset[i]["job"], education:data1.recordset[i]["educationName"], phone:data1.recordset[i]["phone"], mobile:data1.recordset[i]["mobile"], company:data1.recordset[i]["hostName"], address:'', date:today};
