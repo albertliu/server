@@ -113,13 +113,13 @@ const docx ={
         //SAVING THE DOCX FILE
         files.save('nodebuffer',function (data) {
             // fs.writeFile("output.zip", data, function(err){/*...*/});
-            fs.writeFile(fileDest, data, function(err){/*...*/});
+            fs.writeFileSync(fileDest, data, function(err){/*...*/});
         });
 
         //delete files
         for (var i in fileSource){
             if(fs.existsSync(fileSource[i])) {
-                fs.unlink(fileSource[i], function(err){
+                fs.unlinkSync(fileSource[i], function(err){
                     if(err){
                         return;
                     }
