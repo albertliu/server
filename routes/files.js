@@ -400,7 +400,7 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
       docx.writeDoc(params, path1, path0);
     }
     //merge all the single file to one big file, and delete them after merging.
-    console.log(arr);
+    //console.log(arr);
     docx.mergeDocx(arr,path2);
     //link the filename to the project
     sqlstr = "setUploadSingleFileLink";
