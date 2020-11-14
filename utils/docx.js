@@ -102,7 +102,7 @@ const docx ={
             });
         }
         //read files
-        let arr = new Aarry();
+        var arr = new Aarry();
         for (var i in fileSource){
             arr.push(fs.readFileSync(fileSource[i], 'binary'));
         }

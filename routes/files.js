@@ -371,7 +371,7 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
   let certID = req.query.certID;
   let path1 = 'users/upload/projects/templates/entry_form_' + certID + '.docx';
   let path2 = 'users/upload/projects/entryforms/培训报名表[' + projectID + '].docx';
-  let arr = new Array();
+  var arr = new Array();
   sqlstr = "select a.* from v_studentInfo a, studentCourseList b where a.username=b.username and b.checked=1 and b.projectID='" + projectID + "'";   //获取指定招生批次下的已确认名单
   params = {};
   db.excuteSQL(sqlstr, params, function(err, data1){
@@ -400,6 +400,7 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
       docx.writeDoc(params, path1, path0);
     }
     //merge all the single file to one big file, and delete them after merging.
+    console.log(arr);
     docx.mergeDocx(arr,path2);
     //link the filename to the project
     sqlstr = "setUploadSingleFileLink";
