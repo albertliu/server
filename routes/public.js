@@ -66,7 +66,21 @@ router.get('/getDicListByKind', function(req, res, next) {
     }
     response = data.recordset;
     return res.send(response);
-    return next();
+  });
+});
+
+router.get('/getDeptTreeJson', function(req, res, next) {
+  sqlstr = "SELECT dbo.getDeptJson(@nodeID) as item";
+  params = {nodeID:req.query.nodeID};
+  //console.log("params:", params);
+  db.excuteSQL(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      let response = {"status":9};
+      return res.send(response);
+    }
+    response = data.recordset[0]["item"];
+    return res.send(response);
   });
 });
 
