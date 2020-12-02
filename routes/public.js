@@ -38,7 +38,7 @@ router.get('/getCompanyByHost', function(req, res, next) {
 
 //6a. getDeptListByPID
 router.get('/getDeptListByPID', function(req, res, next) {
-  sqlstr = "select * from v_deptInfo where pID=@pID and kindID=@kindID";
+  sqlstr = "select * from v_deptInfo where pID=@pID and kindID=@kindID and dept_status<9 order by deptName";
   params = {pID:req.query.pID, kindID:req.query.kindID};
   //console.log("params:", params);
   db.excuteSQL(sqlstr, params, function(err, data){
@@ -70,7 +70,8 @@ router.get('/getDicListByKind', function(req, res, next) {
 });
 
 router.get('/getDeptTreeJson', function(req, res, next) {
-  sqlstr = "SELECT dbo.getDeptJson(@nodeID) as item";
+  //sqlstr = "SELECT dbo.getDeptJson(@nodeID) as item";
+  sqlstr = "SELECT * from dbo.getDeptTreeByPID(@nodeID) order by pID,kindID,[text]";
   params = {nodeID:req.query.nodeID};
   //console.log("params:", params);
   db.excuteSQL(sqlstr, params, function(err, data){
@@ -79,7 +80,9 @@ router.get('/getDeptTreeJson', function(req, res, next) {
       let response = {"status":9};
       return res.send(response);
     }
-    response = data.recordset[0]["item"];
+    //response = data.recordset[0]["item"];
+    response = data.recordset;
+    //console.log(response);
     return res.send(response);
   });
 });

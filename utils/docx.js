@@ -7,6 +7,7 @@ var fs = require('fs');
 var path = require('path');
 const PizZip = require('pizzip');
 const Docxtemplater = require('docxtemplater');
+const ImageModule = require("docxtemplater-image-module-free");
 const DocxMerger = require('docx-merger');
 var uploadHome = './users/upload/';
 
@@ -55,8 +56,41 @@ const docx ={
 
         var zip = new PizZip(content);
         var doc;
+        var opts = {};
+        opts.centered = true;
+        opts.fileType = "docx";
+        
+        opts.getImage = function (tagValue, tagName) {
+          return fs.readFileSync(tagValue);
+        };
+        
+        opts.getSize = function (img, tagValue, tagName) {
+            const sizeOf = require("image-size");
+            const sizeObj = sizeOf(img);
+            var forceWidth;
+            if(tagName=="imgIDa"){
+                forceWidth = 280;
+                if(sizeObj.height > sizeObj.width){ //身份证如果过高，应该缩进尺寸。
+                    forceWidth = forceWidth / (sizeObj.height / sizeObj.width)
+                }
+            }
+            if(tagName=="imgPhoto"){
+                forceWidth = 120;
+            }
+            if(tagName=="imgID" || tagName=="imgEdu"){
+                forceWidth = 500;
+                if(sizeObj.height > sizeObj.width){ //身份证如果过高，应该缩进尺寸。
+                    forceWidth = forceWidth / (sizeObj.height / sizeObj.width)
+                }
+            }
+            const ratio = forceWidth / sizeObj.width;
+            return [forceWidth, Math.round(sizeObj.height * ratio)];
+        };
+        
+        var imageModule = new ImageModule(opts);
+        
         try {
-            doc = new Docxtemplater(zip);
+            doc = new Docxtemplater(zip, {modules: [imageModule]});
         } catch(error) {
             // Catch compilation errors (errors caused by the compilation of the template : misplaced tags)
             errorHandler(error);

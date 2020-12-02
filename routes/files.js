@@ -372,7 +372,7 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
   let path1 = 'users/upload/projects/templates/entry_form_' + certID + '.docx';
   let path2 = 'users/upload/projects/entryforms/培训报名表[' + projectID + '].docx';
   var arr = new Array();
-  sqlstr = "select a.* from v_studentInfo a, studentCourseList b where a.username=b.username and b.checked=1 and b.projectID='" + projectID + "'";   //获取指定招生批次下的已确认名单
+  sqlstr = "select a.*,b.SNo from v_studentInfo a, studentCourseList b where a.username=b.username and b.checked=1 and b.projectID='" + projectID + "'";   //获取指定招生批次下的已确认名单
   params = {};
   db.excuteSQL(sqlstr, params, function(err, data1){
     if (err) {
@@ -380,20 +380,9 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
       response = [];
       return res.send(response);
     }
-    //delete the destination file if it exist
-    /*
-    if(fs.existsSync(path2)) {
-      fs.unlinkSync(path2, function(err){
-        if(err){
-          res.send("文件删除失败。");
-          return;
-        }
-      });
-    }
-    */
     //generate entry form to a single file for every student.
     for (var i in data1.recordset){
-      params = {ID:data1.recordset[i]["username"], name:data1.recordset[i]["name"], sex:data1.recordset[i]["sexName"], birthday:data1.recordset[i]["birthday"], age:data1.recordset[i]["age"], dept:data1.recordset[i]["dept1Name"] + data1.recordset[i]["dept2Name"], job:data1.recordset[i]["job"], education:data1.recordset[i]["educationName"], phone:data1.recordset[i]["phone"], mobile:data1.recordset[i]["mobile"], company:data1.recordset[i]["hostName"], address:'', date:today};
+      params = {ID:data1.recordset[i]["username"], name:data1.recordset[i]["name"], SNo:data1.recordset[i]["SNo"], sex:data1.recordset[i]["sexName"], birthday:data1.recordset[i]["birthday"], age:data1.recordset[i]["age"], dept1:data1.recordset[i]["dept1Name"], dept2:data1.recordset[i]["dept2Name"], job:data1.recordset[i]["job"], education:data1.recordset[i]["educationName"], phone:data1.recordset[i]["phone"], mobile:data1.recordset[i]["mobile"], imgPhoto:"users" + data1.recordset[i]["photo_filename"], imgIDa:"users" + data1.recordset[i]["IDa_filename"], imgID:"users" + data1.recordset[i]["IDa_filename"], imgEdu:"users" + data1.recordset[i]["edu_filename"], address:'', date:today};
       //console.log(params);
       let path0 = 'users/upload/projects/entryforms/projectID' + i + '.docx';
       arr.push(path0);
@@ -414,6 +403,17 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
         return res.send(response);
       }
       response.count = 1;
+    });
+    //give student no for every student of the project
+    sqlstr = "setProjectStudentNo";
+    params = {"projectID":projectID, "username":req.query.registerID};
+    //console.log("params:", params);
+    db.excuteProc(sqlstr, params, function(err, data){
+      if (err) {
+        console.log(err);
+        let response = {"status":9};
+        return res.send(response);
+      }
     });
     
     //return file path
