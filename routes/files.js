@@ -314,7 +314,7 @@ router.post('/uploadMultiple', uploadMultiple.array('avatar',1000), function(req
 //status: 0 成功  9 其他  msg, filename
 router.get('/generate_diploma_byCertID', function(req, res, next) {
   sqlstr = "generateDiplomaByCertID";
-  params = {certID:req.query.certID,batchID:req.query.batchID,selList:req.query.selList,host:req.query.host,registerID:req.query.username};
+  params = {certID:req.query.certID, batchID:req.query.batchID, selList:req.query.selList, selList1:req.query.selList1, host:req.query.host, registerID:req.query.username};
   //console.log(params);
   //generate diploma data
   let response = [];
@@ -339,7 +339,7 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
         let arr = new Array();
         //generate diploma paper with pdf
         for (var i in data1.recordset){
-          let str = [data1.recordset[i]["name"],data1.recordset[i]["certName"],data1.recordset[i]["diplomaID"],data1.recordset[i]["dept1Name"],data1.recordset[i]["job"],data1.recordset[i]["startDate"],data1.recordset[i]["term"],data1.recordset[i]["title"],data1.recordset[i]["photo_filename"],data1.recordset[i]["logo"],data1.recordset[i]["certID"],data1.recordset[i]["host"]];
+          let str = [data1.recordset[i]["name"],data1.recordset[i]["certName"],data1.recordset[i]["diplomaID"],data1.recordset[i]["dept1Name"],data1.recordset[i]["job"],data1.recordset[i]["startDate"],data1.recordset[i]["term"],data1.recordset[i]["title"],data1.recordset[i]["photo_filename"],data1.recordset[i]["logo"],data1.recordset[i]["certID"],data1.recordset[i]["host"],data1.recordset[i]["stamp"]];
           sqlstr = process.env.NODE_ENV_BACKEND + "/pdf.asp?kindID=" + (str.join(","));
           //arr.push(str.join(","));
           let path = 'users/upload/students/diplomas/' + data1.recordset[i]["diplomaID"] + '.pdf';
