@@ -89,7 +89,7 @@ router.get('/getDeptTreeJson', function(req, res, next) {
 
 //23. getDiplomaListByBatchID
 router.get('/getDiplomaListByBatchID', function(req, res) {
-  sqlstr = "SELECT diplomaID,name,certID,certName,startDate,term,host,dept1Name,title,job,logo,photo_filename FROM v_diplomaInfo where batchID=@refID";
+  sqlstr = "SELECT diplomaID,name,certID,certName,startDate,term,host,dept1Name,title,job,logo,photo_filename,stamp FROM v_diplomaInfo where batchID=@refID";
   params = {refID:req.query.refID};
   //console.log("params:", params);
   db.excuteSQL(sqlstr, params, function(err, data){
@@ -99,6 +99,7 @@ router.get('/getDiplomaListByBatchID', function(req, res) {
       return res.send(response);
     }
     response = data.recordset;
+    //console.log(response);
     return res.send(response);
   });
 });
