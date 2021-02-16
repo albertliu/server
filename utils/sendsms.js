@@ -4,7 +4,7 @@ const accessKeyId = process.env.NODE_ENV_SMS_ACCESS;
 const secretAccessKey = process.env.NODE_ENV_SMS_KEY;
 
 const ssms ={
-    async sendSMS(phone, passwd) {
+    async sendSMS(phone, name, item, temp) {
         //发送短信
         var client = new Core({
           accessKeyId: accessKeyId,
@@ -12,13 +12,19 @@ const ssms ={
           endpoint: 'https://dysmsapi.aliyuncs.com',
           apiVersion: '2017-05-25'
         });
-        
-        let pa = "{'password':'" + passwd + "'}";
+        let tc = "";
+        if(temp=="reset_password"){
+          tc = "SMS_197890292";
+        }
+        if(temp=="reupload_material"){
+          tc = "SMS_211492862";
+        }
+        let pa = "{'password':'" + item + "'}";
         var params = {
           "RegionId": "cn-hangzhou",
           "PhoneNumbers": phone,
           "SignName": "上海网蓝信息技术有限公司",
-          "TemplateCode": "SMS_197890292",
+          "TemplateCode": tc,
           "TemplateParam": pa
         }
         

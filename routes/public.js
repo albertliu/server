@@ -179,7 +179,7 @@ router.post('/reset_student_password', function(req, res, next) {
     //return: 0 success; other error:1 the user not exist  2 the phone error.
     //console.log(status,":",data.recordset[0]["password"])
     if(status==0){
-      sendsms.sendSMS(req.body.mobile, data.recordset[0]["password"]);
+      sendsms.sendSMS(req.body.mobile, '', data.recordset[0]["password"], "reset_password");
       sqlstr = "writeSSMSlog";
       params = { username: req.body.username, mobile: req.body.mobile, kind: "密码重置", message: data.recordset[0]["password"], registerID: "system." };
       db.excuteProc(sqlstr, params, function (err, data1) {
@@ -197,6 +197,38 @@ router.post('/reset_student_password', function(req, res, next) {
       msg = "该手机号码与注册登记的不一致。";
     }
     let response = { "status": status, "msg": msg };
+    return res.send(response);
+  });
+});
+
+//4. 批量通知学员，重新上传图片资料。同时发送系统消息和短信。
+router.get('/resubmit_student_materials', function(req, res, next) {
+  sqlstr = "doStudentMaterial_resubmit";
+  params = {status:req.query.status, selList: req.query.selList, registerID: req.query.registerID };
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9, msg:"系统错误。" };
+      return res.send(response);
+    }
+    //return: 0 success; other error:1 the user not exist  2 the phone error.
+    //console.log(status,":",data.recordset[0]["password"])
+    if(req.body.status==1){ //发通知
+      let re = data.recordset;
+      for (var i in data.recordset){
+        sendsms.sendSMS(data.recordset[i]["mobile"], data.recordset[i]["name"], data.recordset[i]["item"], "reupload_material");
+        sqlstr = "writeSSMSlog";
+        params = { username: data.recordset[i]["username"], mobile: data.recordset[i]["mobile"], kind: "资料不合规通知", message: data.recordset[i]["item"], registerID: req.query.registerID };
+        db.excuteProc(sqlstr, params, function (err, data1) {
+          if (err) {
+            console.log(err);
+            let response = { "status": 9, msg:"系统错误。" };
+            return res.send(response);
+          }
+        });
+      }
+    }
+    let response = { "status": 0, "msg": "操作成功。" };
     return res.send(response);
   });
 });
