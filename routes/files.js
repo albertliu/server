@@ -343,16 +343,17 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
           sqlstr = process.env.NODE_ENV_BACKEND + "/pdf.asp?kindID=" + (str.join(","));
           //arr.push(str.join(","));
           let path = 'users/upload/students/diplomas/' + data1.recordset[i]["diplomaID"] + '.pdf';
-          //console.log(sqlstr);
+          //console.log('path',path);
           pdf.genPDF(sqlstr, path, '180mm', '120mm', '1', false, 1);
         }
         //publish diploma on A4 with pdf
         //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
         sqlstr = process.env.NODE_ENV_BACKEND + "/pdfs.asp?refID=" + batchID;
+        //console.log(sqlstr);
         let path = 'users/upload/students/diplomaPublish/' + batchID + '.pdf';
         filename = path;
         pdf.genPDF(sqlstr, path, '297mm', '210mm', '', false, 0.5);
-      
+        //console.log('the path:',path);
         //return publish file path
         response = [filename];
         return res.send(response);
@@ -362,6 +363,26 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
       return res.send(response);
     }
   });
+});
+
+//22a. generate_student_photos
+//status: 0 成功  9 其他  msg, filename
+//kindID: 0 照片  1 身份证正面  2 身份证背面  3 学历证书  4 其他证书
+router.get('/generate_student_photos', function(req, res, next) {
+  let response = [];
+  let filename = "";
+  sqlstr = process.env.NODE_ENV_BACKEND + "/pdfs_student_photos.asp?item=" + req.query.item + "&kindID=" + req.query.kindID;
+  //sqlstr = process.env.NODE_ENV_BACKEND + "/pdf1.asp?kindID=" + req.query.kindID;
+  //console.log(sqlstr);
+  let path = 'users/public/temp/student_photos_' + Date.parse( new Date() ).toString() + '.pdf';
+  filename = path;
+  //console.log(sqlstr, filename);
+  pdf.genPDF(sqlstr, path, '297mm', '210mm', '1', false, 1);
+  //pdf.genPDF(sqlstr, path, '180mm', '120mm', '1', false, 1);
+  
+  //return publish file path
+  response = [filename];
+  return res.send(response);
 });
 
 //generate_entryform_byProjectID

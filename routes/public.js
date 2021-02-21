@@ -104,6 +104,23 @@ router.get('/getDiplomaListByBatchID', function(req, res) {
   });
 });
 
+//23a. getStudentPhotoList
+router.get('/getStudentPhotoList', function(req, res) {
+  sqlstr = "SELECT photo_filename as f0,IDa_filename as f1,IDb_filename as f2,edu_filename as f3,cert_filename as f4,username,name,SNo as no FROM v_studentCourseList where " + req.query.where;
+  params = {};
+  //console.log("params:", sqlstr);
+  db.excuteSQL(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      let response = {"status":9};
+      return res.send(response);
+    }
+    response = data.recordset;
+    //console.log(response);
+    return res.send(response);
+  });
+});
+
 
 //24. getRptList  generate a report, output a json data or an excel file.
 router.get('/getRptList', function(req, res) {
@@ -179,7 +196,7 @@ router.post('/reset_student_password', function(req, res, next) {
     //return: 0 success; other error:1 the user not exist  2 the phone error.
     //console.log(status,":",data.recordset[0]["password"])
     if(status==0){
-      sendsms.sendSMS(req.body.mobile, '', data.recordset[0]["password"], "reset_password");
+      sendsms.sendSMS(req.body.mobile, '', data.recordset[0]["password"], '', "reset_password");
       sqlstr = "writeSSMSlog";
       params = { username: req.body.username, mobile: req.body.mobile, kind: "密码重置", message: data.recordset[0]["password"], registerID: "system." };
       db.excuteProc(sqlstr, params, function (err, data1) {
@@ -212,13 +229,19 @@ router.get('/resubmit_student_materials', function(req, res, next) {
       return res.send(response);
     }
     //return: 0 success; other error:1 the user not exist  2 the phone error.
-    //console.log(status,":",data.recordset[0]["password"])
-    if(req.body.status==1){ //发通知
+    //console.log(data.recordset[0]);
+    if(req.query.status==1){ //发通知
       let re = data.recordset;
-      for (var i in data.recordset){
-        sendsms.sendSMS(data.recordset[i]["mobile"], data.recordset[i]["name"], data.recordset[i]["item"], "reupload_material");
+      for (var i in re){
+        let address = "www";
+        if(re[i]["host"]>""){
+          address = re[i]["host"];
+        }
+        address = "http://" + address + ".shznxfxx.cn:3000";
+        sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["item"], address, "reupload_material");
         sqlstr = "writeSSMSlog";
-        params = { username: data.recordset[i]["username"], mobile: data.recordset[i]["mobile"], kind: "资料不合规通知", message: data.recordset[i]["item"], registerID: req.query.registerID };
+        params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "资料不合规通知", message: re[i]["item"], registerID: req.query.registerID };
+        //console.log(params);
         db.excuteProc(sqlstr, params, function (err, data1) {
           if (err) {
             console.log(err);

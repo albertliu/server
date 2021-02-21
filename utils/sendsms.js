@@ -4,7 +4,7 @@ const accessKeyId = process.env.NODE_ENV_SMS_ACCESS;
 const secretAccessKey = process.env.NODE_ENV_SMS_KEY;
 
 const ssms ={
-    async sendSMS(phone, name, item, temp) {
+    async sendSMS(phone, name, item, address, temp) {
         //发送短信
         var client = new Core({
           accessKeyId: accessKeyId,
@@ -13,13 +13,17 @@ const ssms ={
           apiVersion: '2017-05-25'
         });
         let tc = "";
+        let pa = "";
         if(temp=="reset_password"){
           tc = "SMS_197890292";
+          pa = "{'password':'" + item + "'}";
         }
         if(temp=="reupload_material"){
           tc = "SMS_211492862";
+          //pa = "{'name':'" + name + "','item':'" + item + "','address':'" + address + "'}";
+          pa = "{'name':'" + name + "','item':'" + item + "'}";
         }
-        let pa = "{'password':'" + item + "'}";
+        
         var params = {
           "RegionId": "cn-hangzhou",
           "PhoneNumbers": phone,
