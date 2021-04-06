@@ -308,7 +308,61 @@ router.post('/uploadMultiple', uploadMultiple.array('avatar',1000), function(req
   res.send(response);
 });
 
+router.post('/uploadBase64img', function(req, res, next) {
+  //console.log("req.query.upID:", req.query.upID);
+    //接收前台POST过来的base64
+    var imgData = req.body.imgData;
+    //过滤data:URL
+    var uploadFolder = "";
+    var fn = "";
+    upID = req.body.upID;
+    currUser = req.body.currUser;
+    switch(upID){
+      case "student_photo":
+        uploadFolder = "students/photos/";
+        fn = req.body.username;
+        break;
+      case "student_IDcardA":
+        uploadFolder = "students/IDcards/";
+        fn = req.body.username + "a";
+        break;
+      case "student_IDcardB":
+        uploadFolder = "students/IDcards/";
+        fn = req.body.username + "b";
+        break;
+      default:
+        uploadFolder = "others/";
+        fn = req.body.username;
+    }
+    uploadFolder = uploadHome + uploadFolder;
+    createFolder(uploadFolder);
+    fn = uploadFolder + fn + ".png";
 
+    var base64Data = imgData.replace(/^data:image\/\w+;base64,/, "");
+    var dataBuffer = Buffer.from(base64Data, 'base64');
+    fs.writeFile(fn, dataBuffer, function(err) {
+        if(err){
+          res.send(err);
+        }else{
+          //res.send("保存成功！");
+          fn = fn.replace("./users","");
+          //response.count = 1;
+          sqlstr = "setUploadSingleFileLink";
+          params = {"upID":upID, "key":req.body.username, "file":fn, "multiple":0, "registerID":currUser};
+          //console.log("params:", params);
+          db.excuteProc(sqlstr, params, function(err, data){
+            if (err) {
+              console.log(err);
+              let response = {"status":9};
+              return res.send(response);
+            }
+            //response.count = 1;
+          });
+          
+          res.send({"status":0});
+        }
+    });
+});
 
 //22. generate_diploma_byCertID
 //status: 0 成功  9 其他  msg, filename
