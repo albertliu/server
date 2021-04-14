@@ -69,6 +69,23 @@ router.get('/getDicListByKind', function(req, res, next) {
   });
 });
 
+//6c. getProjectListBycertID
+router.get('/getProjectListBycertID', function(req, res, next) {
+  sqlstr = "select * from projectInfo where certID=@certID and status>0 order by projectID desc";
+  params = {certID:req.query.certID};
+  //console.log("params:", params);
+  db.excuteSQL(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      let response = {"status":9};
+      return res.send(response);
+    }
+    response = data.recordset;
+    return res.send(response);
+    return next();
+  });
+});
+
 router.get('/getDeptTreeJson', function(req, res, next) {
   //sqlstr = "SELECT dbo.getDeptJson(@nodeID) as item";
   sqlstr = "SELECT * from dbo.getDeptTreeByPID(@nodeID) order by pID,kindID,[text]";
