@@ -20,7 +20,7 @@
     "express": "~4.16.1",
     "express-session": "^1.17.1",
     "http-errors": "~1.6.3",
-    "image-size": "^0.9.3",
+    "image-size": "^0.9.7",
     "jade": "~1.11.0",
     "js-md5": "^0.7.3",
     "jszip": "^3.5.0",

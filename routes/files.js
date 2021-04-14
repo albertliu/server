@@ -447,7 +447,7 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
   let path1 = 'users/upload/projects/templates/entry_form_' + certID + '.docx';
   let path2 = 'users/upload/projects/entryforms/培训报名表[' + projectID + '].docx';
   var arr = new Array();
-  sqlstr = "select a.*,b.SNo from v_studentInfo a, studentCourseList b where a.username=b.username and b.checked=1 and b.projectID='" + projectID + "'";   //获取指定招生批次下的已确认名单
+  sqlstr = "select a.*,(case when b.SNo=0 then '' else cast(b.SNo as varchar) end) as SNo,b.ID as enterID from v_studentInfo a, studentCourseList b where a.username=b.username and b.checked=1 and b.projectID='" + projectID + "'";   //获取指定招生批次下的已确认名单
   params = {};
   db.excuteSQL(sqlstr, params, function(err, data1){
     if (err) {
@@ -457,9 +457,9 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
     }
     //generate entry form to a single file for every student.
     for (var i in data1.recordset){
-      params = {ID:data1.recordset[i]["username"], name:data1.recordset[i]["name"], SNo:data1.recordset[i]["SNo"], sex:data1.recordset[i]["sexName"], birthday:data1.recordset[i]["birthday"], age:data1.recordset[i]["age"], dept1:data1.recordset[i]["dept1Name"], dept2:data1.recordset[i]["dept2Name"], job:data1.recordset[i]["job"], education:data1.recordset[i]["educationName"], phone:data1.recordset[i]["phone"], mobile:data1.recordset[i]["mobile"], imgPhoto:"users" + data1.recordset[i]["photo_filename"], imgIDa:"users" + data1.recordset[i]["IDa_filename"], imgID:"users" + data1.recordset[i]["IDa_filename"], imgEdu:"users" + data1.recordset[i]["edu_filename"], address:'', date:today};
+      params = {ID:data1.recordset[i]["username"], name:data1.recordset[i]["name"], SNo:data1.recordset[i]["SNo"], sex:data1.recordset[i]["sexName"], birthday:data1.recordset[i]["birthday"], age:data1.recordset[i]["age"], host:data1.recordset[i]["hostName"], dept1:data1.recordset[i]["dept1Name"], dept2:data1.recordset[i]["dept2Name"], job:data1.recordset[i]["job"], education:data1.recordset[i]["educationName"], phone:data1.recordset[i]["phone"], mobile:data1.recordset[i]["mobile"], imgPhoto:"users" + data1.recordset[i]["photo_filename"], imgIDa:"users" + data1.recordset[i]["IDa_filename"], imgID:"users" + data1.recordset[i]["IDa_filename"], imgEdu:"users" + data1.recordset[i]["edu_filename"], address:'', date:today};
       //console.log(params);
-      let path0 = 'users/upload/projects/entryforms/projectID' + i + '.docx';
+      let path0 = 'users/upload/projects/entryforms/projectID' + data1.recordset[i]["enterID"] + '.docx';
       arr.push(path0);
       docx.writeDoc(params, path1, path0);
     }
@@ -493,6 +493,49 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
     
     //return file path
     response = [path2];
+    return res.send(response);
+  });
+});
+
+//generate_entryform
+//status: 0 成功  9 其他  msg, filename
+router.get('/generate_entryform', function(req, res, next) {
+  let enterID = req.query.enterID;
+  let certID = req.query.certID;
+  let path1 = 'users/upload/projects/templates/entry_form_' + certID + '.docx';
+  var arr = new Array();
+  sqlstr = "select a.*,(case when b.SNo=0 then '' else cast(b.SNo as varchar) end) as SNo,b.ID as enterID from v_studentInfo a, studentCourseList b where a.username=b.username and b.ID=" + enterID;   //获取指定报名表信息
+  params = {};
+  db.excuteSQL(sqlstr, params, function(err, data1){
+    if (err) {
+      console.log(err);
+      response = [];
+      return res.send(response);
+    }
+    //generate entry form to a single file for every student.
+    var i = 0;
+      params = {ID:data1.recordset[i]["username"], name:data1.recordset[i]["name"], SNo:data1.recordset[i]["SNo"], sex:data1.recordset[i]["sexName"], birthday:data1.recordset[i]["birthday"], age:data1.recordset[i]["age"], host:data1.recordset[i]["hostName"], dept1:data1.recordset[i]["dept1Name"], dept2:data1.recordset[i]["dept2Name"], job:data1.recordset[i]["job"], education:data1.recordset[i]["educationName"], phone:data1.recordset[i]["phone"], mobile:data1.recordset[i]["mobile"], imgPhoto:"users" + data1.recordset[i]["photo_filename"], imgIDa:"users" + data1.recordset[i]["IDa_filename"], imgID:"users" + data1.recordset[i]["IDa_filename"], imgEdu:"users" + data1.recordset[i]["edu_filename"], address:'', date:today};
+      //console.log(params);
+      let path0 = 'users/upload/projects/entryforms/projectID' + data1.recordset[i]["enterID"] + '.docx';
+      docx.writeDoc(params, path1, path0);
+    //merge all the single file to one big file, and delete them after merging.
+    //console.log(arr);
+    //link the filename to the enter
+    sqlstr = "setUploadSingleFileLink";
+    path0 = path0.substr(path0.indexOf("\/"));
+    params = {"upID":'enter_entryform', "key":enterID, "file":path0, "multiple":0, "registerID":req.query.registerID};
+    //console.log("params:", params);
+    db.excuteProc(sqlstr, params, function(err, data){
+      if (err) {
+        console.log(err);
+        let response = {"status":9};
+        return res.send(response);
+      }
+      response.count = 1;
+    });
+    
+    //return file path
+    response = [path0];
     return res.send(response);
   });
 });
