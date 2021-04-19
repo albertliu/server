@@ -540,6 +540,42 @@ router.get('/generate_entryform', function(req, res, next) {
   });
 });
 
+//22. generate_diploma_byCertID
+//status: 0 成功  9 其他  msg, filename
+router.get('/generate_passcard_byClassID', function(req, res, next) {
+  sqlstr = "updateGeneratePasscardInfo";
+  params = {ID:req.query.ID, classID:req.query.classID, selList:req.query.selList, title:req.query.title, startDate:req.query.startDate, startTime:req.query.startTime, address:req.query.address, notes:req.query.notes, memo:req.query.memo, registerID:req.query.username};
+  //console.log(params);
+  //generate diploma data
+  let response = [];
+  db.excuteProc(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      response = [];
+      return res.send(response);
+    }
+    let batchID = data.returnValue;
+    //console.log(data,":",batchID);
+    let filename = "";
+    if(batchID > 0){
+      //publish diploma on A4 with pdf
+      //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
+      sqlstr = process.env.NODE_ENV_BACKEND + "/pdfs_passcard.asp?refID=" + batchID;
+      //console.log(sqlstr);
+      let path = 'users/upload/students/passcardPublish/' + batchID + '.pdf';
+      filename = path;
+      pdf.genPDF(sqlstr, path, '297mm', '210mm', '', false, 0.5);
+      //console.log('the path:',path);
+      //return publish file path
+      response = [filename];
+      return res.send(response);
+    }else{
+      response = [];
+      return res.send(response);
+    }
+  });
+});
+
 router.get('/form', function(req, res, next){
   var form = fs.readFileSync('./form.html', {encoding: 'utf8'});
   res.send(form);
