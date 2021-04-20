@@ -138,6 +138,23 @@ router.get('/getStudentPhotoList', function(req, res) {
   });
 });
 
+//23b. getPasscardListByBatchID
+router.get('/getPasscardListByBatchID', function(req, res) {
+  sqlstr = "SELECT username,name,sexName,b.title,b.startDate,b.startTime,b.notes,b.address FROM v_studentCourseList a, v_generatePasscardInfo b where a.passcardID=b.ID and b.ID=@refID";
+  params = {refID:req.query.refID};
+  //console.log("params:", params);
+  db.excuteSQL(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      let response = {"status":9};
+      return res.send(response);
+    }
+    response = data.recordset;
+    //console.log(response);
+    return res.send(response);
+  });
+});
+
 
 //24. getRptList  generate a report, output a json data or an excel file.
 router.get('/getRptList', function(req, res) {

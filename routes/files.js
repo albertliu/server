@@ -542,6 +542,7 @@ router.get('/generate_entryform', function(req, res, next) {
 
 //22. generate_diploma_byCertID
 //status: 0 成功  9 其他  msg, filename
+//mark: 0 生成准考证  1 保存信息
 router.get('/generate_passcard_byClassID', function(req, res, next) {
   sqlstr = "updateGeneratePasscardInfo";
   params = {ID:req.query.ID, classID:req.query.classID, selList:req.query.selList, title:req.query.title, startDate:req.query.startDate, startTime:req.query.startTime, address:req.query.address, notes:req.query.notes, memo:req.query.memo, registerID:req.query.username};
@@ -557,7 +558,7 @@ router.get('/generate_passcard_byClassID', function(req, res, next) {
     let batchID = data.returnValue;
     //console.log(data,":",batchID);
     let filename = "";
-    if(batchID > 0){
+    if(batchID > 0 && req.query.mark==0){
       //publish diploma on A4 with pdf
       //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
       sqlstr = process.env.NODE_ENV_BACKEND + "/pdfs_passcard.asp?refID=" + batchID;
@@ -567,8 +568,20 @@ router.get('/generate_passcard_byClassID', function(req, res, next) {
       pdf.genPDF(sqlstr, path, '297mm', '210mm', '', false, 0.5);
       //console.log('the path:',path);
       //return publish file path
-      response = [filename];
-      return res.send(response);
+      sqlstr = "updateGeneratePasscardFile";
+      params = {ID:batchID, filename:filename.replace("users/","/")};
+      //console.log(params);
+      //generate diploma data
+      let response = [];
+      db.excuteProc(sqlstr, params, function(err, data){
+        if (err) {
+          console.log(err);
+          response = [];
+          return res.send(response);
+        }
+        response = [batchID];
+        return res.send(response);
+      });
     }else{
       response = [];
       return res.send(response);
