@@ -545,7 +545,7 @@ router.get('/generate_entryform', function(req, res, next) {
 //mark: 0 生成准考证  1 保存信息
 router.get('/generate_passcard_byClassID', function(req, res, next) {
   sqlstr = "updateGeneratePasscardInfo";
-  params = {ID:req.query.ID, classID:req.query.classID, selList:req.query.selList, title:req.query.title, startDate:req.query.startDate, startTime:req.query.startTime, address:req.query.address, notes:req.query.notes, memo:req.query.memo, registerID:req.query.username};
+  params = {mark:req.query.mark, ID:req.query.ID, classID:req.query.classID, selList:req.query.selList, title:req.query.title, startNo:req.query.startNo, startDate:req.query.startDate, startTime:req.query.startTime, address:req.query.address, notes:req.query.notes, memo:req.query.memo, registerID:req.query.username};
   //console.log(params);
   //generate diploma data
   let response = [];
