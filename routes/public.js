@@ -140,7 +140,8 @@ router.get('/getStudentPhotoList', function(req, res) {
 
 //23b. getPasscardListByBatchID
 router.get('/getPasscardListByBatchID', function(req, res) {
-  sqlstr = "SELECT username,name,sexName,b.title,b.startDate,b.startTime,b.notes,b.address FROM v_studentCourseList a, v_generatePasscardInfo b where a.passcardID=b.ID and b.ID=@refID";
+  //sqlstr = "SELECT username,name,sexName,b.title,b.startDate,b.startTime,b.notes,b.address FROM v_studentCourseList a, v_generatePasscardInfo b where a.passcardID=b.ID and b.ID=@refID";
+  sqlstr = "SELECT username,name,sexName,passNo,password,b.title,b.startDate,b.startTime,b.notes,b.address FROM v_passcardInfo a, v_generatePasscardInfo b where a.refID=b.ID and b.ID=@refID";
   params = {refID:req.query.refID};
   //console.log("params:", params);
   db.excuteSQL(sqlstr, params, function(err, data){
