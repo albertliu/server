@@ -345,6 +345,36 @@ router.get('/get_cert_list', function (req, res, next) {
   });
 });
 
+//27. get_reexamine_diploma_list  return: 0 成功  9 其他
+router.get('/get_reexamine_diploma_list', function (req, res, next) {
+  sqlstr = "select dbo.getReexamineDiploma('" + req.query.username + "')";
+  params = {};
+  db.excuteSQL(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9 };
+      return res.send(response);
+    }
+    response = data.recordset;
+    return res.send(response);
+  });
+});
+
+//28. get_student_need2complete  return: 0 成功  9 其他
+router.get('/get_student_need2complete', function (req, res, next) {
+  sqlstr = "select dbo.getMissingItems(" + req.query.enterID + ") as item";
+  params = {};
+  db.excuteSQL(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9 };
+      return res.send(response);
+    }
+    response = data.recordset[0]["itme"];
+    return res.send(response);
+  });
+});
+
 /* POST students listing. */
 /*
 router.post('/*', function(req, res, next) {
@@ -601,6 +631,24 @@ router.post('/submit_student_feedback', function (req, res, next) {
     let response = { "status": data.returnValue, "msg": "" };
     return res.send(response);
   });
+});
+
+//28. set_reexamine_diploma  return: 0 成功  9 其他
+router.post('/set_reexamine_diploma', function (req, res, next) {
+  sqlstr = "setReexamineDiploma";
+  let list = req.body.list;
+  for(let i in list){
+    params = { enterID: list[i]["enterID"], item: list[i]["item"]};
+    db.excuteProc(sqlstr, params, function (err, data) {
+      if (err) {
+        console.log(err);
+        let response = { "status": 9 };
+        return res.send(response);
+      }
+    });
+  }
+  let response = { "status": 0, "msg": "" };
+  return res.send(response);
 });
 
 module.exports = router;
