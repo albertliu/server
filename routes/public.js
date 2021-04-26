@@ -3,9 +3,11 @@ var router = express.Router();
 var db = require("../utils/mssqldb");
 var sendsms = require("../utils/sendsms");
 let xlsx = require('xlsx');
+var qr = require('qr-image');
 const { NetworkAuthenticationRequire } = require('http-errors');
 var uploadHome = './users/upload/';
 var downloadHome = './users/public/';
+var homeUrl = process.env.NODE_ENV_HOME_URL;
 var response, sqlstr, params;
 
 /* GET home page. */
@@ -308,5 +310,20 @@ router.get('/resubmit_student_materials', function(req, res, next) {
     return res.send(response);
   });
 });
+
+router.get('/get_user_qr', function (req, res, next) {
+  //console.log("homeUrl:", homeUrl);
+  var text = homeUrl + "?username=" + req.query.username;
+  var size = req.query.size;
+  //console.log(homeUrl, text);
+  try {
+    var img = qr.image(text,{size: parseInt(size)});
+    res.writeHead(200, {'Content-Type': 'image/png'});
+    img.pipe(res);
+  } catch (e) {
+    res.writeHead(414, {'Content-Type': 'text/html'});
+    res.end('<h1>414 Request-URI Too Large</h1>');
+  }
+})
 
 module.exports = router;
