@@ -39,9 +39,10 @@ router.get('/getCompanyByHost', function (req, res, next) {
 router.get('/logout', function (req, res, next) {
   params = { username: req.session.user.username, student: 0 };
   sqlstr = "writeStudentLogoutLog";
+  let username = req.session.user.username;
   db.excuteProc(sqlstr, params, function (e, re) { });
-  res.send({ "status": 0, "msg": "成功退出。" });
   req.session.destroy();
+  return res.send({ "status": 0, "username": username });
 });
 
 //6. get_student
@@ -370,7 +371,7 @@ router.get('/get_student_need2complete', function (req, res, next) {
       let response = { "status": 9 };
       return res.send(response);
     }
-    response = data.recordset[0]["itme"];
+    response = data.recordset[0]["item"];
     return res.send(response);
   });
 });
@@ -391,7 +392,10 @@ router.post('/login', function (req, res, next) {
   var username = req.body.username;
   var ip = req.ip.match(/\d+\.\d+\.\d+\.\d+/)[0];
   var domain = req.hostname;
-  var cid = req.get('origin').split("//")[1].split(".")[0];
+  var cid = req.get('origin');
+  if(cid){
+    cid = cid.split("//")[1].split(".")[0];
+  }
   if (!cid) {
     cid = "spc";
   }
