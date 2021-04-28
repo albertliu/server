@@ -313,7 +313,7 @@ router.get('/resubmit_student_materials', function(req, res, next) {
 
 router.get('/get_user_qr', function (req, res, next) {
   //console.log("homeUrl:", homeUrl);
-  var text = homeUrl + "?username=" + req.query.username;
+  var text = "http://" + req.query.host + homeUrl.replace("http://",".") + "?username=" + req.query.username;
   var size = req.query.size;
   //console.log(homeUrl, text);
   try {
