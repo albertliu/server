@@ -48,6 +48,15 @@ var storage = multer.diskStorage({
       case "student_education":
         uploadFolder = "students/educations/";
         break;
+      case "student_CHESICC":
+        uploadFolder = "students/CHESICC/";
+        break;
+      case "student_employment":
+        uploadFolder = "students/employments/";
+        break;
+      case "student_jobCertificate":
+        uploadFolder = "students/jobCertificates/";
+        break;
       case "student_diploma":
         uploadFolder = "students/diplomas/";
         break;
@@ -99,6 +108,18 @@ var storage = multer.diskStorage({
         key = req.query.username;
         break;
       case "student_education":   //education image will name with the username and original type, and write the path to studentInfo.
+        fn = req.query.username;   //mark:a/b, the IDcard have A/B two faces, will be saved as a different name.
+        key = req.query.username;
+        break;
+      case "student_CHESICC":   //student photo will name with the username and original type, and write the path to studentInfo.
+        fn = req.query.username;
+        key = req.query.username;
+        break;
+      case "student_employment":   //IDcard image will name with the username and original type, and write the path to studentInfo(if need two faces, will deal with two files).
+        fn = req.query.username;   //mark:a/b, the IDcard have A/B two faces, will be saved as a different name.
+        key = req.query.username;
+        break;
+      case "student_jobCertificate":   //IDcard image will name with the username and original type, and write the path to studentInfo(if need two faces, will deal with two files).
         fn = req.query.username;   //mark:a/b, the IDcard have A/B two faces, will be saved as a different name.
         key = req.query.username;
         break;
@@ -208,7 +229,11 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
   response.file = file.path.substr(file.path.indexOf("\\"));
   response.count = 1;
   sqlstr = "setUploadSingleFileLink";
-  params = {"upID":upID, "key":key, "file":response.file, "multiple":0, "registerID":key};
+  let register = key;
+  if(currUser>""){
+    register = currUser;
+  }
+  params = {"upID":upID, "key":key, "file":response.file, "multiple":0, "registerID":register};
   //console.log("params:", params);
   db.excuteProc(sqlstr, params, function(err, data){
     if (err) {
@@ -587,6 +612,39 @@ router.get('/generate_passcard_byClassID', function(req, res, next) {
       return res.send(response);
     }
   });
+});
+
+//22a. generate_fireman_materials
+//status: 0 成功  9 其他  msg, filename
+router.get('/generate_fireman_materials', function(req, res, next) {
+    let filename = "";
+    if(req.query.enterID > 0){
+      //publish diploma on A4 with pdf
+      //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
+      sqlstr = process.env.NODE_ENV_BACKEND + "/pdfs_fireman.asp?item=" + req.query.username;
+      //console.log(sqlstr);
+      let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '.pdf';
+      filename = path.replace("users/","/");
+      pdf.genPDF(sqlstr, path, '210mm', '297mm', '', false, 0.5);
+      //console.log('the path:',path);
+      //return publish file path
+      sqlstr = "updateFiremanMaterials";
+      params = {enterID:req.query.enterID, filename:filename};
+      //console.log(params);
+      //generate diploma data
+      db.excuteProc(sqlstr, params, function(err, data){
+        if (err) {
+          console.log(err);
+          response = [];
+          return res.send(response);
+        }
+        response = [filename];
+        return res.send(response);
+      });
+    }else{
+      response = [];
+      return res.send(response);
+    }
 });
 
 router.get('/form', function(req, res, next){

@@ -176,6 +176,23 @@ router.get('/getNeed2knowByEnterID', function(req, res) {
   });
 });
 
+//23d. getStudentMaterials
+router.get('/getStudentMaterials', function(req, res) {
+  sqlstr = "select * from studentMaterials where username=@username order by kindID";
+  params = {username:req.query.username};
+  //console.log("params:", params);
+  db.excuteSQL(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      let response = {"status":9};
+      return res.send(response);
+    }
+    response = data.recordset;
+    //console.log(response);
+    return res.send(response);
+  });
+});
+
 
 //24. getRptList  generate a report, output a json data or an excel file.
 router.get('/getRptList', function(req, res) {
