@@ -231,7 +231,7 @@ router.get('/getStudentQuestionList', function (req, res, next) {
   //sqlstr = "exec writeStudentLoginLog @username, @host, @cid";
   sqlstr = "addQuestions4StudentExam";
   db.excuteProc(sqlstr, params, function (e, re) {
-    sqlstr = "select * from v_studentQuestionList where refID=" + req.query.paperID + " order by kindID";
+    sqlstr = "select * from v_studentQuestionList where refID=" + req.query.paperID;
     params = {};
     //console.log("params:", params);
     db.excuteSQL(sqlstr, params, function (err, data) {
