@@ -622,14 +622,23 @@ router.get('/generate_fireman_materials', function(req, res, next) {
       //publish diploma on A4 with pdf
       //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
       sqlstr = process.env.NODE_ENV_BACKEND + "/pdfs_fireman.asp?item=" + req.query.username;
-      //console.log(sqlstr);
-      let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '.pdf';
+      let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '证明材料.pdf';
       filename = path.replace("users/","/");
       pdf.genPDF(sqlstr, path, '210mm', '297mm', '', false, 0.5);
+      /*
+      sqlstr = process.env.NODE_ENV_BACKEND + "/entryform_C20.asp?nodeID=" + req.query.enterID + "&public=1&refID=" + req.query.username;
+      path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '报名表.pdf';
+      let filename1 = path.replace("users/","/");
+      pdf.genPDF(sqlstr, path, '210mm', '297mm', '', false, 0.5);
+      sqlstr = process.env.NODE_ENV_BACKEND + "/entryform_C20.asp?nodeID=" + req.query.enterID + "&public=0&refID=" + req.query.username;
+      path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + '.pdf';
+      pdf.genPDF(sqlstr, path, '210mm', '297mm', '', false, 0.5);
+      */
       //console.log('the path:',path);
       //return publish file path
       sqlstr = "updateFiremanMaterials";
-      params = {enterID:req.query.enterID, filename:filename};
+      //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
+      params = {enterID:req.query.enterID, filename:filename, filename1:""};
       //console.log(params);
       //generate diploma data
       db.excuteProc(sqlstr, params, function(err, data){

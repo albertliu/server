@@ -16,6 +16,8 @@ const pdf ={
       pageRanges: p,
       scale: s,
       landscape: land,
+      displayHeaderFooter: false,
+      printBackground: true,
       margin:{
         top:10,
         bottom:10,
