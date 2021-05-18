@@ -193,6 +193,23 @@ router.get('/getStudentMaterials', function(req, res) {
   });
 });
 
+//23e. getFiremanEnterInfo
+router.get('/getFiremanEnterInfo', function(req, res) {
+  sqlstr = "select *,[dbo].[getMissingItems](enterID) as missingItems from v_firemanEnterInfo where enterID=@refID";
+  params = {refID:req.query.refID};
+  //console.log("params:", params);
+  db.excuteSQL(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      let response = {"status":9};
+      return res.send(response);
+    }
+    response = data.recordset[0];
+    //console.log(response);
+    return res.send(response);
+  });
+});
+
 
 //24. getRptList  generate a report, output a json data or an excel file.
 router.get('/getRptList', function(req, res) {

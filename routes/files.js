@@ -11,6 +11,7 @@ var response, sqlstr, params;
 var uploadHome = './users/upload/';
 var pdf = require("../utils/pdf");
 var docx = require("../utils/docx");
+var zip = require("../utils/zip");
 const { array } = require('pizzip/js/support');
 var upID = "", key = "", mark = "", currUser = "", host = "", today = date.format(new Date(),'YYYY-MM-DD');
 
@@ -625,20 +626,16 @@ router.get('/generate_fireman_materials', function(req, res, next) {
       let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '证明材料.pdf';
       filename = path.replace("users/","/");
       pdf.genPDF(sqlstr, path, '210mm', '297mm', '', false, 0.5);
-      /*
-      sqlstr = process.env.NODE_ENV_BACKEND + "/entryform_C20.asp?nodeID=" + req.query.enterID + "&public=1&refID=" + req.query.username;
-      path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '报名表.pdf';
-      let filename1 = path.replace("users/","/");
-      pdf.genPDF(sqlstr, path, '210mm', '297mm', '', false, 0.5);
-      sqlstr = process.env.NODE_ENV_BACKEND + "/entryform_C20.asp?nodeID=" + req.query.enterID + "&public=0&refID=" + req.query.username;
-      path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + '.pdf';
-      pdf.genPDF(sqlstr, path, '210mm', '297mm', '', false, 0.5);
-      */
+      
+      sqlstr = process.env.NODE_ENV_BACKEND + "/pdf_entryform_C20.asp?nodeID=" + req.query.enterID;
+      let path1 = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '报名表.pdf';
+      let filename1 = path1.replace("users/","/");
+      pdf.genPDF(sqlstr, path1, '210mm', '297mm', '', false, 1);
       //console.log('the path:',path);
       //return publish file path
       sqlstr = "updateFiremanMaterials";
       //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
-      params = {enterID:req.query.enterID, filename:filename, filename1:""};
+      params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
       //console.log(params);
       //generate diploma data
       db.excuteProc(sqlstr, params, function(err, data){
@@ -654,6 +651,61 @@ router.get('/generate_fireman_materials', function(req, res, next) {
       response = [];
       return res.send(response);
     }
+});
+
+//22b. generate_fireman_zip
+//status: 0 成功  9 其他  msg, filename
+router.get('/generate_fireman_zip', function(req, res, next) {
+  let filename = "";
+  if(req.query.enterID > 0){
+    let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '.zip';
+    filename = path.replace("users/","/");
+    var p = [];
+    sqlstr = "select * from v_firemanEnterInfo where enterID=@enterID";   //获取指定招生批次下的已确认名单
+    params = {enterID:req.query.enterID};
+    db.excuteSQL(sqlstr, params, function(err, data1){
+      if (err) {
+        console.log(err);
+        response = [];
+        return res.send(response);
+      }
+      if(data1.recordset[0]["photo_filename"]>""){
+        p.push("users" + data1.recordset[0]["photo_filename"]);
+      }
+      if(data1.recordset[0]["IDa_filename"]>""){
+        p.push("users" + data1.recordset[0]["IDa_filename"]);
+      }
+      if(data1.recordset[0]["materials"]>""){
+        p.push("users" + data1.recordset[0]["materials"]);
+      }
+      if(data1.recordset[0]["materials1"]>""){
+        p.push("users" + data1.recordset[0]["materials1"]);
+      }
+      p.push('users/upload/projects/ref/消防行业职业技能鉴定考生报名指导手册.docx');
+      p.push('users/upload/projects/ref/消防行业职业技能鉴定考生报名过程演示.mp4');
+      //zip.doZIP([path,path1,'users/upload/projects/ref/消防行业职业技能鉴定考生报名指导手册.docx','users/upload/projects/ref/消防行业职业技能鉴定考生报名过程演示.mp4'],path2);
+      zip.doZIP(p,path);
+    });
+    //console.log('the path:',path);
+    //return publish file path
+    sqlstr = "updateFiremanZip";
+    //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
+    params = {enterID:req.query.enterID, zip:filename};
+    //console.log(params);
+    //generate diploma data
+    db.excuteProc(sqlstr, params, function(err, data){
+      if (err) {
+        console.log(err);
+        response = [];
+        return res.send(response);
+      }
+      response = [filename];
+      return res.send(response);
+    });
+  }else{
+    response = [];
+    return res.send(response);
+  }
 });
 
 router.get('/form', function(req, res, next){

@@ -17,7 +17,7 @@ const pdf ={
       scale: s,
       landscape: land,
       displayHeaderFooter: false,
-      printBackground: true,
+      printBackground: false,
       margin:{
         top:10,
         bottom:10,
