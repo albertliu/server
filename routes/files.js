@@ -625,12 +625,12 @@ router.get('/generate_fireman_materials', function(req, res, next) {
       sqlstr = process.env.NODE_ENV_BACKEND + "/pdfs_fireman.asp?item=" + req.query.username;
       let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '证明材料.pdf';
       filename = path.replace("users/","/");
-      pdf.genPDF(sqlstr, path, '210mm', '297mm', '', false, 0.5);
+      pdf.genPDF(sqlstr, path, '210mm', '297mm', '', false, 1);
       
       sqlstr = process.env.NODE_ENV_BACKEND + "/pdf_entryform_C20.asp?nodeID=" + req.query.enterID;
       let path1 = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '报名表.pdf';
       let filename1 = path1.replace("users/","/");
-      pdf.genPDF(sqlstr, path1, '210mm', '297mm', '', false, 1);
+      pdf.genPDF(sqlstr, path1, '210mm', '297mm', '', false, 0.5);
       //console.log('the path:',path);
       //return publish file path
       sqlstr = "updateFiremanMaterials";

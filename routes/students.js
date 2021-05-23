@@ -83,7 +83,7 @@ router.get('/getStudentCourseList', function (req, res, next) {
 
 //8. getStudentCertPickList
 router.get('/getStudentCertPickList', function (req, res, next) {
-  sqlstr = "select * from v_studentCertList where username='" + req.query.username + "' and status<2";
+  sqlstr = "select a.*,b.checked from v_studentCertList a, studentCourseList b where a.ID=b.refID and a.username='" + req.query.username + "' and a.status<2";
   params = {};
   //console.log("session:", req.session.user);
   db.excuteSQL(sqlstr, params, function (err, data) {
@@ -591,6 +591,8 @@ router.post('/add_student_certificate', function (req, res, next) {
       return res.send(response);
     } else {
       sqlstr = "addStudentCert";
+      params = { certID: req.body.certID, mark: req.body.mark, username: req.body.username, reexamine: req.body.reexamine };
+      //console.log(params);
       db.excuteProc(sqlstr, params, function (err, data1) {
         if (err) {
           console.log(err);
