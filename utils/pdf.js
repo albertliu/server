@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 
 const pdf ={
-  async genPDF(pdf_string, path, w, h, p, land, s) {
+  async genPDF(pdf_string, path, w, h, p, land, s, pb) {
     const browser = await puppeteer.launch({
       args: ['--disable-dev-shm-usage', '--no-sandbox'],
     });
@@ -15,9 +15,9 @@ const pdf ={
       height: h,
       pageRanges: p,
       scale: s,
-      landscape: land,
+      landscape: false,
       displayHeaderFooter: false,
-      printBackground: false,
+      printBackground: pb,
       margin:{
         top:10,
         bottom:10,

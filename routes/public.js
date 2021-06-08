@@ -108,10 +108,12 @@ router.get('/getDeptTreeJson', function(req, res, next) {
 
 //23. getDiplomaListByBatchID
 router.get('/getDiplomaListByBatchID', function(req, res) {
-  sqlstr = "SELECT diplomaID,name,certID,certName,startDate,term,host,dept1Name,title,job,logo,photo_filename,stamp FROM v_diplomaInfo where batchID=@refID";
-  params = {refID:req.query.refID};
+  //sqlstr = "SELECT diplomaID,name,certID,certName,startDate,term,host,dept1Name,title,job,logo,photo_filename,stamp FROM v_diplomaInfo where batchID=@refID";
+  sqlstr = "getDiplomaListByBatchID";
+  params = {batchID:req.query.refID};
   //console.log("params:", params);
-  db.excuteSQL(sqlstr, params, function(err, data){
+  //db.excuteSQL(sqlstr, params, function(err, data){
+  db.excuteProc(sqlstr, params, function(err, data){
     if (err) {
       console.log(err);
       let response = {"status":9};
