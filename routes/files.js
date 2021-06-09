@@ -475,15 +475,28 @@ router.get('/generate_diploma_byClassID', function(req, res, next) {
         }
         let arr = new Array();
         let certID = '';
+        let pW1 = '180mm';
+        let pH1 = '265mm';
+        let pW2 = '210mm';
+        let pH2 = '297mm';
         //generate diploma paper with pdf
         for (var i in data1.recordset){
-          certID = data1.recordset[i]["certID"];
-          let str = [data1.recordset[i]["diplomaID"],data1.recordset[i]["name"],data1.recordset[i]["username"],data1.recordset[i]["certID"],data1.recordset[i]["certName"],data1.recordset[i]["hostName"],data1.recordset[i]["job"],data1.recordset[i]["startDate"],data1.recordset[i]["endDate"],data1.recordset[i]["title"],data1.recordset[i]["photo_filename"],data1.recordset[i]["term"],data1.recordset[i]["sexName"],data1.recordset[i]["diplomaNo"]];
+          if(i==0){
+            certID = data1.recordset[i]["certID"];
+            if(certID=="C1" || certID=="C22" || certID=="C23"){
+              pW1 = '280mm';
+              pH1 = '180mm';
+              pW2 = '178mm';
+              pH2 = '123mm';
+              certID = "C1";
+            }
+          }
+          let str = [data1.recordset[i]["diplomaID"],data1.recordset[i]["name"],data1.recordset[i]["username"],data1.recordset[i]["certID"],data1.recordset[i]["certName"],data1.recordset[i]["hostName"],data1.recordset[i]["job"],data1.recordset[i]["startDate"],data1.recordset[i]["endDate"],data1.recordset[i]["title"],data1.recordset[i]["photo_filename"],data1.recordset[i]["term"],data1.recordset[i]["sexName"],data1.recordset[i]["diplomaNo"],data1.recordset[i]["educationName"],data1.recordset[i]["class_startDate"],data1.recordset[i]["class_endDate"]];
           sqlstr = process.env.NODE_ENV_BACKEND + "/pdf_" + certID + ".asp?kindID=" + (str.join(","));
           //console.log(str.join(","));
           let path = 'users/upload/students/diplomas/' + data1.recordset[i]["diplomaID"] + '.pdf';
           //console.log('path',path);
-          pdf.genPDF(sqlstr, path, '180mm', '265mm', '1', false, 1, true);
+          pdf.genPDF(sqlstr, path, pW1, pH1, '1', false, 1, true);
         }
         //publish diploma on A4 with pdf
         //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
@@ -491,7 +504,7 @@ router.get('/generate_diploma_byClassID', function(req, res, next) {
         //console.log(sqlstr);
         let path = 'users/upload/students/diplomaPublish/' + batchID + '.pdf';
         filename = path;
-        pdf.genPDF(sqlstr, path, '210mm', '297mm', '', false, 0.5, false);
+        pdf.genPDF(sqlstr, path, pW2, pH2, '', false, 0.5, false);
         //console.log('the path:',path);
         //return publish file path
         response = [filename];
