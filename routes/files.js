@@ -450,7 +450,7 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
 router.get('/generate_diploma_byClassID', function(req, res, next) {
   sqlstr = "updateGenerateDiplomaInfo";
   //@ID int,@classID varchar(50), @selList varchar(4000),@printed int,@printDate varchar(50),@delivery int,@deliveryDate varchar(50),@host nvarchar(50),@memo nvarchar(500),@registerID varchar(50)
-  params = {ID:0, classID:req.query.classID, selList:req.query.selList, printed:0, printDate:'', delivery:0, deliveryDate:'', host:'', memo:'', registerID:req.query.registerID};
+  params = {ID:0, classID:req.query.classID, selList:req.query.selList, startDate:req.query.startDate, printed:0, printDate:'', delivery:0, deliveryDate:'', host:'', memo:'', registerID:req.query.registerID};
   //console.log(params);
   //generate diploma data
   let response = [];
