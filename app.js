@@ -36,7 +36,7 @@ app.all('*', function (req, res, next) {
 */
 
 var corsOptions = {
-  origin: ['http://spc.shznxfxx.cn:3000','http://shm.shznxfxx.cn:3000','http://znxf.shznxfxx.cn:3000','http://shznxfxx.cn:3000','http://spc.localhost:3000','http://shm.localhost:3000','http://znxf.localhost:3000','http://127.0.0.1:3000','http://localhost:8082','http://znxf.localhost:8082','http://spc.localhost:8082','http://shznxfxx.cn','http://spc.shznxfxx.cn','http://znxf.shznxfxx.cn'],
+  origin: ['http://spc.shznxfxx.cn:3000','http://spc.shznxfxx.cn:3003','http://shm.shznxfxx.cn:3000','http://znxf.shznxfxx.cn:3000','http://znxf.shznxfxx.cn:3003','http://shznxfxx.cn:3000','http://spc.localhost:3000','http://shm.localhost:3000','http://znxf.localhost:3000','http://127.0.0.1:3000','http://localhost:8082','http://znxf.localhost:8082','http://spc.localhost:8082','http://shznxfxx.cn','http://spc.shznxfxx.cn','http://znxf.shznxfxx.cn','http://shznxfxx.cn:8082','http://spc.shznxfxx.cn:8082','http://znxf.shznxfxx.cn:8082'],
   //origin: ['http://spc.localtest.com:3000','http://127.0.0.1:3000'],
   credentials: true,
   optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
