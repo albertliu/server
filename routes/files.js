@@ -10,7 +10,8 @@ var response, sqlstr, params;
 var uploadHome = './users/upload/';
 var pdf = require("../utils/pdf");
 var docx = require("../utils/docx");
-let xlsx = require('../utils/xlsx');
+//let xlsx = require('../utils/xlsx');
+let xlsx = require('xlsx');
 var zip = require("../utils/zip");
 const { array } = require('pizzip/js/support');
 var upID = "", key = "", mark = "", currUser = "", host = "", today = date.format(new Date(),'YYYY-MM-DD');
@@ -274,9 +275,15 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
     let sheetNames = workbook.SheetNames; //获取表明
     let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
     var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
+    let score = 0;
     data1.forEach(val=>{
       sqlstr = "generateScore";
-      params = {"batchID":key, "username":val["身份证"], "certID":val["认证项目"], "score":""+val["成绩"], "startDate":val["发证日期"], "term": val["期限"], "diplomaID":""+val["证书编号"], "memo":val["备注"], "host":host, "registerID":currUser};
+      //params = {"batchID":key, "username":val["身份证"], "certID":val["认证项目"], "score":""+val["成绩"], "startDate":val["发证日期"], "term": val["期限"], "diplomaID":""+val["证书编号"], "memo":val["备注"], "host":host, "registerID":currUser};
+      score = val["成绩"];
+      if(typeof(score) == "undefined"){
+        score = '';
+      }
+      params = {"batchID":key, "username":val["身份证"], "score":score};
       //console.log("params:", params);
       db.excuteProc(sqlstr, params, function(err, data){
         if (err) {
@@ -285,6 +292,16 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
           return res.send(response);
         }
       });
+    });
+    sqlstr = "update generateScoreInfo set qty=" + data1.length + " where ID=" + key;
+    params = {};
+    //console.log("session:", req.session.user);
+    db.excuteSQL(sqlstr, params, function (err, data) {
+      if (err) {
+        console.log(err);
+        let response = { "status": 9 };
+        return res.send(response);
+      }
     });
     response.count = data1.length;
   }
@@ -450,7 +467,7 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
 router.get('/generate_diploma_byClassID', function(req, res, next) {
   sqlstr = "updateGenerateDiplomaInfo";
   //@ID int,@classID varchar(50), @selList varchar(4000),@printed int,@printDate varchar(50),@delivery int,@deliveryDate varchar(50),@host nvarchar(50),@memo nvarchar(500),@registerID varchar(50)
-  params = {ID:0, classID:req.query.classID, selList:req.query.selList, startDate:req.query.startDate, printed:0, printDate:'', delivery:0, deliveryDate:'', host:'', memo:'', registerID:req.query.registerID};
+  params = {ID:req.query.ID, certID:req.query.certID, selList:req.query.selList, startDate:req.query.startDate, printed:0, printDate:'', delivery:0, deliveryDate:'', host:'', memo:'', registerID:req.query.registerID};
   //console.log(params);
   //generate diploma data
   let response = [];
