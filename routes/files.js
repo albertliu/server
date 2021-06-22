@@ -468,7 +468,7 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
 router.get('/generate_diploma_byClassID', function(req, res, next) {
   sqlstr = "updateGenerateDiplomaInfo";
   //@ID int,@classID varchar(50), @selList varchar(4000),@printed int,@printDate varchar(50),@delivery int,@deliveryDate varchar(50),@host nvarchar(50),@memo nvarchar(500),@registerID varchar(50)
-  params = {ID:req.query.ID, certID:req.query.certID, selList:req.query.selList, startDate:req.query.startDate, printed:0, printDate:'', delivery:0, deliveryDate:'', host:'', memo:'', registerID:req.query.registerID};
+  params = {ID:req.query.ID, certID:req.query.certID, selList:req.query.selList, startDate:req.query.startDate, class_startDate:req.query.class_startDate, class_endDate:req.query.class_endDate, printed:0, printDate:'', delivery:0, deliveryDate:'', host:'', memo:'', registerID:req.query.registerID};
   //console.log(params);
   //generate diploma data
   let response = [];
@@ -525,7 +525,7 @@ router.get('/generate_diploma_byClassID', function(req, res, next) {
         pdf.genPDF(sqlstr, path, pW2, pH2, '', false, 0.5, false);
         //console.log('the path:',path);
         //return publish file path
-        response = [filename];
+        response = [batchID];
         return res.send(response);
       });
     }else{
