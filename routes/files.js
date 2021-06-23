@@ -284,7 +284,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
       if(typeof(score) == "undefined"){
         score = '';
       }
-      params = {"batchID":key, "username":val["身份证"], "score":score};
+      params = {"batchID":key, "passNo":val["考生标识"], "username":val["身份证"], "score":score};
       //console.log("params:", params);
       db.excuteProc(sqlstr, params, function(err, data){
         if (err) {
