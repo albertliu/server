@@ -5,6 +5,7 @@ var multer = require('multer');
 var util = require('util');
 var fs = require('fs');
 var date = require("silly-datetime");
+var images = require("images");
 
 var response, sqlstr, params;
 var uploadHome = './users/upload/';
@@ -843,23 +844,43 @@ router.get('/form', function(req, res, next){
 });
 
 //test
-router.get('/testPDF', function(req, res, next) {
-  sqlstr = "select * from v_diplomaInfo where ID=1";
-  params = {};
-  db.excuteSQL(sqlstr, params, function(err, data){
-    if (err) {
-      console.log(err);
-      let response = {"status":9};
-      return res.send(response);
-    }
-    let str = [data.recordset[0]["name"],data.recordset[0]["certName"],data.recordset[0]["diplomaID"],data.recordset[0]["dept1Name"],data.recordset[0]["job"],data.recordset[0]["startDate"],data.recordset[0]["term"],data.recordset[0]["title"],data.recordset[0]["photo_filename"],data.recordset[0]["logo"],data.recordset[0]["certID"],data.recordset[0]["host"]];
-    sqlstr = "http://localhost:8082/pdf.asp?kindID=" + (str.join("|"));
-    let path = 'users/upload/students/diplomas/' + data.recordset[0]["diplomaID"] + '.pdf';
-    //console.log(str.join("|"));
-    pdf.genSinglePDF(sqlstr, path);
-    response = data.recordset;
-    return res.send(response);
-  });
+router.get('/compressImages', function(req, res, next) {
+  let path = req.query.path;
+  //console.log(path);
+  fs.readdir(path, function(err, files){
+    //err 为错误 , files 文件名列表包含文件夹与文件
+        if(err){
+            console.log('error:\n' + err);
+            return;
+        }
+        let i = 0;
+        //console.log(1);
+        files.forEach(function(file){
+            //console.log("file:",file);
+            fs.stat(path + '/' + file, function(err, stat){
+                if(err){console.log(err); return;}
+                if(!stat.isDirectory() && file.indexOf('.png') == -1 && stat.size>100000){                 
+                    // 如果是文件夹遍历
+                    //explorer(path + '/' + file);
+                    // 读出所有的文件
+                    //console.log('文件名:' + path + '/' + file);
+                    var name = path + '/' + file;
+                    var outName = name;
+                    i += 1;
+                    images(name)
+
+                        .save(outName, {               //Save the image to a file,whih quality 50
+                                quality : 50                    //保存图片到文件,图片质量为50
+                            });
+
+                }               
+            });
+
+        });
+        response = [i];
+        return res.send(response);
+    
+    });
 });
 
 module.exports = router;
