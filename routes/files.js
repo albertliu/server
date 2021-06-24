@@ -277,14 +277,20 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
     let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
     var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let score = 0;
+    let un = "";
     data1.forEach(val=>{
       sqlstr = "generateScore";
       //params = {"batchID":key, "username":val["身份证"], "certID":val["认证项目"], "score":""+val["成绩"], "startDate":val["发证日期"], "term": val["期限"], "diplomaID":""+val["证书编号"], "memo":val["备注"], "host":host, "registerID":currUser};
       score = val["成绩"];
+      un = val["身份证"];
+
       if(typeof(score) == "undefined"){
         score = '';
       }
-      params = {"batchID":key, "passNo":val["考生标识"], "username":val["身份证"], "score":score};
+      if(typeof(un) == "undefined"){
+        un = '';
+      }
+      params = {"batchID":key, "passNo":String(val["考生标识"]), "username":un, "score":score};
       //console.log("params:", params);
       db.excuteProc(sqlstr, params, function(err, data){
         if (err) {
