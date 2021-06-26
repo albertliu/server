@@ -287,7 +287,7 @@ router.post('/reset_student_password', function(req, res, next) {
     //return: 0 success; other error:1 the user not exist  2 the phone error.
     //console.log(status,":",data.recordset[0]["password"])
     if(status==0){
-      sendsms.sendSMS(req.body.mobile, '', data.recordset[0]["password"], '', "reset_password");
+      sendsms.sendSMS(req.body.mobile, '', data.recordset[0]["password"], '', '', "reset_password");
       sqlstr = "writeSSMSlog";
       params = { username: req.body.username, mobile: req.body.mobile, kind: "密码重置", message: data.recordset[0]["password"], registerID: "system." };
       db.excuteProc(sqlstr, params, function (err, data1) {
@@ -329,7 +329,7 @@ router.get('/resubmit_student_materials', function(req, res, next) {
           address = re[i]["host"];
         }
         address = "http://" + address + ".shznxfxx.cn:3000";
-        sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["item"], address, "reupload_material");
+        sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["item"], address, '', "reupload_material");
         sqlstr = "writeSSMSlog";
         params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "资料不合规通知", message: re[i]["item"], registerID: req.query.registerID };
         //console.log(params);
@@ -340,6 +340,41 @@ router.get('/resubmit_student_materials', function(req, res, next) {
             return res.send(response);
           }
         });
+      }
+    }
+    let response = { "status": 0, "msg": "操作成功。" };
+    return res.send(response);
+  });
+});
+
+//4. 批量通知学员，考试时间地点。同时发送系统消息和短信。
+router.get('/send_message_exam', function(req, res, next) {
+  sqlstr = "sendMsg4Exam";
+  params = {batchID:req.query.batchID, registerID: req.query.registerID };
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9, msg:"系统错误。" };
+      return res.send(response);
+    }
+    //return: 0 success; other error:1 the user not exist  2 the phone error.
+    //console.log(data.recordset[0]);
+    if(req.query.SMS==1){ //发通知
+      let re = data.recordset;
+      for (var i in re){
+        if(re[i]["mobile"].length == 11){
+          sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], re[i]["dt"], "msg_exam");
+          sqlstr = "writeSSMSlog";
+          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "考试通知", message: re[i]["item"], registerID: req.query.registerID };
+          //console.log(params);
+          db.excuteProc(sqlstr, params, function (err, data1) {
+            if (err) {
+              console.log(err);
+              let response = { "status": 9, msg:"系统错误。" };
+              return res.send(response);
+            }
+          });
+        }
       }
     }
     let response = { "status": 0, "msg": "操作成功。" };
@@ -363,7 +398,7 @@ router.get('/get_user_qr', function (req, res, next) {
 })
 
 router.get('/msg_score', function (req, res, next) {
-  sendsms.sendSMS(req.query.phone, req.query.name, req.query.item, req.query.address, "msg_score");
+  sendsms.sendSMS(req.query.phone, req.query.name, req.query.item, req.query.address,'', "msg_score");
 })
 
 module.exports = router;

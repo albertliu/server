@@ -4,7 +4,7 @@ const accessKeyId = process.env.NODE_ENV_SMS_ACCESS;
 const secretAccessKey = process.env.NODE_ENV_SMS_KEY;
 
 const ssms ={
-    async sendSMS(phone, name, item, address, temp) {
+    async sendSMS(phone, name, item, address,dt, temp) {
         //发送短信
         var client = new Core({
           accessKeyId: accessKeyId,
@@ -25,7 +25,11 @@ const ssms ={
         }
         if(temp=="msg_score"){
           tc = "SMS_218725732";
-          pa = "{'name':'" + name + "','item':'" + item + ",'address':'" + address + "'}";
+          pa = "{'name':'" + name + "','item':'" + item + "','address':'" + address + "'}";
+        }
+        if(temp=="msg_exam"){
+          tc = "SMS_218286580";
+          pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "','address':'" + address + "'}";
         }
         
         var params = {
