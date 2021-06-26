@@ -23,6 +23,10 @@ const ssms ={
           //pa = "{'name':'" + name + "','item':'" + item + "','address':'" + address + "'}";
           pa = "{'name':'" + name + "','item':'" + item + "'}";
         }
+        if(temp=="msg_score"){
+          tc = "SMS_218725732";
+          pa = "{'name':'" + name + "','item':'" + item + ",'address':'" + address + "'}";
+        }
         
         var params = {
           "RegionId": "cn-hangzhou",
