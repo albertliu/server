@@ -399,6 +399,7 @@ router.get('/get_user_qr', function (req, res, next) {
 
 router.get('/msg_score', function (req, res, next) {
   sendsms.sendSMS(req.query.phone, req.query.name, req.query.item, req.query.address,'', "msg_score");
+  res.send(req.query.phone + "'s message send success!");
 })
 
 module.exports = router;
