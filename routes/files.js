@@ -712,6 +712,55 @@ router.get('/generate_passcard_byClassID', function(req, res, next) {
   });
 });
 
+//22. generate_diploma_byCertID
+//status: 0 成功  9 其他  msg, filename
+//mark: 0 生成准考证  1 保存信息
+router.get('/generate_passcard_byExamID', function(req, res, next) {
+  sqlstr = "setPassNo4Exam";
+  params = {examID:req.query.ID, registerID:req.query.username};
+  //console.log(params);
+  //generate diploma data
+  let response = [];
+  db.excuteProc(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      response = [];
+      return res.send(response);
+    }
+    let batchID = req.query.ID;
+    //console.log(data,":",batchID);
+    let filename = "";
+    if(batchID > 0 && req.query.mark==0){
+      //publish diploma on A4 with pdf
+      //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
+      sqlstr = env + "/pdfs_passcard.asp?refID=" + batchID;
+      //console.log(sqlstr);
+      let path = 'users/upload/students/passcardPublish/' + batchID + '.pdf';
+      filename = path;
+      pdf.genPDF(sqlstr, path, '297mm', '210mm', '', false, 0.5, false);
+      //console.log('the path:',path);
+      //return publish file path
+      sqlstr = "updateGeneratePasscardFile";
+      params = {ID:batchID, filename:filename.replace("users/","/")};
+      //console.log(params);
+      //generate diploma data
+      let response = [];
+      db.excuteProc(sqlstr, params, function(err, data){
+        if (err) {
+          console.log(err);
+          response = [];
+          return res.send(response);
+        }
+        response = [batchID];
+        return res.send(response);
+      });
+    }else{
+      response = [];
+      return res.send(response);
+    }
+  });
+});
+
 //22a. generate_fireman_materials
 //status: 0 成功  9 其他  msg, filename
 router.get('/generate_fireman_materials', function(req, res, next) {
