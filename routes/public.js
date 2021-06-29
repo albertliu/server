@@ -382,6 +382,41 @@ router.get('/send_message_exam', function(req, res, next) {
   });
 });
 
+//4. 批量通知学员，考试成绩。同时发送系统消息和短信。
+router.get('/send_message_score', function(req, res, next) {
+  sqlstr = "sendMsg4Score";
+  params = {batchID:req.query.batchID, registerID: req.query.registerID };
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9, msg:"系统错误。" };
+      return res.send(response);
+    }
+    //return: 0 success; other error:1 the user not exist  2 the phone error.
+    //console.log(data.recordset[0]);
+    if(req.query.SMS==1){ //发通知
+      let re = data.recordset;
+      for (var i in re){
+        if(re[i]["mobile"].length == 11){
+          sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], '', "msg_score");
+          sqlstr = "writeSSMSlog";
+          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "成绩通知", message: re[i]["item"], registerID: req.query.registerID };
+          //console.log(params);
+          db.excuteProc(sqlstr, params, function (err, data1) {
+            if (err) {
+              console.log(err);
+              let response = { "status": 9, msg:"系统错误。" };
+              return res.send(response);
+            }
+          });
+        }
+      }
+    }
+    let response = { "status": 0, "msg": "操作成功。" };
+    return res.send(response);
+  });
+});
+
 router.get('/get_user_qr', function (req, res, next) {
   //console.log("homeUrl:", homeUrl);
   var text = "http://" + req.query.host + homeUrl.replace("http://",".") + "?username=" + req.query.username;

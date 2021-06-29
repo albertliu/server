@@ -301,6 +301,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
         }
       });
     });
+    /*
     sqlstr = "update generateScoreInfo set qty=" + data1.length + " where ID=" + key;
     params = {};
     //console.log("session:", req.session.user);
@@ -311,6 +312,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
         return res.send(response);
       }
     });
+    */
     response.count = data1.length;
   }
   //console.log(response);
@@ -441,7 +443,8 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
           response = [];
           return res.send(response);
         }
-        let arr = new Array();
+        let pages = [];
+        let paths = [];
         //generate diploma paper with pdf
         for (var i in data1.recordset){
           let str = [data1.recordset[i]["name"],data1.recordset[i]["certName"],data1.recordset[i]["diplomaID"],data1.recordset[i]["dept1Name"],data1.recordset[i]["job"],data1.recordset[i]["startDate"],data1.recordset[i]["term"],data1.recordset[i]["title"],data1.recordset[i]["photo_filename"],data1.recordset[i]["logo"],data1.recordset[i]["certID"],data1.recordset[i]["host"],data1.recordset[i]["stamp"]];
@@ -449,15 +452,17 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
           //arr.push(str.join(","));
           let path = 'users/upload/students/diplomas/' + data1.recordset[i]["diplomaID"] + '.pdf';
           //console.log('path',path);
-          pdf.genPDF(sqlstr, path, '180mm', '120mm', '1', false, 1, false);
+          pages.push(sqlstr);
+          paths.push(path);
         }
+          pdf.genPDF(pages, paths, '180mm', '120mm', '1', false, 1, false);
         //publish diploma on A4 with pdf
         //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
         sqlstr = env + "/pdfs.asp?refID=" + batchID;
         //console.log(sqlstr);
         let path = 'users/upload/students/diplomaPublish/' + batchID + '.pdf';
         filename = path;
-        pdf.genPDF(sqlstr, path, '297mm', '210mm', '', false, 0.5, false);
+        pdf.genPDF([sqlstr], [path], '297mm', '210mm', '', false, 0.5, false);
         //console.log('the path:',path);
         //return publish file path
         response = [filename];
@@ -472,10 +477,10 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
 
 //22. generate_diploma_byClassID
 //status: 0 成功  9 其他  msg, filename
-router.get('/generate_diploma_byClassID', function(req, res, next) {
+router.post('/generate_diploma_byClassID', function(req, res, next) {
   sqlstr = "updateGenerateDiplomaInfo";
   //@ID int,@classID varchar(50), @selList varchar(4000),@printed int,@printDate varchar(50),@delivery int,@deliveryDate varchar(50),@host nvarchar(50),@memo nvarchar(500),@registerID varchar(50)
-  params = {ID:req.query.ID, certID:req.query.certID, selList:req.query.selList, startDate:req.query.startDate, class_startDate:req.query.class_startDate, class_endDate:req.query.class_endDate, printed:0, printDate:'', delivery:0, deliveryDate:'', host:'', memo:'', registerID:req.query.registerID};
+  params = {ID:req.query.ID, certID:req.query.certID, selList:req.body.selList, startDate:req.query.startDate, class_startDate:req.query.class_startDate, class_endDate:req.query.class_endDate, printed:0, printDate:'', delivery:0, deliveryDate:'', host:'', memo:'', registerID:req.query.registerID};
   //console.log(params);
   //generate diploma data
   let response = [];
@@ -504,32 +509,37 @@ router.get('/generate_diploma_byClassID', function(req, res, next) {
         let pH1 = '265mm';
         let pW2 = '210mm';
         let pH2 = '297mm';
+        let pages = [];
+        let paths = [];
+        certID = data1.recordset[0]["certID"];
+        if(certID=="C1" || certID=="C22" || certID=="C23"){
+          pW1 = '280mm';
+          pH1 = '180mm';
+          pW2 = '178mm';
+          pH2 = '123mm';
+          certID = "C1";
+        }
+
         //generate diploma paper with pdf
         for (var i in data1.recordset){
-          if(i==0){
-            certID = data1.recordset[i]["certID"];
-            if(certID=="C1" || certID=="C22" || certID=="C23"){
-              pW1 = '280mm';
-              pH1 = '180mm';
-              pW2 = '178mm';
-              pH2 = '123mm';
-              certID = "C1";
-            }
-          }
           let str = [data1.recordset[i]["diplomaID"],data1.recordset[i]["name"],data1.recordset[i]["username"],data1.recordset[i]["certID"],data1.recordset[i]["certName"],data1.recordset[i]["hostName"],data1.recordset[i]["job"],data1.recordset[i]["startDate"],data1.recordset[i]["endDate"],data1.recordset[i]["title"],data1.recordset[i]["photo_filename"],data1.recordset[i]["term"],data1.recordset[i]["sexName"],data1.recordset[i]["diplomaNo"],data1.recordset[i]["educationName"],data1.recordset[i]["class_startDate"],data1.recordset[i]["class_endDate"]];
           sqlstr = env + "/pdf_" + certID + ".asp?kindID=" + (str.join(","));
           //console.log(str.join(","));
           let path = 'users/upload/students/diplomas/' + data1.recordset[i]["diplomaID"] + '.pdf';
           //console.log('path',path);
-          pdf.genPDF(sqlstr, path, pW1, pH1, '1', false, 1, true);
+          pages.push(sqlstr);
+          paths.push(path);
+          //pdf.genPDF(sqlstr, path, pW1, pH1, '1', false, 1, false);
         }
+        pdf.genPDF(pages, paths, pW1, pH1, '1', false, 1, true);
         //publish diploma on A4 with pdf
         //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
         sqlstr = env + "/pdfs_diploma_" + certID + ".asp?refID=" + batchID;
         //console.log(sqlstr);
         let path = 'users/upload/students/diplomaPublish/' + batchID + '.pdf';
         filename = path;
-        pdf.genPDF(sqlstr, path, pW2, pH2, '', false, 0.5, false);
+        //pdf.genPDF(sqlstr, path, pW2, pH2, '', false, 0.5, false);
+        pdf.genPDF([sqlstr], [path], pW2, pH2, '', false, 0.5, false);
         //console.log('the path:',path);
         //return publish file path
         response = [batchID];
@@ -554,7 +564,7 @@ router.get('/generate_student_photos', function(req, res, next) {
   let path = 'users/public/temp/student_photos_' + Date.parse( new Date() ).toString() + '.pdf';
   filename = path;
   //console.log(sqlstr, filename);
-  pdf.genPDF(sqlstr, path, '297mm', '210mm', '1', false, 1, false);
+  pdf.genPDF([sqlstr], [path], '297mm', '210mm', '1', false, 1, false);
   //pdf.genPDF(sqlstr, path, '180mm', '120mm', '1', false, 1);
   
   //return publish file path
@@ -688,7 +698,7 @@ router.get('/generate_passcard_byClassID', function(req, res, next) {
       //console.log(sqlstr);
       let path = 'users/upload/students/passcardPublish/' + batchID + '.pdf';
       filename = path;
-      pdf.genPDF(sqlstr, path, '297mm', '210mm', '', false, 0.5, false);
+      pdf.genPDF([sqlstr], [path], '297mm', '210mm', '', false, 0.5, false);
       //console.log('the path:',path);
       //return publish file path
       sqlstr = "updateGeneratePasscardFile";
@@ -737,7 +747,7 @@ router.get('/generate_passcard_byExamID', function(req, res, next) {
       //console.log(sqlstr);
       let path = 'users/upload/students/passcardPublish/' + batchID + '.pdf';
       filename = path;
-      pdf.genPDF(sqlstr, path, '297mm', '210mm', '', false, 0.5, false);
+      pdf.genPDF([sqlstr], [path], '297mm', '210mm', '', false, 0.5, false);
       //console.log('the path:',path);
       //return publish file path
       sqlstr = "updateGeneratePasscardFile";
@@ -771,12 +781,12 @@ router.get('/generate_fireman_materials', function(req, res, next) {
       sqlstr = env + "/pdfs_fireman.asp?item=" + req.query.username;
       let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '证明材料.pdf';
       filename = path.replace("users/","/");
-      pdf.genPDF(sqlstr, path, '210mm', '297mm', '', false, 1, false);
+      pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
       
       sqlstr = env + "/pdf_entryform_C20.asp?nodeID=" + req.query.enterID;
       let path1 = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '报名表.pdf';
       let filename1 = path1.replace("users/","/");
-      pdf.genPDF(sqlstr, path1, '210mm', '297mm', '', false, 0.5, false);
+      pdf.genPDF([sqlstr], [path1], '210mm', '297mm', '', false, 0.5, false);
       //console.log('the path:',path);
       //return publish file path
       sqlstr = "updateFiremanMaterials";
