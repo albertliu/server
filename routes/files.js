@@ -85,6 +85,9 @@ var storage = multer.diskStorage({
       case "score_list":
         uploadFolder = "students/scoreList/";
         break;
+      case "ref_student_list":
+        uploadFolder = "students/ref_student_list/";
+        break;
       default:
         uploadFolder = "others/";
     }
@@ -155,6 +158,10 @@ var storage = multer.diskStorage({
         break;
       case "score_list":   //courseware image will keep the original name(hostNo) and type, and write the path to hostInfo.
         fn = 'scorelist' + req.query.username;
+        key = req.query.username;
+        break;
+      case "ref_student_list":   //courseware image will keep the original name(hostNo) and type, and write the path to hostInfo.
+        fn = 'ref_student_list' + req.query.username;
         key = req.query.username;
         break;
       default:
@@ -248,7 +255,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
     response.count = 1;
   });
 
-  //deal xlsx
+  //deal xlsx  学员注册
   if(upID == "student_list"){
     //console.log("file:", file.path);
     let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
@@ -270,7 +277,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
     response.count = data1.length;
   }
 
-  //deal xlsx
+  //deal xlsx 成绩单
   if(upID == "score_list"){
     //console.log("file:", file.path);
     let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
@@ -301,18 +308,58 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
         }
       });
     });
-    /*
-    sqlstr = "update generateScoreInfo set qty=" + data1.length + " where ID=" + key;
-    params = {};
-    //console.log("session:", req.session.user);
-    db.excuteSQL(sqlstr, params, function (err, data) {
+    response.count = data1.length;
+  }
+
+  //deal xlsx 预报名名单
+  if(upID == "ref_student_list"){
+    //console.log("file:", file.path);
+    //先删除以前的名单
+    sqlstr = "delRefStudent";
+    params = {"batchID":key};
+    db.excuteProc(sqlstr, params, function(err, data){
       if (err) {
         console.log(err);
-        let response = { "status": 9 };
+        let response = {"status":9};
         return res.send(response);
       }
     });
-    */
+    
+    let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
+    let sheetNames = workbook.SheetNames; //获取表名
+    let sheet = workbook.Sheets[sheetNames[0]]; //通过表名得到表对象
+    if(sheet['A1'] != '序号'){
+      deleteRow(sheet,0); //删除第一行(标题)
+    }
+    var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
+    let phone = "";
+    let un = "";
+    let ex = "";
+    data1.forEach(val=>{
+      sqlstr = "generateRefStudent";
+      phone = val["手机"];
+      un = val["身份证号码"];
+      ex = val["证书有效期"];
+
+      if(typeof(phone) == "undefined"){
+        phone = '';
+      }
+      if(typeof(un) == "undefined"){
+        un = '';
+      }
+      if(typeof(ex) == "undefined"){
+        ex = '';
+      }
+      params = {"batchID":key, "ID":String(val["序号"]), "dept1":val["公司"], "dept2":val["加油站名称"], "name":val["姓名"], "username":un, "education":val["文化程度"], "job":val["岗位"], "mobile":String(phone), "expireDate":String(ex), "memo":val["备注"], "invoice":val["开票信息"]};
+      //console.log("params:", params);
+      db.excuteProc(sqlstr, params, function(err, data){
+        if (err) {
+          console.log(err);
+          let response = {"status":9};
+          return res.send(response);
+        }
+      });
+    });
     response.count = data1.length;
   }
   //console.log(response);
@@ -941,5 +988,39 @@ router.get('/compressImages', function(req, res, next) {
     
     });
 });
+
+function encodeCell(r, c) {
+  return xlsx.utils.encode_cell({ r, c });
+}
+
+//删除指定一行  ws:wooksheet, index: 行号 0开始
+function deleteRow(ws, index) {
+  const range = xlsx.utils.decode_range(ws['!ref']);
+
+  for (let row = index; row < range.e.r; row++) {
+      for (let col = range.s.c; col <= range.e.c; col++) {
+          ws[encodeCell(row, col)] = ws[encodeCell(row + 1, col)];
+      }
+  }
+
+  range.e.r--;
+
+  ws['!ref'] = xlsx.utils.encode_range(range.s, range.e);
+}
+
+//删除指定一列  ws:wooksheet, index: 列号 0开始
+function deleteCol(ws, index) {
+  const range = xlsx.utils.decode_range(ws['!ref']);
+
+  for (let col = index; col < range.e.c; col++) {
+      for (let row = range.s.r; row <= range.e.r; row++) {
+          ws[encodeCell(row, col)] = ws[encodeCell(row, col + 1)];
+      }
+  }
+
+  range.e.c--;
+
+  ws['!ref'] = xlsx.utils.encode_range(range.s, range.e);
+}
 
 module.exports = router;
