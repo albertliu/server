@@ -31,6 +31,14 @@ const ssms ={
           tc = "SMS_218286580";
           pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "','address':'" + address + "'}";
         }
+        if(temp=="msg_class"){
+          tc = "SMS_219616263";
+          pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "','address':'" + address + "'}";
+        }
+        if(temp=="msg_photo"){
+          tc = "SMS_219616263";
+          pa = "{'name':'" + name + "','item':'" + item + "','address':'" + address + "'}";
+        }
         
         var params = {
           "RegionId": "cn-hangzhou",
