@@ -559,7 +559,7 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
         let pages = [];
         let paths = [];
         certID = data1.recordset[0]["certID"];
-        if(certID=="C1" || certID=="C22" || certID=="C23"){
+        if(certID!="C2"){
           pW1 = '280mm';
           pH1 = '180mm';
           pW2 = '178mm';
