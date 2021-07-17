@@ -11,7 +11,7 @@ var response, sqlstr, params;
 var uploadHome = './users/upload/';
 var pdf = require("../utils/pdf");
 var docx = require("../utils/docx");
-//let xlsx = require('../utils/xlsx');
+let xlsxx = require('../utils/xlsx');
 let xlsx = require('xlsx');
 var zip = require("../utils/zip");
 const { array } = require('pizzip/js/support');
@@ -915,11 +915,12 @@ router.get('/generate_fireman_zip', function(req, res, next) {
 //status: 0 成功  9 其他  msg, filename
 router.get('/generate_refund_list', function(req, res, next) {
   let filename = "";
-  if(req.query.selList > ''){
+  if(req.query.classID > ''){
     //publish diploma on A4 with pdf
     //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
-    sqlstr = "select * from dbo.getRefundList(@selList,@price)";
-    params = {selList:req.query.selList, price:req.query.price};
+    //sqlstr = "select * from dbo.getRefundList(@selList,@price)";
+    sqlstr = "select * from dbo.getRefundListByClass(@classID,@price)";
+    params = {classID:req.query.classID, price:req.query.price};
     db.excuteSQL(sqlstr, params, function(err, data){
       if (err) {
         console.log(err);
@@ -931,7 +932,7 @@ router.get('/generate_refund_list', function(req, res, next) {
       let path = 'users/upload/projects/templates/退费清单模板.xlsx';
       //generate diploma paper with pdf
       let path1 = 'users/upload/others/退费清单' + '_' + Date.now() + '.xlsx';
-      xlsx.writeExcel({"title":{"className":req.query.class, "date":today}, "list":data.recordset},path,path1,function(fn){
+      xlsxx.writeExcel({"title":{"className":req.query.className, "date":today}, "list":data.recordset},path,path1,function(fn){
         //console.log('the class:',req.query.class);
         //return publish file path
         response = [fn];

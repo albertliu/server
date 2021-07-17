@@ -56,6 +56,7 @@ router.get('/get_student', function (req, res, next) {
       let response = { "status": 9 };
       return res.send(response);
     }
+    /*
     //console.log(req);
     let p = "insert into log_get_student(username,ip,host) values('" + req.query.username + "','" + req.ip.match(/\d+\.\d+\.\d+\.\d+/)[0] + "','" + req.subdomains[0] + "')";
     db.excuteSQL(p, {}, function (err1, data1) {
@@ -65,6 +66,7 @@ router.get('/get_student', function (req, res, next) {
         return res.send(response);
       }
     });
+    */
     response = data.recordset;
     return res.send(response);
   });
