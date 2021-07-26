@@ -312,7 +312,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
       if(typeof(un) == "undefined"){
         un = '';
       }
-      params = {"batchID":key, "passNo":String(val["考生标识"]), "username":un, "name":String(val["姓名"]), "score":score};
+      params = {"batchID":key, "passNo":String(val["考生标识"]), "username":un, "name":String(val["姓名"]), "score":String(score)};
       //console.log("params:", params);
       db.excuteProc(sqlstr, params, function(err, data){
         if (err) {
