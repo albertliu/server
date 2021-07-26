@@ -88,6 +88,12 @@ var storage = multer.diskStorage({
       case "ref_student_list":
         uploadFolder = "students/ref_student_list/";
         break;
+      case "apply_list":
+        uploadFolder = "students/apply_list/";
+        break;
+      case "apply_score_list":
+        uploadFolder = "students/apply_score_list/";
+        break;
       default:
         uploadFolder = "others/";
     }
@@ -162,6 +168,14 @@ var storage = multer.diskStorage({
         break;
       case "ref_student_list":   //courseware image will keep the original name(hostNo) and type, and write the path to hostInfo.
         fn = 'ref_student_list' + req.query.username;
+        key = req.query.username;
+        break;
+      case "apply_list":   //courseware image will keep the original name(hostNo) and type, and write the path to hostInfo.
+        fn = 'applylist' + req.query.username;
+        key = req.query.username;
+        break;
+      case "apply_score_list":   //courseware image will keep the original name(hostNo) and type, and write the path to hostInfo.
+        fn = 'applyScorelist' + req.query.username;
         key = req.query.username;
         break;
       default:
@@ -308,6 +322,141 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
         }
       });
     });
+    response.count = data1.length;
+  }
+
+  //deal xlsx 申报结果导入
+  if(upID == "apply_list"){
+    //console.log("file:", file.path);
+    let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
+    let sheetNames = workbook.SheetNames; //获取表明
+    let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
+    deleteRow(sheet,0); //删除第1行
+    deleteRow(sheet,0); //删除第2行
+    deleteRow(sheet,0); //删除第3行
+    deleteRow(sheet,0); //删除第4行
+    deleteRow(sheet,0); //删除第5行
+    deleteRow(sheet,0); //删除第6行
+    deleteRow(sheet,0); //删除第7行
+    //第8行是列标题
+    var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
+    let un = "";
+    let dt = "";
+    let n = data1.length;
+    let m = 0;
+    data1.forEach(val=>{
+      sqlstr = "generateApply";
+      //params = {"batchID":key, "username":val["证件号码"], "certID":val["认证项目"], "score":""+val["成绩"], "startDate":val["发证日期"], "term": val["期限"], "diplomaID":""+val["证书编号"], "memo":val["备注"], "host":host, "registerID":currUser};
+      un = val["证件号码"];
+      dt = new Date(new Date("1900-01-01").getTime() + (val["考试时间"] - 2) * 3600*24*1000 - 3600*8*1000); 
+      dt = dt.Format("yyyy-MM-dd hh:mm");
+
+      if(typeof(un) == "undefined"){
+        un = '';
+      }
+      
+      params = {"batchID":key, "passNo":String(val["考核号"]), "username":un, "name":String(val["姓名"]), "examDate":dt};
+      //console.log("params:", params);
+      db.excuteProc(sqlstr, params, function(err, data){
+        if (err) {
+          console.log(err);
+          let response = {"status":9};
+          return res.send(response);
+        }
+      });
+      m += 1;
+      if(m==n){
+        //处理完名单后，删除申报未通过的人
+        sqlstr = "dealGenerateApply";
+        params = {"batchID":key, "registerID":currUser};
+        db.excuteProc(sqlstr, params, function(err, data2){
+          if (err) {
+            console.log(err);
+            let response = {"status":9};
+            return res.send(response);
+          }
+        });
+      }
+    });
+    
+    response.count = data1.length;
+  }
+
+  //deal xlsx 申报成绩证书导入
+  if(upID == "apply_score_list"){
+    //console.log("file:", file.path);
+    let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
+    let sheetNames = workbook.SheetNames; //获取表明
+    let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
+    deleteRow(sheet,0); //删除第1行
+    deleteRow(sheet,0); //删除第2行
+    deleteRow(sheet,0); //删除第3行
+    deleteRow(sheet,0); //删除第4行
+    deleteRow(sheet,0); //删除第5行
+    //第6行是列标题
+    var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
+    let un = "";
+    let up = "";
+    let score1 = "";
+    let score2 = "";
+    let pn = "";
+    let n = data1.length;
+    let m = 0;
+    let arr = "";
+    data1.forEach(val=>{
+      sqlstr = "generateApplyScore";
+      arr = Object.values(val);
+      //params = {"batchID":key, "username":val["证件号码"], "certID":val["认证项目"], "score":""+val["成绩"], "startDate":val["发证日期"], "term": val["期限"], "diplomaID":""+val["证书编号"], "memo":val["备注"], "host":host, "registerID":currUser};
+      un = val["或其他证件号码"];
+      //up = val["上传"];
+      up = arr[10];
+      score1 = val["应知"];
+      score2 = val["应会"];
+      pn = arr[9];
+
+      if(typeof(un) == "undefined"){
+        un = '';
+      }
+      if(typeof(up) == "undefined"){
+        up = '';
+      }
+      if(typeof(pn) == "undefined"){
+        pn = '';
+      }
+      if(typeof(score1) == "undefined"){
+        score1 = '';
+      }
+      if(typeof(score2) == "undefined"){
+        score2 = '';
+      }
+      
+      //params = {"batchID":key, "passNo":String(val["操作证号码"]), "username":un, "name":String(val["姓名"]), "pass":up, "score1":score1, "score2":score2};
+      params = {"batchID":key, "passNo":pn.replace(/\s+/g,""), "username":un.replace(/\s+/g,""), "name":arr[3], "pass":up, "score1":score1, "score2":score2, "startDate":req.query.para, "registerID":currUser};
+      //console.log("params:", params);
+      
+      db.excuteProc(sqlstr, params, function(err, data){
+        if (err) {
+          console.log(err);
+          let response = {"status":9};
+          return res.send(response);
+        }
+      });
+      m += 1;
+      if(m==n){
+        //处理完名单后，填写发证日期
+        sqlstr = "setGenerateApplyIssue";
+        params = {"batchID":key, "startDate":req.query.para, "registerID":currUser};
+        db.excuteProc(sqlstr, params, function(err, data2){
+          if (err) {
+            console.log(err);
+            let response = {"status":9};
+            return res.send(response);
+          }
+        });
+      }
+      
+    });
+    
     response.count = data1.length;
   }
 
@@ -1026,4 +1175,52 @@ function deleteCol(ws, index) {
   ws['!ref'] = xlsx.utils.encode_range(range.s, range.e);
 }
 
+Date.prototype.Format = function(fmt)   
+{ 
+//author:wangweizhen
+  var o = {   
+    "M+" : this.getMonth()+1,                 //月份   
+    "d+" : this.getDate(),                    //日
+    "h+" : this.getHours(),                   //小时   
+    "m+" : this.getMinutes(),                 //分   
+    "s+" : this.getSeconds(),                 //秒   
+    "q+" : Math.floor((this.getMonth()+3)/3), //季度   
+    "S"  : this.getMilliseconds()             //毫秒   
+  };   
+  if(/(y+)/.test(fmt))   
+    fmt=fmt.replace(RegExp.$1, (this.getFullYear()+"").substr(4 - RegExp.$1.length));   
+  for(var k in o)   
+    if(new RegExp("("+ k +")").test(fmt))   
+  fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));   
+  return fmt;   
+}; 
+
+/*
+Date.prototype.Format = function(formatStr)   
+{   
+    var str = formatStr;   
+    var Week = ['日','一','二','三','四','五','六'];  
+  
+    str=str.replace(/yyyy|YYYY/,this.getFullYear());   
+    str=str.replace(/yy|YY/,(this.getYear() % 100)>9?(this.getYear() % 100).toString():'0' + (this.getYear() % 100));   
+  
+    str=str.replace(/MM/,this.getMonth()>9?this.getMonth().toString():'0' + this.getMonth());   
+    str=str.replace(/M/g,this.getMonth());   
+  
+    str=str.replace(/w|W/g,Week[this.getDay()]);   
+  
+    str=str.replace(/dd|DD/,this.getDate()>9?this.getDate().toString():'0' + this.getDate());   
+    str=str.replace(/d|D/g,this.getDate());   
+  
+    str=str.replace(/hh|HH/,this.getHours()>9?this.getHours().toString():'0' + this.getHours());   
+    str=str.replace(/h|H/g,this.getHours());   
+    str=str.replace(/mm/,this.getMinutes()>9?this.getMinutes().toString():'0' + this.getMinutes());   
+    str=str.replace(/m/g,this.getMinutes());   
+  
+    str=str.replace(/ss|SS/,this.getSeconds()>9?this.getSeconds().toString():'0' + this.getSeconds());   
+    str=str.replace(/s|S/g,this.getSeconds());   
+  
+    return str;   
+}*/   
+  
 module.exports = router;
