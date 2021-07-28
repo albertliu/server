@@ -43,7 +43,7 @@ const ssms ={
         var params = {
           "RegionId": "cn-hangzhou",
           "PhoneNumbers": phone,
-          "SignName": "上海网蓝信息技术有限公司",
+          "SignName": "上海智能消防学校",
           "TemplateCode": tc,
           "TemplateParam": pa
         }
