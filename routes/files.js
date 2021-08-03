@@ -278,7 +278,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
     var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     data1.forEach(val=>{
       sqlstr = "generateStudent";
-      params = {"username":val["身份证"], "name":val["姓名"], "dept1Name":val["部门"], "job":val["工种"], "mobile": ""+val["手机"], "phone":""+val["电话"], "email":""+val["邮箱"], "memo":val["备注"], "host":host, "certID":val["报名课程"], "registerID":currUser, "mark":val["更新"]};
+      params = {"username":val["身份证"], "name":val["姓名"], "dept1Name":val["部门"], "job":val["工种"], "mobile": ""+val["手机"], "phone":""+val["电话"], "education":val["文化程度"], "memo":val["备注"], "classID":key, "registerID":currUser};
       //console.log("params:", params);
       db.excuteProc(sqlstr, params, function(err, data){
         if (err) {
