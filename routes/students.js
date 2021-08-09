@@ -136,6 +136,22 @@ router.get('/getStudentCertCourseList', function (req, res, next) {
   });
 });
 
+//8c. getExamListByUsername
+router.get('/getExamListByUsername', function (req, res, next) {
+  sqlstr = "select * from dbo.getExamListByUsername('" + req.query.username + "') order by startDate";
+  params = {};
+  //console.log("params:", params);
+  db.excuteSQL(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9 };
+      return res.send(response);
+    }
+    response = data.recordset;
+    return res.send(response);
+  });
+});
+
 //9. getStudentLessonList
 router.get('/getStudentLessonList', function (req, res, next) {
   sqlstr = "select * from dbo.getStudentLessonList(" + req.query.refID + ")";
