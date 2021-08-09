@@ -276,9 +276,14 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
     let sheetNames = workbook.SheetNames; //获取表明
     let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
     var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
+    let pn = "";
     data1.forEach(val=>{
+      pn = val["电话"];
+      if(typeof(pn) == "undefined"){
+        pn = '';
+      }
       sqlstr = "generateStudent";
-      params = {"username":val["身份证"].replace(/\s+/g,""), "name":val["姓名"].replace(/\s+/g,""), "dept1Name":val["部门"], "job":val["工种"], "mobile": ""+val["手机"], "phone":""+val["电话"], "education":val["文化程度"], "memo":val["备注"], "classID":key, "registerID":currUser};
+      params = {"username":val["身份证"].replace(/\s+/g,""), "name":val["姓名"].replace(/\s+/g,""), "dept1Name":val["部门"], "job":val["工种"], "mobile": ""+val["手机"], "phone":""+pn, "education":val["文化程度"], "memo":val["备注"], "classID":key, "registerID":currUser};
       //console.log("params:", params);
       db.excuteProc(sqlstr, params, function(err, data){
         if (err) {
