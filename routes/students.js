@@ -234,7 +234,7 @@ router.get('/getStudentCourseware', function (req, res, next) {
 
 //11. getStudentExamInfo
 router.get('/getStudentExamInfo', function (req, res, next) {
-  sqlstr = "select * from v_studentExamList where paperID=" + req.query.paperID;
+  sqlstr = "select *,dbo.getOnlineExamStatus(paperID) as startExamMsg from v_studentExamList where paperID=" + req.query.paperID;
   params = {};
   //console.log("params:", params);
   db.excuteSQL(sqlstr, params, function (err, data) {
