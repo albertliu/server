@@ -361,7 +361,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
       }
       
       params = {"batchID":key, "passNo":String(val["考核号"]), "username":un.replace(/\s+/g,""), "name":String(val["姓名"]), "examDate":dt};
-      console.log("params:", params);
+      //console.log("params:", params);
       db.excuteProc(sqlstr, params, function(err, data){
         if (err) {
           console.log(err);
