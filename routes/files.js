@@ -359,7 +359,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
       sqlstr = "generateApply";
       //params = {"batchID":key, "username":val["证件号码"], "certID":val["认证项目"], "score":""+val["成绩"], "startDate":val["发证日期"], "term": val["期限"], "diplomaID":""+val["证书编号"], "memo":val["备注"], "host":host, "registerID":currUser};
       un = val["证件号码"];
-      if(val["考试时间"].slice(0,3) != "202"){
+      if(String(val["考试时间"]).slice(0,3) != "202"){
         dt = new Date(new Date("1900-01-01").getTime() + (val["考试时间"] - 2) * 3600*24*1000 - 3600*8*1000 + 60*1000); 
         dt = dt.Format("yyyy-MM-dd hh:mm");
       }else{
