@@ -336,6 +336,11 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
     let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
     let sheetNames = workbook.SheetNames; //获取表明
     let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
+    //console.log(sheet["A1"].v);
+    while(sheet["A1"].v != "学号"){
+      deleteRow(sheet,0); //删除第表头
+    }
+    /*
     deleteRow(sheet,0); //删除第1行
     deleteRow(sheet,0); //删除第2行
     deleteRow(sheet,0); //删除第3行
@@ -343,6 +348,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
     deleteRow(sheet,0); //删除第5行
     deleteRow(sheet,0); //删除第6行
     deleteRow(sheet,0); //删除第7行
+    */
     //第8行是列标题
     var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let un = "";
@@ -353,8 +359,12 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
       sqlstr = "generateApply";
       //params = {"batchID":key, "username":val["证件号码"], "certID":val["认证项目"], "score":""+val["成绩"], "startDate":val["发证日期"], "term": val["期限"], "diplomaID":""+val["证书编号"], "memo":val["备注"], "host":host, "registerID":currUser};
       un = val["证件号码"];
-      dt = new Date(new Date("1900-01-01").getTime() + (val["考试时间"] - 2) * 3600*24*1000 - 3600*8*1000 + 60*1000); 
-      dt = dt.Format("yyyy-MM-dd hh:mm");
+      if(val["考试时间"].slice(0,3) != "202"){
+        dt = new Date(new Date("1900-01-01").getTime() + (val["考试时间"] - 2) * 3600*24*1000 - 3600*8*1000 + 60*1000); 
+        dt = dt.Format("yyyy-MM-dd hh:mm");
+      }else{
+        dt = val["考试时间"];
+      }
 
       if(typeof(un) == "undefined"){
         un = '';
