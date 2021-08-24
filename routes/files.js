@@ -403,11 +403,16 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
     let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
     let sheetNames = workbook.SheetNames; //获取表明
     let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
+    while(sheet["A1"].v != "学号"){
+        deleteRow(sheet,0); //删除第表头
+    }
+    /*
     deleteRow(sheet,0); //删除第1行
     deleteRow(sheet,0); //删除第2行
     deleteRow(sheet,0); //删除第3行
     deleteRow(sheet,0); //删除第4行
     deleteRow(sheet,0); //删除第5行
+    */
     //第6行是列标题
     var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let un = "";
