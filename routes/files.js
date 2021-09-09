@@ -438,10 +438,10 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
       if(typeof(pn) == "undefined"){
         pn = '';
       }
-      if(typeof(score1) == "undefined"){
+      if(typeof(score1) == "undefined" || parseFloat(score1).toString() == "NaN"){
         score1 = '';
       }
-      if(typeof(score2) == "undefined"){
+      if(typeof(score2) == "undefined" || parseFloat(score2).toString() == "NaN"){
         score2 = '';
       }
       
