@@ -623,4 +623,122 @@ router.get('/msg_score', function (req, res, next) {
   res.send(req.query.phone + "'s message send success!");
 })
 
+//getEnterRpt
+router.post('/getEnterRpt', function(req, res) {
+    sqlstr = "getEnterRpt";
+    params = {refID:req.body.refID, startDate:req.body.startDate, endDate:req.body.endDate, certID:req.body.certID};
+    //console.log("params:", params);
+    db.excuteProc(sqlstr, params, function(err, data){
+      if (err) {
+        console.log(err);
+        let response = {"status":9};
+        return res.send(response);
+      }
+      var list = data.recordset;
+      if(list){
+        var arr = new Array();
+        var obj_title = new Array();
+        var obj_list1 = new Array();
+        var obj_list2 = new Array();
+        var obj_list3 = new Array();
+        var total = 0;
+        //console.log(list);
+        list.forEach((item) =>{
+          //console.log("item:", item["submitDate"]);
+          obj_title.push(item["submitDate"]);
+          obj_list1.push(nullNoDisp(item["znxf"]));
+          obj_list2.push(nullNoDisp(item["spc"]));
+          obj_list3.push(nullNoDisp(item["shm"]));
+          total += item["count"];
+        });
+        response = {'total':total,'title':obj_title,'list':[{'key':'社会', 'val':obj_list1},{'key':'中石化', 'val':obj_list2},{'key':'申通地铁', 'val':obj_list3}]};
+        //console.log(response);
+        return res.send(response);
+      }else{
+        //console.log("result:", 0);
+        return res.send([]);
+      }
+    });
+  });
+
+//getEnterRptPie1
+router.post('/getEnterRptPie1', function(req, res) {
+    sqlstr = "getEnterRptPie1";
+    params = {startDate:req.body.startDate, endDate:req.body.endDate};
+    //console.log("params:", params);
+    db.excuteProc(sqlstr, params, function(err, data){
+      if (err) {
+        console.log(err);
+        let response = {"status":9};
+        return res.send(response);
+      }
+      var response = data.recordset || [];
+      return res.send(response);
+    });
+  });
+
+//getEnterRpt
+router.post('/getExamRpt', function(req, res) {
+  sqlstr = "getExamRpt";
+  params = {refID:req.body.refID, startDate:req.body.startDate, endDate:req.body.endDate};
+  //console.log("params:", params);
+  db.excuteProc(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      let response = {"status":9};
+      return res.send(response);
+    }
+    var list = data.recordset;
+    if(list && list.length>0){
+      var arr = new Array();
+      var obj_title = ['certName'];
+      var arr_cert = new Array();
+      var last_cert = "";
+      arr_cert.push(list[0]["certName"]);
+      last_cert = list[0]["certID"];
+      //var last_date = "";
+      var certName = "";
+      var i = 0;
+      //console.log(list);
+      list.forEach((item) =>{
+        //console.log("certID:", item["certID"], item["startDate"], "last:",last_cert);
+        if(item["certID"] == last_cert){
+          arr_cert.push(item["per"]);
+        }else{
+          arr.push(arr_cert);
+          //console.log(certName, arr_cert);
+          arr_cert = [item["certName"],item["per"]];
+        }
+        if(obj_title.indexOf(item["startDate"]) < 0){
+          obj_title.push(item["startDate"]);
+        }
+        certName = item["certName"];
+        last_cert = item["certID"];
+        //last_date = item["startDate"];
+        i += 1;
+      });
+
+      if(i>0){
+        arr.push(arr_cert);
+        //console.log(certName, arr_cert);
+      }
+      arr.splice(0, 0, obj_title);
+      response = arr;
+      return res.send(response);
+    }else{
+      //console.log("result:", 0);
+      return res.send([]);
+    }
+  });
+});
+
+	
+	function nullNoDisp(m){
+		var s = "";
+		if(m != null && m > "" && m != "null" && m != "0"){
+			s = m;
+		}
+		return s;
+	}
+  
 module.exports = router;
