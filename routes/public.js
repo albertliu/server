@@ -626,7 +626,7 @@ router.get('/msg_score', function (req, res, next) {
 //getEnterRpt
 router.post('/getEnterRpt', function(req, res) {
     sqlstr = "getEnterRpt";
-    params = {refID:req.body.refID, startDate:req.body.startDate, endDate:req.body.endDate, certID:req.body.certID};
+    params = {refID:req.body.refID, startDate:req.body.startDate, endDate:req.body.endDate, certID:req.body.certID, fromID:req.body.fromID};
     //console.log("params:", params);
     db.excuteProc(sqlstr, params, function(err, data){
       if (err) {
@@ -664,7 +664,7 @@ router.post('/getEnterRpt', function(req, res) {
 //getEnterRptPie1
 router.post('/getEnterRptPie1', function(req, res) {
     sqlstr = "getEnterRptPie1";
-    params = {startDate:req.body.startDate, endDate:req.body.endDate};
+    params = {startDate:req.body.startDate, endDate:req.body.endDate, fromID:req.body.fromID};
     //console.log("params:", params);
     db.excuteProc(sqlstr, params, function(err, data){
       if (err) {
