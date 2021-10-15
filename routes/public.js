@@ -732,6 +732,58 @@ router.post('/getExamRpt', function(req, res) {
   });
 });
 
+//getClassRpt
+router.post('/getClassRpt', function(req, res) {
+  sqlstr = "getClassRpt";
+  params = {adviserID:req.body.adviserID, startDate:req.body.startDate, endDate:req.body.endDate, certID:req.body.certID, archived:req.body.archived};
+  //console.log("params:", params);
+  db.excuteProc(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      let response = {"status":9};
+      return res.send(response);
+    }
+    var list = data.recordset;
+    if(list){
+      var arr = new Array();
+      var obj_title = new Array();
+      var obj_adviser = new Array();
+      var obj_list1 = new Array();
+      var obj_list2 = new Array();
+      var obj_list3 = new Array();
+      var obj_list4 = new Array();
+      var obj_list5 = new Array();
+      var obj_list1s = new Array();
+      var obj_list2s = new Array();
+      var obj_list3s = new Array();
+      var obj_list4s = new Array();
+      var total = 0;
+      //console.log(list);
+      list.forEach((item) =>{
+        //console.log("item:", item["submitDate"]);
+        obj_title.push(item["className"]);
+        obj_adviser.push(item["adviserName"]);
+        obj_list1.push(nullNoDisp(item["days_study0"]));
+        obj_list2.push(nullNoDisp(item["days_exam0"]));
+        obj_list3.push(nullNoDisp(item["days_diploma0"]));
+        obj_list4.push(nullNoDisp(item["days_archive0"]));
+        obj_list5.push(item["archiveDate"]>""?3:"");
+        obj_list1s.push(nullNoDisp(item["days_study"]));
+        obj_list2s.push(nullNoDisp(item["days_exam"]));
+        obj_list3s.push(nullNoDisp(item["days_diploma"]));
+        obj_list4s.push(nullNoDisp(item["days_archive"]));
+        total += 1;
+      });
+      response = {'total':total,'title':obj_title,'adviser':obj_adviser,'list':[{'key':'上课', 'val':obj_list1},{'key':'安排考试', 'val':obj_list2},{'key':'制作证书', 'val':obj_list3},{'key':'归档', 'val':obj_list4},{'key':'结束', 'val':obj_list5}],'lists':[obj_list1s,obj_list2s,obj_list3s,obj_list4s]};
+      //console.log(response);
+      return res.send(response);
+    }else{
+      //console.log("result:", 0);
+      return res.send([]);
+    }
+  });
+});
+
 	
 	function nullNoDisp(m){
 		var s = "";
