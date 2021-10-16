@@ -638,10 +638,14 @@ router.post('/getEnterRpt', function(req, res) {
       if(list){
         var arr = new Array();
         var obj_title = new Array();
+        var obj_pie = new Array();
         var obj_list1 = new Array();
         var obj_list2 = new Array();
         var obj_list3 = new Array();
         var total = 0;
+        var total1 = 0;
+        var total2 = 0;
+        var total3 = 0;
         //console.log(list);
         list.forEach((item) =>{
           //console.log("item:", item["submitDate"]);
@@ -650,8 +654,12 @@ router.post('/getEnterRpt', function(req, res) {
           obj_list2.push(nullNoDisp(item["spc"]));
           obj_list3.push(nullNoDisp(item["shm"]));
           total += item["count"];
+          total1 += item["znxf"];
+          total2 += item["spc"];
+          total3 += item["shm"];
         });
-        response = {'total':total,'title':obj_title,'list':[{'key':'社会', 'val':obj_list1},{'key':'中石化', 'val':obj_list2},{'key':'申通地铁', 'val':obj_list3}]};
+        obj_pie = [{'name':'社会', 'value':total1, 'per': total1*100/total},{'name':'中石化', 'value':total2, 'per': total2*100/total},{'name':'申通地铁', 'value':total3, 'per': total3*100/total}];
+        response = {'total':total,'title':obj_title,'pie':obj_pie,'list':[{'key':'社会', 'val':obj_list1},{'key':'中石化', 'val':obj_list2},{'key':'申通地铁', 'val':obj_list3}]};
         //console.log(response);
         return res.send(response);
       }else{
@@ -732,6 +740,61 @@ router.post('/getExamRpt', function(req, res) {
   });
 });
 
+//getMockRpt
+router.post('/getMockRpt', function(req, res) {
+  sqlstr = "getMockRpt";
+  params = {refID:req.body.refID, startDate:req.body.startDate, endDate:req.body.endDate, fromID:req.body.fromID};
+  //console.log("params:", params);
+  db.excuteProc(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      let response = {"status":9};
+      return res.send(response);
+    }
+    var list = data.recordset;
+    if(list && list.length>0){
+      var arr = new Array();
+      var obj_title = ['certName'];
+      var arr_cert = new Array();
+      var last_cert = "";
+      arr_cert.push(list[0]["certName"]);
+      last_cert = list[0]["certID"];
+      //var last_date = "";
+      var certName = "";
+      var i = 0;
+      //console.log(list);
+      list.forEach((item) =>{
+        //console.log("certID:", item["certID"], item["submitDate"], "last:",last_cert);
+        if(item["certID"] == last_cert){
+          arr_cert.push(item["examScore"]);
+        }else{
+          arr.push(arr_cert);
+          //console.log(certName, arr_cert);
+          arr_cert = [item["certName"],item["examScore"]];
+        }
+        if(obj_title.indexOf(item["submitDate"]) < 0){
+          obj_title.push(item["submitDate"]);
+        }
+        certName = item["certName"];
+        last_cert = item["certID"];
+        //last_date = item["startDate"];
+        i += 1;
+      });
+
+      if(i>0){
+        arr.push(arr_cert);
+        //console.log(certName, arr_cert);
+      }
+      arr.splice(0, 0, obj_title);
+      response = arr;
+      return res.send(response);
+    }else{
+      //console.log("result:", 0);
+      return res.send([]);
+    }
+  });
+});
+
 //getClassRpt
 router.post('/getClassRpt', function(req, res) {
   sqlstr = "getClassRpt";
@@ -748,6 +811,8 @@ router.post('/getClassRpt', function(req, res) {
       var arr = new Array();
       var obj_title = new Array();
       var obj_adviser = new Array();
+      var obj_examScore = new Array();
+      var obj_examTimes = new Array();
       var obj_list1 = new Array();
       var obj_list2 = new Array();
       var obj_list3 = new Array();
@@ -763,6 +828,8 @@ router.post('/getClassRpt', function(req, res) {
         //console.log("item:", item["submitDate"]);
         obj_title.push(item["className"]);
         obj_adviser.push(item["adviserName"]);
+        obj_examScore.push(item["examScore"]);
+        obj_examTimes.push(item["examTimes"]);
         obj_list1.push(nullNoDisp(item["days_study0"]));
         obj_list2.push(nullNoDisp(item["days_exam0"]));
         obj_list3.push(nullNoDisp(item["days_diploma0"]));
@@ -774,7 +841,7 @@ router.post('/getClassRpt', function(req, res) {
         obj_list4s.push(nullNoDisp(item["days_archive"]));
         total += 1;
       });
-      response = {'total':total,'title':obj_title,'adviser':obj_adviser,'list':[{'key':'上课', 'val':obj_list1},{'key':'安排考试', 'val':obj_list2},{'key':'制作证书', 'val':obj_list3},{'key':'归档', 'val':obj_list4},{'key':'结束', 'val':obj_list5}],'lists':[obj_list1s,obj_list2s,obj_list3s,obj_list4s]};
+      response = {'total':total,'title':obj_title,'adviser':obj_adviser,'examScore':obj_examScore,'examTimes':obj_examTimes,'list':[{'key':'上课', 'val':obj_list1},{'key':'安排考试', 'val':obj_list2},{'key':'制作证书', 'val':obj_list3},{'key':'归档', 'val':obj_list4},{'key':'结束', 'val':obj_list5}],'lists':[obj_list1s,obj_list2s,obj_list3s,obj_list4s]};
       //console.log(response);
       return res.send(response);
     }else{
