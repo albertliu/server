@@ -294,7 +294,7 @@ router.post('/reset_student_password', function(req, res, next) {
     if(status==0){
       sendsms.sendSMS(req.body.mobile, '', data.recordset[0]["password"], '', '', "reset_password");
       sqlstr = "writeSSMSlog";
-      params = { username: req.body.username, mobile: req.body.mobile, kind: "密码重置", message: data.recordset[0]["password"], registerID: "system." };
+      params = { username: req.body.username, mobile: req.body.mobile, kind: "密码重置", message: data.recordset[0]["password"],refID:0, registerID: "system." };
       db.excuteProc(sqlstr, params, function (err, data1) {
         if (err) {
           console.log(err);
@@ -336,7 +336,7 @@ router.get('/resubmit_student_materials', function(req, res, next) {
         address = "http://" + address + ".shznxfxx.cn:3000";
         sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["item"], address, '', "reupload_material");
         sqlstr = "writeSSMSlog";
-        params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "资料不合规通知", message: re[i]["item"], registerID: req.query.registerID };
+        params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "资料不合规通知", message: re[i]["item"],refID:0, registerID: req.query.registerID };
         //console.log(params);
         db.excuteProc(sqlstr, params, function (err, data1) {
           if (err) {
@@ -370,7 +370,7 @@ router.get('/send_message_exam', function(req, res, next) {
         if(re[i]["mobile"].length == 11){
           sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], re[i]["dt"], "msg_exam");
           sqlstr = "writeSSMSlog";
-          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "考试通知", message: re[i]["item"], registerID: req.query.registerID };
+          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "考试通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.query.registerID };
           //console.log(params);
           db.excuteProc(sqlstr, params, function (err, data1) {
             if (err) {
@@ -405,7 +405,7 @@ router.get('/send_message_exam_apply', function(req, res, next) {
         if(re[i]["mobile"].length == 11){
           sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], re[i]["dt"], "msg_exam");
           sqlstr = "writeSSMSlog";
-          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "考试通知", message: re[i]["item"], registerID: req.query.registerID };
+          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "考试通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.query.registerID };
           //console.log(params, re[i]["address"]);
           db.excuteProc(sqlstr, params, function (err, data1) {
             if (err) {
@@ -441,7 +441,7 @@ router.post('/send_message_class', function(req, res, next) {
         if(re[i]["mobile"].length == 11){
           sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], re[i]["dt"], "msg_class");
           sqlstr = "writeSSMSlog";
-          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "培训通知", message: re[i]["item"], registerID: req.body.registerID };
+          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "培训通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.body.registerID };
           //console.log(params);
           db.excuteProc(sqlstr, params, function (err, data1) {
             if (err) {
@@ -477,7 +477,7 @@ router.post('/send_message_photo', function(req, res, next) {
         if(re[i]["mobile"].length == 11){
           sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], "msg_photo");
           sqlstr = "writeSSMSlog";
-          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "报名材料催缴通知", message: re[i]["item"], registerID: req.body.registerID };
+          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "报名材料催缴通知", message: re[i]["item"],refID:0, registerID: req.body.registerID };
           //console.log(params);
           db.excuteProc(sqlstr, params, function (err, data1) {
             if (err) {
@@ -512,7 +512,7 @@ router.get('/send_message_score', function(req, res, next) {
         if(re[i]["mobile"].length == 11){
           sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], '', "msg_score");
           sqlstr = "writeSSMSlog";
-          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "成绩通知", message: re[i]["item"], registerID: req.query.registerID };
+          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "成绩通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.query.registerID };
           //console.log(params);
           db.excuteProc(sqlstr, params, function (err, data1) {
             if (err) {
@@ -548,7 +548,7 @@ router.get('/send_message_score_apply', function(req, res, next) {
                 if(re[i]["mobile"].length == 11){
                     sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], '', "msg_score");
                     sqlstr = "writeSSMSlog";
-                    params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "成绩通知", message: re[i]["item"], registerID: req.query.registerID };
+                    params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "成绩通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.query.registerID };
                     //console.log(params);
                     db.excuteProc(sqlstr, params, function (err, data1) {
                         if (err) {
@@ -585,7 +585,7 @@ router.post('/send_message_diploma_apply', function(req, res, next) {
                 if(re[i]["mobile"].length == 11){
                     sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], '', "msg_score");
                     sqlstr = "writeSSMSlog";
-                    params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "领证通知", message: re[i]["item"], registerID: req.query.registerID };
+                    params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "领证通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.query.registerID };
                     //console.log(params);
                     db.excuteProc(sqlstr, params, function (err, data1) {
                         if (err) {
