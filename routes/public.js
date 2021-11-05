@@ -685,7 +685,7 @@ router.post('/getEnterRptPie1', function(req, res) {
     });
   });
 
-//getEnterRpt
+//getExamRpt
 router.post('/getExamRpt', function(req, res) {
   sqlstr = "getExamRpt";
   params = {refID:req.body.refID, startDate:req.body.startDate, endDate:req.body.endDate};
@@ -848,6 +848,68 @@ router.post('/getClassRpt', function(req, res) {
       //console.log("result:", 0);
       return res.send([]);
     }
+  });
+});
+
+//getIncomeRpt
+router.post('/getIncomeRpt', function(req, res) {
+  sqlstr = "getIncomeRpt";
+  params = {refID:req.body.refID, startDate:req.body.startDate, endDate:req.body.endDate, certID:req.body.certID, fromID:req.body.fromID};
+  //console.log("params:", params);
+  db.excuteProc(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      let response = {"status":9};
+      return res.send(response);
+    }
+    var list = data.recordset;
+    if(list){
+      var arr = new Array();
+      var obj_title = new Array();
+      var obj_pie = new Array();
+      var obj_list1 = new Array();
+      var obj_list2 = new Array();
+      var obj_list3 = new Array();
+      var total = 0;
+      var total1 = 0;
+      var total2 = 0;
+      var total3 = 0;
+      //console.log(list);
+      list.forEach((item) =>{
+        //console.log("item:", item["submitDate"]);
+        obj_title.push(item["submitDate"]);
+        obj_list1.push(nullNoDisp(item["znxf"]));
+        obj_list2.push(nullNoDisp(item["spc"]));
+        obj_list3.push(nullNoDisp(item["shm"]));
+        total += item["count"];
+        total1 += item["znxf"];
+        total2 += item["spc"];
+        total3 += item["shm"];
+      });
+      obj_pie = [{'name':'社会', 'value':total1, 'per': total1*100/total},{'name':'中石化', 'value':total2, 'per': total2*100/total},{'name':'申通地铁', 'value':total3, 'per': total3*100/total}];
+      response = {'total':total,'title':obj_title,'pie':obj_pie,'list':[{'key':'社会', 'val':obj_list1},{'key':'中石化', 'val':obj_list2},{'key':'申通地铁', 'val':obj_list3}]};
+      //console.log(response);
+      return res.send(response);
+    }else{
+      //console.log("result:", 0);
+      return res.send([]);
+    }
+  });
+});
+
+//getIncomeRptPie1
+router.post('/getIncomeRptPie1', function(req, res) {
+  sqlstr = "getIncomeRptPie1";
+  params = {startDate:req.body.startDate, endDate:req.body.endDate, fromID:req.body.fromID};
+  //console.log("params:", params);
+  db.excuteProc(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      let response = {"status":9};
+      return res.send(response);
+    }
+    var response = data.recordset || [];
+    return res.send(response);
   });
 });
 
