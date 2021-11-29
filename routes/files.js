@@ -429,7 +429,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
       //params = {"batchID":key, "username":val["证件号码"], "certID":val["认证项目"], "score":""+val["成绩"], "startDate":val["发证日期"], "term": val["期限"], "diplomaID":""+val["证书编号"], "memo":val["备注"], "host":host, "registerID":currUser};
       un = val["或其他证件号码"];
       //up = val["上传"];
-      up = arr[10];
+      up = arr[9];
       score1 = val["应知"];
       score2 = val["应会"];
       pn = arr[9];
@@ -442,6 +442,9 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
       }
       if(typeof(pn) == "undefined"){
         pn = '';
+      }
+      if(typeof(up) == "undefined"){
+        up = '';
       }
       if(typeof(score1) == "undefined" || parseFloat(score1).toString() == "NaN"){
         score1 = '';
