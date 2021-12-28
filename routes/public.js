@@ -74,9 +74,9 @@ router.get('/getDicListByKind', function(req, res, next) {
 //6c. getProjectListBycertID
 router.get('/getProjectListBycertID', function(req, res, next) {
   if(req.query.op == 0){
-    sqlstr = "select * from projectInfo where certID=@certID and status>0 order by projectID desc";
+    sqlstr = "select * from projectInfo where courseID=@certID and status>0 order by projectID desc";
   }else{
-    sqlstr = "select * from projectInfo where certID=@certID and status=1 order by projectID desc";
+    sqlstr = "select * from projectInfo where courseID=@certID and status=1 order by projectID desc";
   }
   
   params = {certID:req.query.certID};
