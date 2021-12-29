@@ -1103,10 +1103,11 @@ router.get('/generate_refund_list', function(req, res, next) {
       }
       let arr = new Array();
       arr.push(data.recordset);
-      let path = 'users/upload/projects/templates/退费清单模板.xlsx';
+      //let path = 'users/upload/projects/templates/退费清单模板.xlsx';
+      let path = 'users/upload/projects/templates/' + req.query.mark + '模板.xlsx';
       //generate diploma paper with pdf
-      let path1 = 'users/upload/others/退费清单' + '_' + Date.now() + '.xlsx';
-      xlsxx.writeExcel({"title":{"className":req.query.className, "date":today}, "list":data.recordset},path,path1,function(fn){
+      let path1 = 'users/upload/others/' + req.query.mark + '_' + Date.now() + '.xlsx';
+      xlsxx.writeExcel({"title":{"className":req.query.className, "date":req.query.date, "adviser":req.query.adviser}, "list":data.recordset},path,path1,function(fn){
         //console.log('the class:',req.query.class);
         //return publish file path
         response = [fn];
