@@ -1087,14 +1087,20 @@ router.get('/generate_fireman_zip', function(req, res, next) {
 
 //22a. generate_refund_list
 //status: 0 成功  9 其他  msg, filename
-router.get('/generate_refund_list', function(req, res, next) {
+router.get('/generate_student_list_class', function(req, res, next) {
   let filename = "";
   if(req.query.classID > ''){
     //publish diploma on A4 with pdf
     //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
     //sqlstr = "select * from dbo.getRefundList(@selList,@price)";
-    sqlstr = "select * from dbo.getRefundListByClass(@classID,@price)";
-    params = {classID:req.query.classID, price:req.query.price};
+    if(req.query.tag="generate_refund_list"){
+      sqlstr = "select * from dbo.getRefundListByClass(@classID,@price)";
+      params = {classID:req.query.classID, price:req.query.price};
+    }
+    if(req.query.tag="student_list_in_class"){
+      sqlstr = "select * from dbo.getStudentListInClass(@classID,@row,@top)";
+      params = {classID:req.query.classID, row:req.query.row, top:req.query.top};
+    }
     db.excuteSQL(sqlstr, params, function(err, data){
       if (err) {
         console.log(err);
@@ -1107,7 +1113,7 @@ router.get('/generate_refund_list', function(req, res, next) {
       let path = 'users/upload/projects/templates/' + req.query.mark + '模板.xlsx';
       //generate diploma paper with pdf
       let path1 = 'users/upload/others/' + req.query.mark + '_' + Date.now() + '.xlsx';
-      xlsxx.writeExcel({"title":{"className":req.query.className, "date":req.query.date, "adviser":req.query.adviser}, "list":data.recordset},path,path1,function(fn){
+      xlsxx.writeExcel({"title":{"className":req.query.className, "date":req.query.date, "adviser":req.query.adviser, "teacher":req.query.teacher}, "list":data.recordset},path,path1,function(fn){
         //console.log('the class:',req.query.class);
         //return publish file path
         response = [fn];
