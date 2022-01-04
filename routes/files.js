@@ -1089,22 +1089,22 @@ router.get('/generate_fireman_zip', function(req, res, next) {
 //status: 0 成功  9 其他  msg, filename
 router.get('/generate_excel', function(req, res, next) {
   let filename = "";
-  let title = {};
+  var title = "";
   if(req.query.classID > ''){
     //publish diploma on A4 with pdf
     //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
     //sqlstr = "select * from dbo.getRefundList(@selList,@price)";
-    if(req.query.tag="generate_refund_list"){
+    if(req.query.tag=="generate_refund_list"){
       sqlstr = "select * from dbo.getRefundListByClass(@classID,@price)";
       params = {classID:req.query.classID, price:req.query.price};
       title = {"className":req.query.className, "date":req.query.date, "adviser":req.query.adviser, "teacher":req.query.teacher};
     }
-    if(req.query.tag="student_list_in_class"){
+    if(req.query.tag=="student_list_in_class"){
       sqlstr = "select * from dbo.getStudentListInClass(@classID,@row,@top)";
       params = {classID:req.query.classID, row:req.query.row, top:req.query.top};
       title = {"className":req.query.className, "date":req.query.date, "adviser":req.query.adviser, "teacher":req.query.teacher};
     }
-    if(req.query.tag="class_schedule"){
+    if(req.query.tag=="class_schedule"){
       sqlstr = "select * from v_classSchedule where classID=@classID";
       params = {classID:req.query.classID};
       title = eval('(' + req.query.pobj + ')');
