@@ -731,7 +731,7 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
         let pages = [];
         let paths = [];
         certID = data1.recordset[0]["certID"];
-        if(certID = "C2" || certID=="C30" || certID=="C31" || certID == "C18" || certID == "C19"){
+        if(certID == "C2" || certID=="C30" || certID=="C31" || certID == "C18" || certID == "C19"){
           certID = "C2";
         }else{
           pW1 = '280mm';
@@ -756,7 +756,6 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
         //publish diploma on A4 with pdf
         //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
         sqlstr = env + "/pdfs_diploma_" + certID + ".asp?refID=" + batchID;
-        //console.log(sqlstr);
         let path = 'users/upload/students/diplomaPublish/' + batchID + '.pdf';
         filename = path;
         //pdf.genPDF(sqlstr, path, pW2, pH2, '', false, 0.5, false);
