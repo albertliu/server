@@ -22,22 +22,20 @@ var outfilesRouter = require('./routes/files');
 let redisClient = redis.createClient(redisConfig.sessionStore);
 
 var app = express();
-/*
-app.all('*', function (req, res, next) {
-  console.log("origin?",req.headers.origin);
-  res.header('Access-Control-Allow-Origin', req.headers.origin);//获取请求源 这样所有请求就都有访问权限了
-  res.header('Access-Control-Allow-Credentials', true);
-  res.header('Access-Control-Allow-Headers', 'Origin,Content-Type,Content-Length, Authorization, Accept,X-Requested-With')
-  res.header('Access-Control-Allow-Methods', 'PUT,POST,GET,DELETE,OPTIONS');
-  res.header('Content-Type', 'application/json;charset=utf-8');
-  console.log("ok");
-  next()
-});
-*/
 
+var hosts = ['','spc.','shm.','yuc.','ding.','gsgl.','jia.','jiah.','tai.','wen.'];
+var ports = ['',':3000',':3003',':8082'];
+var orig = [];
+for(var v of hosts){
+  for(var x of ports){
+    orig.push('http://' + v + 'shznxfxx.cn' + x);
+    orig.push('http://' + v + 'localhost' + x);
+  }
+}
+//console.log("origin:",orig);
 var corsOptions = {
-  origin: ['http://spc.shznxfxx.cn:3000','http://spc.shznxfxx.cn:3003','http://shm.shznxfxx.cn:3000','http://znxf.shznxfxx.cn:3000','http://znxf.shznxfxx.cn:3003','http://shznxfxx.cn:3000','http://spc.localhost:3000','http://shm.localhost:3000','http://znxf.localhost:3000','http://127.0.0.1:3000','http://localhost:8082','http://znxf.localhost:8082','http://spc.localhost:8082','http://shznxfxx.cn','http://spc.shznxfxx.cn','http://znxf.shznxfxx.cn','http://shznxfxx.cn:8082','http://spc.shznxfxx.cn:8082','http://znxf.shznxfxx.cn:8082'],
-  //origin: ['http://spc.localtest.com:3000','http://127.0.0.1:3000'],
+  //origin: ['http://spc.shznxfxx.cn:3000','http://spc.shznxfxx.cn:3003','http://shm.shznxfxx.cn:3000','http://znxf.shznxfxx.cn:3000','http://znxf.shznxfxx.cn:3003','http://shznxfxx.cn:3000','http://spc.localhost:3000','http://shm.localhost:3000','http://znxf.localhost:3000','http://127.0.0.1:3000','http://localhost:8082','http://znxf.localhost:8082','http://spc.localhost:8082','http://yuc.localhost:8082','http://shznxfxx.cn','http://spc.shznxfxx.cn','http://znxf.shznxfxx.cn','http://shznxfxx.cn:8082','http://spc.shznxfxx.cn:8082','http://znxf.shznxfxx.cn:8082'],
+  origin: orig,
   credentials: true,
   optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
 }
