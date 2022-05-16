@@ -170,7 +170,7 @@ router.get('/getStudentLessonList', function (req, res, next) {
 
 //9. getStudentLessonListByUser
 router.get('/getStudentLessonListByUser', function (req, res, next) {
-  sqlstr = "select * from dbo.getStudentLessonListByUser('" + req.query.username + "')";
+  sqlstr = "select * from dbo.getStudentLessonListByUser('" + req.query.username + "')  order by refID,seq";
   params = {};
   //console.log("params:", params);
   db.excuteSQL(sqlstr, params, function (err, data) {
