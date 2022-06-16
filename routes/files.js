@@ -755,8 +755,16 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
         pdf.genPDF(pages, paths, pW1, pH1, '1', false, 1, true);
         //publish diploma on A4 with pdf
         //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
+
         sqlstr = env + "/pdfs_diploma_" + certID + ".asp?refID=" + batchID;
         let path = 'users/upload/students/diplomaPublish/' + batchID + '.pdf';
+        //************ */ card diploma style
+        //*pW2 = '86mm';
+        //*pH2 = '54mm';
+        //sqlstr = env + "/pdfs_diploma_C1_card.asp?refID=" + batchID;
+        //let path = 'users/upload/students/diplomaPublish/' + batchID + '1.pdf';
+        //************ */
+
         filename = path;
         //pdf.genPDF(sqlstr, path, pW2, pH2, '', false, 0.5, false);
         pdf.genPDF([sqlstr], [path], pW2, pH2, '', false, 0.5, false);

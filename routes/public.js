@@ -96,7 +96,12 @@ router.get('/getProjectListBycertID', function(req, res, next) {
 
 router.get('/getDeptTreeJson', function(req, res, next) {
   //sqlstr = "SELECT dbo.getDeptJson(@nodeID) as item";
-  sqlstr = "SELECT * from dbo.getDeptTreeByPID(@nodeID) order by pID,kindID,[text]";
+  if(req.query.indexByDate==0){
+    sqlstr = "SELECT * from dbo.getDeptTreeByPID(@nodeID) order by pID,kindID,[text]";
+  }else{
+    sqlstr = "SELECT * from dbo.getDeptTreeByPID(@nodeID) order by pID,kindID,regDate desc";
+  }
+  
   params = {nodeID:req.query.nodeID};
   //console.log("params:", params);
   db.excuteSQL(sqlstr, params, function(err, data){
