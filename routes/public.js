@@ -629,6 +629,51 @@ router.get('/msg_score', function (req, res, next) {
   res.send(req.query.phone + "'s message send success!");
 })
 
+//16. 提交课堂交互信息 submit_feedback_class  return: 0 成功  9 其他
+router.post('/submit_feedback_class', function (req, res, next) {
+  sqlstr = "submit_feedback_class";
+  params = { username: req.body.username, item: req.body.item, kindID: req.body.kindID || 4, refID: req.body.refID || 0, type: req.body.type || 0, classID:req.body.classID, readerID:req.body.readerID || null };
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9 };
+      return res.send(response);
+    }
+    let response = { "status": data.returnValue || 0, "msg": "" };
+    return res.send(response);
+  });
+});
+
+//17. 提交课堂交互信息 cancel_feedback_class  return: 0 成功  9 其他
+router.post('/cancel_feedback_class', function (req, res, next) {
+  sqlstr = "cancelFeedbackInfo";
+  params = { ID: req.body.ID || 0 };
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9 };
+      return res.send(response);
+    }
+    let response = { "status": data.returnValue || 0, "msg": "" };
+    return res.send(response);
+  });
+});
+
+//18. get_feedback_class_list: 返回课堂交互信息列表
+router.get('/get_feedback_class_list', function (req, res, next) {
+  sqlstr = "select * from dbo.getFeedbackClassList(@username,@classID,@type) order by ID";
+  params = { username: req.query.username, classID:req.query.classID, type:req.query.type || 0 };
+  db.excuteSQL(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9 };
+      return res.send(response);
+    }
+    response = data.recordset;
+    return res.send(response);
+  });
+});
+
 //getEnterRpt
 router.post('/getEnterRpt', function(req, res) {
     sqlstr = "getEnterRpt";
