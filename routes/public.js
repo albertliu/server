@@ -661,7 +661,7 @@ router.post('/cancel_feedback_class', function (req, res, next) {
 
 //18. get_feedback_class_list: 返回课堂交互信息列表
 router.get('/get_feedback_class_list', function (req, res, next) {
-  sqlstr = "select * from dbo.getFeedbackClassList(@username,@classID,@type) order by ID " + (req.query.type||0==0?"desc":"");
+  sqlstr = "select * from dbo.getFeedbackClassList(@username,@classID,@type) order by ID " + (req.query.type!=1?"desc":"");
   params = { username: req.query.username, classID:req.query.classID, type:req.query.type || 0 };
   db.excuteSQL(sqlstr, params, function (err, data) {
     if (err) {
