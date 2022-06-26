@@ -602,6 +602,10 @@ router.post('/uploadBase64img', function(req, res, next) {
         uploadFolder = "students/IDcards/";
         fn = req.body.username + "b";
         break;
+      case "student_letter_signature":
+        uploadFolder = "students/signature/";
+        fn = req.body.username;
+        break;
       default:
         uploadFolder = "others/";
         fn = req.body.username;
