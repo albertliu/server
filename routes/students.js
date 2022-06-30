@@ -586,7 +586,8 @@ router.post('/update_student_exam_secondRest', function (req, res, next) {
       let response = { "status": 9 };
       return res.send(response);
     }
-    let response = { "status": data.returnValue, "msg": "" };
+    //let response = { "status": data.returnValue, "msg": "" };
+    response = data.recordset[0];   //{status:0, secondRest:2300}
     return res.send(response);
   });
 });
