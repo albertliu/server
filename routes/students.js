@@ -123,7 +123,10 @@ router.get('/getStudentCertRestList', function (req, res, next) {
 //8b. getStudentCertCourseList
 router.get('/getStudentCertCourseList', function (req, res, next) {
   sqlstr = "select * from v_studentCourseList where username='" + req.query.username + "' and status<2";
-  params = {};
+  if(req.session.user.teacher > ""){  //教师按照自己的课程给出列表
+    salstr = "select * from dbo.getCourseListByTeacher(@teacher,@username)";
+  }
+  params = {"teacher": req.session.user.teacher, "username": req.session.user.username};
   //console.log("params:", params);
   db.excuteSQL(sqlstr, params, function (err, data) {
     if (err) {
@@ -433,7 +436,7 @@ router.post('/login', function (req, res, next) {
     }
 
     let response = { "status": data.recordset[0]["e"], "msg": data.recordset[0]["msg"], "username": req.body.username, "hostName": data.recordset[0]["hostName"], "newCourse": data.recordset[0]["newCourse"] };
-    var user = { "username": req.body.username, "name": data.recordset[0]["name"], "host": cid, "ip": ip, "domain": req.subdomains, "auditor":0 }
+    var user = { "username": req.body.username, "name": data.recordset[0]["name"], "host": cid, "ip": ip, "domain": req.subdomains, "auditor":0, "teacher": "" }
     if (data.recordset[0]["e"] == 0) {
       req.session.user = user;
     }

@@ -28,13 +28,17 @@ router.post('/login', function(req, res, next) {
       let response = {"status":9};
       return res.send(response);
     }
-    
-    let response = {"status":data.recordset[0]["e"], "msg":data.recordset[0]["msg"], "username":req.body.username, "hostName":data.recordset[0]["hostName"], "name":data.recordset[0]["realName"], "auditor":1};
-    var user = {"username":data.recordset[0]["username"], "name":data.recordset[0]["realName"], "host":cid, "ip":ip, "domain": req.subdomains, "auditor":1}
-    if(data.recordset[0]["e"]==0){
+    let dt = data.recordset[0];
+    let response = {"status":dt["e"], "msg":dt["msg"], "username":req.body.username, "hostName":dt["hostName"], "name":dt["realName"], "auditor":1, "teacher":dt["teacher"]};
+    var user = {"username":dt["username"], "name":dt["realName"], "host":cid, "ip":ip, "domain": req.subdomains, "auditor":1, "teacher":""};
+    if(dt["teacher"]>0){
+      //教师登录，转换为指定的学生
+      user = {"username":"120109196812070029", "name":"测试学员", "host":cid, "ip":ip, "domain": req.subdomains, "auditor":1, "teacher":req.body.username};
+    }
+    if(dt["e"]==0){
       req.session.user = user;
     }
-    params = {username:data.recordset[0]["username"], ip:ip, host:cid, student:1, memo:'passwd:' + req.body.password + '  re:' + data.recordset[0]["e"]};
+    params = {username:dt["username"], ip:ip, host:cid, student:1, memo:'passwd:' + req.body.password + '  re:' + dt["e"]};
     //sqlstr = "exec writeStudentLoginLog @username, @host, @cid";
     sqlstr = "writeStudentLoginLog";
     db.excuteProc(sqlstr, params, function(e, re){});
