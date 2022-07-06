@@ -374,7 +374,7 @@ router.get('/send_message_exam', function(req, res, next) {
       let re = data.recordset;
       for (var i in re){
         if(re[i]["mobile"].length == 11){
-          sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], re[i]["dt"], "msg_exam");
+          sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], re[i]["dt"], (re[i]["kindID"]==1?"msg_exam_online":"msg_exam"));
           sqlstr = "writeSSMSlog";
           params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "考试通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.query.registerID };
           //console.log(params);

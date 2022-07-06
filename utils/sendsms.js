@@ -31,6 +31,10 @@ const ssms ={
           tc = "SMS_218286580";
           pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "','address':'" + address + "'}";
         }
+        if(temp=="msg_exam_online"){
+          tc = "SMS_244770037";
+          pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "'}";
+        }
         if(temp=="msg_class"){
           tc = "SMS_219616263";
           pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "','address':'" + address + "'}";
