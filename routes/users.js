@@ -34,6 +34,7 @@ router.post('/login', function(req, res, next) {
     if(dt["teacher"]>0){
       //教师登录，转换为指定的学生
       user = {"username":"120109196812070029", "name":"测试学员", "host":cid, "ip":ip, "domain": req.subdomains, "auditor":1, "teacher":req.body.username};
+      response = {"status":dt["e"], "msg":dt["msg"], "username":"120109196812070029", "hostName":dt["hostName"], "name":"测试学员", "auditor":1, "teacher":req.body.username};
     }
     if(dt["e"]==0){
       req.session.user = user;
