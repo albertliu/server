@@ -445,7 +445,7 @@ router.post('/send_message_class', function(req, res, next) {
       let re = data.recordset;
       for (var i in re){
         if(re[i]["mobile"].length == 11){
-          sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], re[i]["dt"], "msg_class");
+          sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], re[i]["dt"], (re[i]["kindID"]==1?"msg_class_online":"msg_class"));
           sqlstr = "writeSSMSlog";
           params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "培训通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.body.registerID };
           //console.log(params);
@@ -484,6 +484,42 @@ router.post('/send_message_study_alert', function(req, res, next) {
           sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], '', '', "msg_study_alert");
           sqlstr = "writeSSMSlog";
           params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "督促学习", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.body.registerID };
+          //console.log(params);
+          db.excuteProc(sqlstr, params, function (err, data1) {
+            if (err) {
+              console.log(err);
+              let response = { "status": 9, msg:"系统错误。" };
+              return res.send(response);
+            }
+          });
+        }
+      }
+    }
+    let response = { "status": 0, "msg": "操作成功。" };
+    return res.send(response);
+  });
+});
+
+//4. 批量通知学员，不予安排考试。发送短信。
+router.post('/send_message_exam_deny', function(req, res, next) {
+  sqlstr = "sendMsg4ExamDeny";
+  params = {batchID:req.body.batchID, selList:req.body.selList, registerID: req.body.registerID };
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9, msg:"系统错误。" };
+      return res.send(response);
+    }
+    //return: 0 success; other error:1 the user not exist  2 the phone error.
+    //console.log(req.body.SMS, params, data.recordset);
+
+    if(req.body.SMS==1){ //发通知
+      let re = data.recordset;
+      for (var i in re){
+        if(re[i]["mobile"].length == 11){
+          sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], '', '', "msg_exam_deny");
+          sqlstr = "writeSSMSlog";
+          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "不予安排考试", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.body.registerID };
           //console.log(params);
           db.excuteProc(sqlstr, params, function (err, data1) {
             if (err) {

@@ -27,16 +27,24 @@ const ssms ={
           tc = "SMS_218725732";
           pa = "{'name':'" + name + "','item':'" + item + "','address':'" + address + "'}";
         }
-        if(temp=="msg_exam"){
+        if(temp=="msg_exam"){ //考试通知
           tc = "SMS_218286580";
           pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "','address':'" + address + "'}";
         }
-        if(temp=="msg_exam_online"){
+        if(temp=="msg_exam_online"){ //考试通知_在线
           tc = "SMS_244770037";
           pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "'}";
         }
-        if(temp=="msg_class"){
+        if(temp=="msg_exam_deny"){  //不安排考试
+          tc = "SMS_245000170";
+          pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "'}";
+        }
+        if(temp=="msg_class"){ //开课通知
           tc = "SMS_219616263";
+          pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "','address':'" + address + "'}";
+        }
+        if(temp=="msg_class_online"){ //开课通知_在线
+          tc = "SMS_244995177";
           pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "','address':'" + address + "'}";
         }
         if(temp=="msg_photo"){
