@@ -278,6 +278,10 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
     var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let pn = "";
     let mn = "";
+    let r_err = 0;
+    let r_exist = 0;
+    let r_err_msg = "";
+    let r_exist_msg = "";
     data1.forEach(val=>{
       pn = val["电话"];
       if(typeof(pn) == "undefined"){
@@ -296,9 +300,19 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
           let response = {"status":9};
           return res.send(response);
         }
+        if(data.recordset[0]["err"]==1){
+          r_err += data.recordset[0]["err"];
+          r_err_msg += val["姓名"].replace(/\s+/g,"") + " " + val["身份证"].replace(/\s+/g,"") + "  ";
+        }
+        if(data.recordset[0]["exist"]==1){
+          r_exist += data.recordset[0]["exist"];
+          r_exist_msg += val["姓名"].replace(/\s+/g,"") + " " + val["身份证"].replace(/\s+/g,"") + "  ";
+        }
       });
     });
-    response.count = data1.length;
+    response.count = data1.length - r_err - r_exist;
+    response.err_msg = r_err_msg>""?"身份证号码错误，未导入：" + r_err_msg:"";
+    response.exist_msg = r_exist_msg>""?"学员已在班级中，未导入：" + r_exist_msg:"";
   }
 
   //deal xlsx 成绩单
