@@ -237,10 +237,10 @@ var uploadMultiple = multer({
 
 
 //5a. uploadSingle
-router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
+router.post('/uploadSingle', upload.single('avatar'), async function(req, res, next) {
   //console.log("req.query.upID:", req.query.upID);
   var file = req.file;
-  response = {"status":0, msg:"", "file":"", "count":0}
+  response = {"status":0, msg:"", "file":"", "count":0, "err_msg":"", "exist_msg":""}
   if (req.file.length === 0 || file == undefined) {  //判断一下文件是否存在，也可以在前端代码中进行判断。
     res.render({"status":0, msg: "上传文件不能为空！"});
     return;
@@ -282,14 +282,15 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
     let r_exist = 0;
     let r_err_msg = "";
     let r_exist_msg = "";
-    data1.forEach(val=>{
+    let idx = 0;
+    data1.forEach(function(val){
       pn = val["电话"];
       if(typeof(pn) == "undefined"){
         pn = '';
       }
       mn = val["手机"];
       if(typeof(mn) == "undefined"){
-        mn = '';
+         mn = '';
       }
       sqlstr = "generateStudent";
       params = {"username":val["身份证"].replace(/\s+/g,""), "name":val["姓名"].replace(/\s+/g,""), "dept1Name":val["部门"], "job":val["工种"], "mobile": ""+mn, "phone":""+pn, "education":val["文化程度"], "memo":val["备注"], "classID":key, "registerID":currUser};
@@ -308,11 +309,17 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
           r_exist += data.recordset[0]["exist"];
           r_exist_msg += val["姓名"].replace(/\s+/g,"") + " " + val["身份证"].replace(/\s+/g,"") + "  ";
         }
+        //console.log("data:",data.recordset[0],"idx:",idx);
+        idx += 1;
+        if(idx==data1.length){
+          response.count = data1.length - r_err - r_exist;
+          response.err_msg = r_err_msg>""?"身份证号码错误，未导入：" + r_err_msg:"";
+          response.exist_msg = r_exist_msg>""?"学员已在班级中，未导入：" + r_exist_msg:"";
+          //console.log("res1:",response);
+          return res.send(response);
+        }
       });
     });
-    response.count = data1.length - r_err - r_exist;
-    response.err_msg = r_err_msg>""?"身份证号码错误，未导入：" + r_err_msg:"";
-    response.exist_msg = r_exist_msg>""?"学员已在班级中，未导入：" + r_exist_msg:"";
   }
 
   //deal xlsx 成绩单
@@ -347,6 +354,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
       });
     });
     response.count = data1.length;
+    return res.send(response);
   }
 
   //deal xlsx 申报结果导入
@@ -414,6 +422,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
     });
     
     response.count = data1.length;
+    return res.send(response);
   }
 
   //deal xlsx 申报成绩证书导入
@@ -495,6 +504,7 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
     });
     
     response.count = data1.length;
+    return res.send(response);
   }
 
   //deal xlsx 预报名名单
@@ -547,9 +557,9 @@ router.post('/uploadSingle', upload.single('avatar'), function(req, res, next) {
       });
     });
     response.count = data1.length;
+    return res.send(response);
   }
   //console.log(response);
-  return res.send(response);
 });
 
 router.post('/uploadMultiple', uploadMultiple.array('avatar',1000), function(req, res, next) {
