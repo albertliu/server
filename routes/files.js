@@ -1070,7 +1070,7 @@ router.get('/generate_fireman_materials', function(req, res, next) {
 //status: 0 成功  9 其他  msg, filename
 router.get('/generate_IDcard_materials', function(req, res, next) {
   let filename = "";
-  if(req.query.enterID > 0){
+  if(req.query.username > ""){
     //publish diploma on A4 with pdf
     //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
     sqlstr = env + "/pdfs_fireman.asp?item=" + req.query.username + "&refID=1";
