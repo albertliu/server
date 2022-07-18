@@ -1031,17 +1031,18 @@ router.get('/generate_passcard_byExamID', function(req, res, next) {
 //status: 0 成功  9 其他  msg, filename
 router.get('/generate_fireman_materials', function(req, res, next) {
     let filename = "";
+    let filename1 = "";
     if(req.query.enterID > 0){
       //publish diploma on A4 with pdf
       //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
-      sqlstr = env + "/pdfs_fireman.asp?item=" + req.query.username;
+      sqlstr = env + "/pdfs_fireman.asp?item=" + req.query.username + "&refID=0";
       let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '证明材料.pdf';
       filename = path.replace("users/","/");
       pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
       
       sqlstr = env + "/pdf_entryform_C20.asp?nodeID=" + req.query.enterID;
       let path1 = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '报名表.pdf';
-      let filename1 = path1.replace("users/","/");
+      filename1 = path1.replace("users/","/");
       pdf.genPDF([sqlstr], [path1], '210mm', '297mm', '', false, 0.5, false);
       //console.log('the path:',path);
       //return publish file path
@@ -1063,6 +1064,37 @@ router.get('/generate_fireman_materials', function(req, res, next) {
       response = [];
       return res.send(response);
     }
+});
+
+//22a. generate_IDcard_materials
+//status: 0 成功  9 其他  msg, filename
+router.get('/generate_IDcard_materials', function(req, res, next) {
+  let filename = "";
+  if(req.query.enterID > 0){
+    //publish diploma on A4 with pdf
+    //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
+    sqlstr = env + "/pdfs_fireman.asp?item=" + req.query.username + "&refID=1";
+    let path = 'users/upload/students/IDcardMaterials/' + req.query.username + '身份证正反面.pdf';
+    filename = path.replace("users/","/");
+    pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
+    sqlstr = "updateIDcardsMaterials";
+    //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
+    params = {username:req.query.username, filename:filename};
+    //console.log(params);
+    //generate diploma data
+    db.excuteProc(sqlstr, params, function(err, data){
+      if (err) {
+        console.log(err);
+        response = [];
+        return res.send(response);
+      }
+      response = [filename];
+      return res.send(response);
+    });
+  }else{
+    response = [];
+    return res.send(response);
+  }
 });
 
 //22b. generate_fireman_zip

@@ -191,7 +191,7 @@ router.get('/getNeed2knowByEnterID', function(req, res) {
 
 //23d. getStudentMaterials
 router.get('/getStudentMaterials', function(req, res) {
-  sqlstr = "select * from studentMaterials where username=@username order by kindID";
+  sqlstr = "select * from studentMaterials where username=@username " + (req.query.IDcard==1?"and kindID in (1,2)":"") + " order by kindID";
   params = {username:req.query.username};
   //console.log("params:", params);
   db.excuteSQL(sqlstr, params, function(err, data){
