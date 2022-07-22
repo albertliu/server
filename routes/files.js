@@ -784,7 +784,7 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
         //publish diploma on A4 with pdf
         //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
 
-        sqlstr = env + "/pdfs_diploma_" + certID + ".asp?refID=" + batchID;
+        sqlstr = env + "/pdfs_diploma_" + certID + ".asp?refID=" + batchID + "&kindID=" + req.query.kindID;
         let path = 'users/upload/students/diplomaPublish/' + batchID + '.pdf';
         //************ */ card diploma style
         //*pW2 = '86mm';
