@@ -319,10 +319,10 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
         idx += 1;
         if(idx==data1.length){
           response.count = data1.length - r_err - r_exist - r_existOther;
-          response.err_msg = r_err_msg>""?"身份证号码错误，未导入：" + r_err_msg:"";
-          r_exist_msg = r_exist_msg>""?"学员已在本班级，未导入：" + r_exist_msg:"";
-          response.exist_msg = r_existOther_msg>""?r_exist_msg + "\n学员已在其他班级，未导入：" + r_existOther_msg:r_exist_msg;
-          //console.log("res1:",response);
+          response.err_msg = r_err_msg>""?"身份证号码错误，未导入：" + r_err_msg + "\n":"";
+          r_exist_msg = r_exist_msg>""?"学员已在本班级，未导入：" + r_exist_msg + "\n":"";
+          response.exist_msg = r_existOther_msg>""?r_exist_msg + "学员已在其他班级，未导入：" + r_existOther_msg:r_exist_msg;
+          //console.log("res1:",response,"r_err_msg:",r_err_msg);
           return res.send(response);
         }
       });
