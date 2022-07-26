@@ -280,8 +280,10 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
     let mn = "";
     let r_err = 0;
     let r_exist = 0;
+    let r_existOther = 0;
     let r_err_msg = "";
     let r_exist_msg = "";
+    let r_existOther_msg = "";
     let idx = 0;
     data1.forEach(function(val){
       pn = val["电话"];
@@ -307,14 +309,19 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
         }
         if(data.recordset[0]["exist"]==1){
           r_exist += data.recordset[0]["exist"];
-          r_exist_msg += val["姓名"].replace(/\s+/g,"") + " " + val["身份证"].replace(/\s+/g,"") + "  ";
+          r_exist_msg += val["姓名"].replace(/\s+/g,"") + "  ";
+        }
+        if(data.recordset[0]["existOther"]==1){
+          r_existOther += data.recordset[0]["existOther"];
+          r_existOther_msg += val["姓名"].replace(/\s+/g,"") + "  ";
         }
         //console.log("data:",data.recordset[0],"idx:",idx);
         idx += 1;
         if(idx==data1.length){
           response.count = data1.length - r_err - r_exist;
           response.err_msg = r_err_msg>""?"身份证号码错误，未导入：" + r_err_msg:"";
-          response.exist_msg = r_exist_msg>""?"学员已在班级中，未导入：" + r_exist_msg:"";
+          r_exist_msg = r_exist_msg>""?"学员已在本班级，未导入：" + r_exist_msg:"";
+          response.exist_msg = r_existOther_msg>""?r_exist_msg + " 学员已在其他班级，未导入：" + r_existOther_msg:r_exist_msg;
           //console.log("res1:",response);
           return res.send(response);
         }
