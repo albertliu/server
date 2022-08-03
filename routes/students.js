@@ -75,8 +75,12 @@ router.get('/get_student', function (req, res, next) {
 //7. getStudentCourseList
 router.get('/getStudentCourseList', function (req, res, next) {
   //console.log("session", req.session, req.query.username);
-  sqlstr = "select *,[dbo].[getPassCondition](ID) as pass_condition from v_studentCourseList where username='" + req.query.username + "' order by status";
+  sqlstr = "select *,[dbo].[getPassCondition](ID) as pass_condition from v_studentCourseList where username='" + req.query.username + "' and status<2" + " order by status";
   params = {};
+  if(req.session.user.teacher > ""){  //教师按照自己的课程给出列表
+    salstr = "select * from dbo.getCourseListByTeacher(@teacher,@username)";
+    params = {"teacher": req.session.user.teacher, "username": req.session.user.username};
+  }
   //console.log("params:", params);
   db.excuteSQL(sqlstr, params, function (err, data) {
     if (err) {
