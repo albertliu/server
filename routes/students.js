@@ -75,13 +75,14 @@ router.get('/get_student', function (req, res, next) {
 //7. getStudentCourseList
 router.get('/getStudentCourseList', function (req, res, next) {
   //console.log("session", req.session, req.query.username);
-  sqlstr = "select *,[dbo].[getPassCondition](ID) as pass_condition from v_studentCourseList where username='" + req.query.username + "' and status<2" + " order by status";
-  params = {};
   if(req.session.user.teacher > ""){  //教师按照自己的课程给出列表
-    salstr = "select * from dbo.getCourseListByTeacher(@teacher,@username)";
+    sqlstr = "select * from dbo.getCourseListByTeacher(@teacher,@username)";
     params = {"teacher": req.session.user.teacher, "username": req.session.user.username};
+  }else{
+    sqlstr = "select *,[dbo].[getPassCondition](ID) as pass_condition from v_studentCourseList where username='" + req.query.username + "' and status<2" + " order by status";
+    params = {};
   }
-  //console.log("params:", params);
+  
   db.excuteSQL(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
@@ -128,7 +129,7 @@ router.get('/getStudentCertRestList', function (req, res, next) {
 router.get('/getStudentCertCourseList', function (req, res, next) {
   sqlstr = "select * from v_studentCourseList where username='" + req.query.username + "' and status<2";
   if(req.session.user.teacher > ""){  //教师按照自己的课程给出列表
-    salstr = "select * from dbo.getCourseListByTeacher(@teacher,@username)";
+    sqlstr = "select * from dbo.getCourseListByTeacher(@teacher,@username)";
   }
   params = {"teacher": req.session.user.teacher, "username": req.session.user.username};
   //console.log("params:", params);
