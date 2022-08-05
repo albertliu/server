@@ -266,7 +266,11 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
       let response = {"status":9};
       return res.send(response);
     }
+    //console.log("response:", response);
     response.count = 1;
+    if(req.query.commMark != "studentList"){
+      return res.send(response);
+    }
   });
 
   //deal xlsx  学员注册
