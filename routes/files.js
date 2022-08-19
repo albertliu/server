@@ -570,7 +570,55 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
     response.count = data1.length;
     return res.send(response);
   }
-  //console.log(response);
+
+  //deal xlsx  名单比较
+  if(upID == "check_student_list"){
+    //console.log("file:", file.path);
+    let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
+    let sheetNames = workbook.SheetNames; //获取表明
+    let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
+    var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
+    let pn = currUser + '-' + Date.now();
+    let idx = 0;
+    data1.forEach(function(val){
+      sqlstr = "checkStudentOrder_import";
+      params = {"username":val["身份证"].replace(/\s+/g,""), "name":val["姓名"].replace(/\s+/g,""), "dept1Name":val["单位"], "memo":val["备注"], "batchID":pn};
+      //console.log("params:", params);
+      db.excuteProc(sqlstr, params, function(err, data){
+        if (err) {
+          console.log(err);
+          let response = {"status":9};
+          return res.send(response);
+        }
+        //console.log("data:",data.recordset[0],"idx:",idx);
+        idx += 1;
+        if(idx==data1.length){
+          sqlstr = "checkStudentOrder";
+          params = {"certID":key, "batchID":pn};
+          //console.log("params:", params);
+          db.excuteProc(sqlstr, params, function(err, data2){
+            if (err) {
+              console.log(err);
+              let response = {"status":9};
+              return res.send(response);
+            }
+            //console.log("data:",data.recordset[0],"idx:",idx);
+            //mark + '模板.xlsx' 模板名称
+            //var re = genExcel('学员名单核对结果', '培训人员名单核对情况', data2.recordset);
+            //  console.log("re:",re);
+            let path = 'users/upload/projects/templates/' + '学员名单核对结果' + '模板.xlsx';
+            //generate diploma paper with pdf
+            let path1 = 'users/upload/others/' + '学员名单核对结果' + '_' + Date.now() + '.xlsx';
+            xlsxx.writeExcel({"title":'培训人员名单核对情况', "list":data2.recordset},path,path1,function(re){
+              //console.log('the file:',re);
+              //return publish file path
+              return res.send({"file":re});
+            });
+          });
+        }
+      });
+    });
+  }
 });
 
 router.post('/uploadMultiple', uploadMultiple.array('avatar',1000), function(req, res, next) {
@@ -1256,6 +1304,18 @@ router.get('/compressImages', function(req, res, next) {
     
     });
 });
+
+function genExcel(mark, title, rs) {
+  //let path = 'users/upload/projects/templates/退费清单模板.xlsx';
+  let path = 'users/upload/projects/templates/' + mark + '模板.xlsx';
+  //generate diploma paper with pdf
+  let path1 = 'users/upload/others/' + mark + '_' + Date.now() + '.xlsx';
+  xlsxx.writeExcel({"title":title, "list":rs},path,path1,function(fn){
+    console.log('the file:',fn);
+    //return publish file path
+    return fn;
+  });
+}
 
 function encodeCell(r, c) {
   return xlsx.utils.encode_cell({ r, c });
