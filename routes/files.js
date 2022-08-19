@@ -606,10 +606,10 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
             //mark + '模板.xlsx' 模板名称
             //var re = genExcel('学员名单核对结果', '培训人员名单核对情况', data2.recordset);
             //  console.log("re:",re);
-            let path = 'users/upload/projects/templates/' + '学员名单核对结果' + '模板.xlsx';
+            let path = 'users/upload/projects/templates/' + '学员信息核对结果' + '模板.xlsx';
             //generate diploma paper with pdf
-            let path1 = 'users/upload/others/' + '学员名单核对结果' + '_' + Date.now() + '.xlsx';
-            xlsxx.writeExcel({"title":'培训人员名单核对情况', "list":data2.recordset},path,path1,function(re){
+            let path1 = 'users/upload/others/' + '学员信息核对结果' + '_' + Date.now() + '.xlsx';
+            xlsxx.writeExcel({"title":'培训人员信息核对情况', "list":data2.recordset},path,path1,function(re){
               //console.log('the file:',re);
               //return publish file path
               return res.send({"file":re});
