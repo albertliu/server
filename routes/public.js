@@ -257,7 +257,7 @@ router.get('/getRptList', function(req, res) {
       break;
     default:
   }
-  console.log("params:", params);
+  //console.log("params:", params);
   db.excuteProc(sqlstr, params, function(err, data){
     if (err) {
       console.log(err);
