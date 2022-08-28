@@ -247,9 +247,17 @@ router.get('/getRptList', function(req, res) {
       //@host varchar(50),@startDate varchar(50),@endDate varchar(50),@kindID varchar(50),@certID varchar(50),@status varchar(50),@agencyID varchar(50),@groupHost int,@groupDept1 int,@groupKindID int,@groupCertID int,@groupStatus int,@groupAgencyID int,@groupDate varchar(20)
       params = {host:req.query.host, startDate:req.query.startDate,endDate:req.query.endDate,kindID:req.query.kindID,certID:req.query.certID,status:req.query.status,agencyID:req.query.agencyID,groupHost:req.query.groupHost,groupDept1:req.query.groupDept1,groupKindID:req.query.groupKindID,groupCertID:req.query.groupCertID,groupStatus:req.query.groupStatus,groupAgencyID:req.query.groupAgencyID,groupDate:req.query.groupDate,fromID:req.query.fromID};
       break;
+    case "daily_unit_course":
+      sqlstr = "rpt_dailyUnitCourse";
+      params = {dateStart:req.query.startDate,dateEnd:req.query.endDate};
+      break;
+    case "daily_course":
+      sqlstr = "rpt_dailyCourse";
+      params = {dateStart:req.query.startDate,dateEnd:req.query.endDate};
+      break;
     default:
   }
-  //console.log("params:", params);
+  console.log("params:", params);
   db.excuteProc(sqlstr, params, function(err, data){
     if (err) {
       console.log(err);

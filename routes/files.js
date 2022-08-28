@@ -13,6 +13,7 @@ var pdf = require("../utils/pdf");
 var docx = require("../utils/docx");
 let xlsxx = require('../utils/xlsx');
 let xlsx = require('xlsx');
+//let xlsx_free = require('../utils/xlsx_free');
 var zip = require("../utils/zip");
 const { array } = require('pizzip/js/support');
 var upID = "", key = "", mark = "", currUser = "", host = "", today = date.format(new Date(),'YYYY-MM-DD');
@@ -1304,6 +1305,25 @@ router.get('/compressImages', function(req, res, next) {
     
     });
 });
+
+/*
+//status: 0 成功  9 其他  msg, filename
+router.get('/rpt_daily_unit_course', function(req, res, next) {
+    sqlstr = "rpt_dailyUnitCourse";
+    params = {dateStart:req.query.dateStart, dateEnd:req.query.dateEnd};
+    //console.log(params);
+    //generate diploma data
+    db.excuteProc(sqlstr, params, function(err, data){
+      if (err) {
+        console.log(err);
+        response = [];
+        return res.send(response);
+      }
+      xlsx_free.writeExcel(data, function(fn){
+        return res.send([fn]);
+      });
+    });
+});*/
 
 function genExcel(mark, title, rs) {
   //let path = 'users/upload/projects/templates/退费清单模板.xlsx';
