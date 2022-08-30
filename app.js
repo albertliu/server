@@ -23,13 +23,15 @@ let redisClient = redis.createClient(redisConfig.sessionStore);
 
 var app = express();
 
-var hosts = ['','znxf.','spc.','shm.','yuc.','ding.','gsgl.','jia.','jiah.','tai.','wen.'];
+//var hosts = ['','znxf.','spc.','shm.','yuc.','ding.','gsgl.','jia.','jiah.','tai.','wen.'];
+var hosts = ['','znxf.','spc.','shm.'];
 var ports = ['',':3000',':3003',':8082'];
 var orig = [];
 for(var v of hosts){
   for(var x of ports){
     orig.push('http://' + v + 'shznxfxx.cn' + x);
     orig.push('http://' + v + 'localhost' + x);
+    orig.push('http://www.shznxfxx.cn' + x);
   }
 }
 //console.log("origin:",orig);
@@ -70,6 +72,7 @@ app.use(function(req, res, next) {
   //console.log("url:",req.get('origin'))
   if (!req.session.user) {
       if (req.url.endsWith("/login") || req.url.endsWith("/logout") || req.url.endsWith("/change_passwd") || req.url.endsWith("/new_student") || req.url.startsWith("/public/") || req.url.startsWith("/outfiles/")) {
+          console.log("url:",req.get('origin'));
           next(); //如果请求的地址是登录则通过，进行下一个请求
       } else {
           //console.log("sessionExpire url：",req.url,req.session.user);
