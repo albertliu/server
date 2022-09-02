@@ -323,6 +323,16 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
         //console.log("data:",data.recordset[0],"idx:",idx);
         idx += 1;
         if(idx==data1.length){
+          sqlstr = "autoSetClassSNo";   //adjuest student No in the class
+          params = {"classID":key};
+          //console.log("params:", params);
+          db.excuteProc(sqlstr, params, function(err, data2){
+            if (err) {
+              console.log(err);
+              let response = {"status":9};
+              return res.send(response);
+            }
+          });
           response.count = data1.length - r_err - r_exist - r_existOther;
           response.err_msg = r_err_msg>""?"身份证号码错误，未导入：" + r_err_msg + "\n":"";
           r_exist_msg = r_exist_msg>""?"学员已在本班级，未导入：" + r_exist_msg + "\n":"";
