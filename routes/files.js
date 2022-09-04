@@ -300,7 +300,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
          mn = '';
       }
       sqlstr = "generateStudent";
-      params = {"username":val["身份证"].replace(/\s+/g,""), "name":val["姓名"].replace(/\s+/g,""), "dept1Name":val["单位"], "job":val["工种/职务"], "mobile": ""+mn, "phone":""+pn, "education":val["文化程度"], "memo":val["备注"], "classID":key, "registerID":currUser};
+      params = {"username":val["身份证"].replace(/\s+/g,""), "name":val["姓名"].replace(/\s+/g,""), "dept1Name":val["单位"], "job":val["工种/职务"], "mobile": ""+mn, "phone":""+pn, "education":val["文化程度"], "memo":val["备注"], "classID":key, "oldNo":val["序号"], "registerID":currUser};
       //console.log("params:", params);
       db.excuteProc(sqlstr, params, function(err, data){
         if (err) {
