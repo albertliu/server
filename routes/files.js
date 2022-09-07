@@ -283,6 +283,9 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
     var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let pn = "";
     let mn = "";
+    let p1 = "";
+    let p2 = "";
+    let r_null = 0;
     let r_err = 0;
     let r_exist = 0;
     let r_existOther = 0;
@@ -299,8 +302,16 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
       if(typeof(mn) == "undefined"){
          mn = '';
       }
+      p1 = val["身份证"];
+      if(typeof(p1) == "undefined"){
+        p1 = '';
+      }
+      p2 = val["姓名"];
+      if(typeof(p2) == "undefined"){
+        p2 = '';
+      }
       sqlstr = "generateStudent";
-      params = {"username":val["身份证"].replace(/\s+/g,""), "name":val["姓名"].replace(/\s+/g,""), "dept1Name":val["单位"], "job":val["工种/职务"], "mobile": ""+mn, "phone":""+pn, "education":val["文化程度"], "memo":val["备注"], "classID":key, "oldNo":val["序号"], "registerID":currUser};
+      params = {"username":p1.replace(/\s+/g,""), "name":p2.replace(/\s+/g,""), "dept1Name":val["单位"], "job":val["工种/职务"], "mobile": ""+mn, "phone":""+pn, "education":val["文化程度"], "memo":val["备注"], "classID":key, "oldNo":val["序号"], "registerID":currUser};
       //console.log("params:", params);
       db.excuteProc(sqlstr, params, function(err, data){
         if (err) {
@@ -310,15 +321,18 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
         }
         if(data.recordset[0]["err"]==1){
           r_err += data.recordset[0]["err"];
-          r_err_msg += val["姓名"].replace(/\s+/g,"") + " " + val["身份证"].replace(/\s+/g,"") + "  ";
+          r_err_msg += p2.replace(/\s+/g,"") + " " + p1.replace(/\s+/g,"") + "  ";
         }
         if(data.recordset[0]["exist"]==1){
           r_exist += data.recordset[0]["exist"];
-          r_exist_msg += val["姓名"].replace(/\s+/g,"") + "  ";
+          r_exist_msg += p2.replace(/\s+/g,"") + "  ";
         }
         if(data.recordset[0]["existOther"]==1){
           r_existOther += data.recordset[0]["existOther"];
-          r_existOther_msg += val["姓名"].replace(/\s+/g,"") + "  ";
+          r_existOther_msg += p2.replace(/\s+/g,"") + "  ";
+        }
+        if(data.recordset[0]["errNull"]==1){
+          r_null += 1;
         }
         //console.log("data:",data.recordset[0],"idx:",idx);
         idx += 1;
@@ -333,7 +347,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
               return res.send(response);
             }
           });
-          response.count = data1.length - r_err - r_exist - r_existOther;
+          response.count = data1.length - r_err - r_exist - r_existOther -r_null;
           response.err_msg = r_err_msg>""?"身份证号码错误，未导入：" + r_err_msg + "\n":"";
           r_exist_msg = r_exist_msg>""?"学员已在本班级，未导入：" + r_exist_msg + "\n":"";
           response.exist_msg = r_existOther_msg>""?r_exist_msg + "学员已在其他班级，未导入：" + r_existOther_msg:r_exist_msg;
