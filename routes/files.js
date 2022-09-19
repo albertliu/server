@@ -312,7 +312,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
       }
       sqlstr = "generateStudent";
       params = {"username":p1.replace(/\s+/g,""), "name":p2.replace(/\s+/g,""), "dept1Name":val["单位"], "job":val["工种/职务"], "mobile": ""+mn, "phone":""+pn, "education":val["文化程度"], "memo":val["备注"], "classID":key, "oldNo":val["序号"], "registerID":currUser};
-      //console.log("params:", params);
+      //console.log("No.",val["序号"],"p2:",p2.replace(/\s+/g,""),"p1:",p1);
       db.excuteProc(sqlstr, params, function(err, data){
         if (err) {
           console.log(err);
@@ -321,20 +321,20 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
         }
         if(data.recordset[0]["err"]==1){
           r_err += data.recordset[0]["err"];
-          r_err_msg += p2.replace(/\s+/g,"") + " " + p1.replace(/\s+/g,"") + "  ";
+          r_err_msg += data.recordset[0]["name"] + " " + data.recordset[0]["username"] + "  ";
         }
         if(data.recordset[0]["exist"]==1){
           r_exist += data.recordset[0]["exist"];
-          r_exist_msg += p2.replace(/\s+/g,"") + "  ";
+          r_exist_msg += data.recordset[0]["name"] + "  ";
         }
         if(data.recordset[0]["existOther"]==1){
           r_existOther += data.recordset[0]["existOther"];
-          r_existOther_msg += p2.replace(/\s+/g,"") + "  ";
+          r_existOther_msg += data.recordset[0]["name"] + "(" + data.recordset[0]["msg"] + ")  ";
         }
         if(data.recordset[0]["errNull"]==1){
           r_null += 1;
         }
-        //console.log("data:",data.recordset[0],"idx:",idx);
+        //
         idx += 1;
         if(idx==data1.length){
           sqlstr = "autoSetClassSNo";   //adjuest student No in the class
@@ -605,9 +605,14 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
     var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let pn = currUser + '-' + Date.now();
     let idx = 0;
+    let xh = "";
     data1.forEach(function(val){
       sqlstr = "checkStudentOrder_import";
-      params = {"username":val["身份证"].replace(/\s+/g,""), "name":val["姓名"].replace(/\s+/g,""), "dept1Name":val["单位"], "memo":val["备注"], "batchID":pn};
+      xh = val["序号"];
+      if(typeof(xh) == "undefined"){
+        xh = '';
+      }
+      params = {"username":val["身份证"].replace(/\s+/g,""), "name":val["姓名"].replace(/\s+/g,""), "dept1Name":val["单位"], "memo":val["备注"], "No":xh, "batchID":pn};
       //console.log("params:", params);
       db.excuteProc(sqlstr, params, function(err, data){
         if (err) {
