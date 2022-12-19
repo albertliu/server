@@ -679,7 +679,7 @@ router.post('/uploadMultiple', uploadMultiple.array('avatar',1000), function(req
         let file = files[i];
         let fn = file.filename;
         sqlstr = "setUploadSingleFileLink";
-        params = {"upID":upID, "key":fn.substr(0,fn.lastIndexOf(".")), "file":file.path.substr(file.path.indexOf("\\")), "multiple":batchID};
+        params = {"upID":upID, "key":fn.substr(0,fn.lastIndexOf(".")), "file":file.path.substr(file.path.indexOf("\\")), "multiple":batchID, "registerID":currUser};
         //console.log("params:", params);
         db.excuteProc(sqlstr, params, function(err, data){
           if (err) {
