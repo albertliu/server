@@ -4,6 +4,8 @@ var db = require("../utils/mssqldb");
 var sendsms = require("../utils/sendsms");
 let xlsx = require('xlsx');
 var qr = require('qr-image');
+const path = require('path');
+const pdf = require('pdf-poppler');
 const { NetworkAuthenticationRequire } = require('http-errors');
 var uploadHome = './users/upload/';
 var downloadHome = './users/public/';
@@ -689,6 +691,98 @@ router.post('/send_message_diploma_apply', function(req, res, next) {
     });
 });
 
+//4. 批量通知学员，提交电子照片。同时发送系统消息和短信。
+router.post('/send_message_submit_photo', function(req, res, next) {
+    let ec = 0;
+    sqlstr = "sendMsg4SubmitPhoto";
+    params = {kind:req.body.kind, selList: req.body.selList, registerID: req.body.registerID };
+    //console.log(params);
+    db.excuteProc(sqlstr, params, function (err, data) {
+        if (err) {
+            console.log(err);
+            let response = { "status": 9, msg:"系统错误。" };
+            return res.send(response);
+        }
+        //return: 0 success; other error:1 the user not exist  2 the phone error.
+        //console.log(data.recordset[0]);
+        if(req.body.SMS==1){ //发通知
+            let re = data.recordset;
+            for (var i in re){
+                if(re[i]["mobile"].length == 11){
+                    sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], '', '', "msg_submit_photo");
+                    sqlstr = "writeSSMSlog";
+                    params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "提交电子照片通知", message: re[i]["item"], refID: 0, registerID: req.body.registerID };
+                    //console.log(params);
+                    db.excuteProc(sqlstr, params, function (err, data1) {
+                        if (err) {
+                            console.log(err);
+                            let response = { "status": 9, msg:"系统错误。" };
+                            return res.send(response);
+                        }
+                    });
+                    ec += 1;
+                }
+            }
+        }
+        let response = { "status": 0, "msg": "操作成功。" };
+        return res.send(response);
+    });
+});
+
+//4. 批量通知学员，提交电子签名。同时发送系统消息和短信。
+router.post('/send_message_submit_signature', function(req, res, next) {
+    let ec = 0;
+    sqlstr = "sendMsg4SubmitSignature";
+    params = {batchID:req.body.batchID, selList: req.body.selList, registerID: req.body.registerID };
+    db.excuteProc(sqlstr, params, function (err, data) {
+        if (err) {
+            console.log(err);
+            let response = { "status": 9, msg:"系统错误。" };
+            return res.send(response);
+        }
+        //return: 0 success; other error:1 the user not exist  2 the phone error.
+        //console.log(data.recordset[0]);
+        if(req.body.SMS==1){ //发通知
+            let re = data.recordset;
+            for (var i in re){
+                if(re[i]["mobile"].length == 11){
+                    sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], '', '', "msg_submit_signature");
+                    sqlstr = "writeSSMSlog";
+                    params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "提交电子签名通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.body.registerID };
+                    //console.log(params);
+                    db.excuteProc(sqlstr, params, function (err, data1) {
+                        if (err) {
+                            console.log(err);
+                            let response = { "status": 9, msg:"系统错误。" };
+                            return res.send(response);
+                        }
+                    });
+                    ec += 1;
+                }
+            }
+        }
+        let response = { "status": 0, "msg": "操作成功。" };
+        return res.send(response);
+    });
+});
+
+//4. 批量关闭提交电子照片/签名通知。
+router.post('/send_message_submit_attention_close', function(req, res, next) {
+    let ec = 0;
+    sqlstr = "closeAttections";
+    params = {batchID:req.body.batchID, kind:req.body.kind, kindID:req.body.kindID, selList: req.body.selList, registerID: req.body.registerID };
+    //console.log(params);
+    db.excuteProc(sqlstr, params, function (err, data) {
+        if (err) {
+            console.log(err);
+            let response = { "status": 9, msg:"系统错误。" };
+            return res.send(response);
+        }
+        let response = { "status": 0, "msg": "操作成功。" };
+        return res.send(response);
+    });
+});
+
 router.get('/get_user_qr', function (req, res, next) {
   //console.log("homeUrl:", homeUrl);
   var text = "http://" + req.query.host + homeUrl.replace("http://",".") + "?username=" + req.query.username;
@@ -696,6 +790,20 @@ router.get('/get_user_qr', function (req, res, next) {
   //console.log(homeUrl, text);
   try {
     var img = qr.image(text,{size: parseInt(size)});
+    res.writeHead(200, {'Content-Type': 'image/png'});
+    img.pipe(res);
+  } catch (e) {
+    res.writeHead(414, {'Content-Type': 'text/html'});
+    res.end('<h1>414 Request-URI Too Large</h1>');
+  }
+})
+
+router.get('/get_qr_img', function (req, res, next) {
+  //console.log("homeUrl:", homeUrl);
+  var size = req.query.size;
+  //console.log(homeUrl, text);
+  try {
+    var img = qr.image(req.query.text,{size: parseInt(size)});
     res.writeHead(200, {'Content-Type': 'image/png'});
     img.pipe(res);
   } catch (e) {
@@ -1042,6 +1150,29 @@ router.post('/getIncomeRptPie1', function(req, res) {
     var response = data.recordset || [];
     return res.send(response);
   });
+});
+
+//transfer PDF to png file, file name auto add "-1" in the trail
+router.get('/getPDF2img', function(req, res, next) {
+  //let file = "users/upload/students/diplomas/C1-22-01352.pdf";
+  let file = req.query.path;
+  let opts = {
+    format: 'png',
+    out_dir: path.dirname(file),
+    out_prefix: path.basename(file, path.extname(file)),
+    page: null
+  }
+
+  pdf.convert(file, opts)
+    .then(function () {
+        let response = file.replace(".pdf","-1.png");
+        //console.log('Successfully converted： ',response);
+        return res.send(response);
+    })
+    .catch(error => {
+        console.error(error);
+        return res.send(error);
+    })
 });
 
 	

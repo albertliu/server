@@ -55,6 +55,14 @@ const ssms ={
           tc = "SMS_243995316";
           pa = "{'name':'" + name + "','item':'" + item + "'}";
         }
+        if(temp=="msg_submit_photo"){
+          tc = "SMS_261130422";
+          pa = "{'name':'" + name + "','item':'" + item + "'}";
+        }
+        if(temp=="msg_submit_signature"){
+          tc = "SMS_261020451";
+          pa = "{'name':'" + name + "','item':'" + item + "'}";
+        }
         
         var params = {
           "RegionId": "cn-hangzhou",

@@ -728,10 +728,12 @@ router.post('/uploadBase64img', function(req, res, next) {
     uploadFolder = uploadHome + uploadFolder;
     createFolder(uploadFolder);
     fn = uploadFolder + fn + ".png";
-
+console.log(0);
     var base64Data = imgData.replace(/^data:image\/\w+;base64,/, "");
     var dataBuffer = Buffer.from(base64Data, 'base64');
+    console.log(1);
     fs.writeFile(fn, dataBuffer, function(err) {
+      console.log(2);
         if(err){
           res.send(err);
         }else{
@@ -740,7 +742,7 @@ router.post('/uploadBase64img', function(req, res, next) {
           //response.count = 1;
           sqlstr = "setUploadSingleFileLink";
           params = {"upID":upID, "key":req.body.username, "file":fn, "multiple":0, "registerID":currUser};
-          //console.log("params:", params);
+          console.log("params:", params);
           db.excuteProc(sqlstr, params, function(err, data){
             if (err) {
               console.log(err);
@@ -793,7 +795,7 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
           pages.push(sqlstr);
           paths.push(path);
         }
-          pdf.genPDF(pages, paths, '180mm', '120mm', '1', false, 1, false);
+        pdf.genPDF(pages, paths, '180mm', '120mm', '1', false, 1, false);
         //publish diploma on A4 with pdf
         //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
         sqlstr = env + "/pdfs.asp?refID=" + batchID;
@@ -818,7 +820,7 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
 router.post('/generate_diploma_byClassID', function(req, res, next) {
   sqlstr = "updateGenerateDiplomaInfo";
   //@ID int,@classID varchar(50), @selList varchar(4000),@printed int,@printDate varchar(50),@delivery int,@deliveryDate varchar(50),@host nvarchar(50),@memo nvarchar(500),@registerID varchar(50)
-  params = {ID:req.query.ID, certID:req.query.certID, selList:req.body.selList, startDate:req.query.startDate, class_startDate:req.query.class_startDate, class_endDate:req.query.class_endDate, printed:0, printDate:'', delivery:0, deliveryDate:'', host:'', memo:req.query.memo, registerID:req.query.registerID};
+  params = {ID:req.query.ID, certID:req.query.certID, selList:req.body.selList, startDate:req.query.startDate, class_startDate:req.query.class_startDate, class_endDate:req.query.class_endDate, printed:0, printDate:'', delivery:0, deliveryDate:'', styleID:req.query.card, host:'', memo:req.query.memo, registerID:req.query.registerID};
   //console.log(params);
   //generate diploma data
   let response = [];
@@ -863,7 +865,12 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
         //generate diploma paper with pdf
         for (var i in data1.recordset){
           let str = [data1.recordset[i]["diplomaID"],data1.recordset[i]["name"],data1.recordset[i]["username"],data1.recordset[i]["certID"],data1.recordset[i]["certName"],data1.recordset[i]["hostName"],data1.recordset[i]["job"],data1.recordset[i]["startDate"],data1.recordset[i]["endDate"],data1.recordset[i]["title"],data1.recordset[i]["photo_filename"],data1.recordset[i]["term"],data1.recordset[i]["sexName"],data1.recordset[i]["diplomaNo"],data1.recordset[i]["educationName"],data1.recordset[i]["class_startDate"],data1.recordset[i]["class_endDate"]];
-          sqlstr = env + "/pdf_" + certID + ".asp?kindID=" + (str.join(","));
+          if(req.query.card==0){
+            sqlstr = env + "/pdf_" + certID + ".asp?kindID=" + (str.join(","));
+          }else{
+            //************ */ card diploma style
+            sqlstr = env + "/pdf_card.asp?kindID=" + (str.join(","));
+          }
           //console.log(str.join(","));
           let path = 'users/upload/students/diplomas/' + data1.recordset[i]["diplomaID"] + '.pdf';
           //console.log('path',path);
@@ -871,22 +878,28 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
           paths.push(path);
           //pdf.genPDF(sqlstr, path, pW1, pH1, '1', false, 1, false);
         }
-        pdf.genPDF(pages, paths, pW1, pH1, '1', false, 1, true);
+        if(req.query.card==0){
+          pdf.genPDF(pages, paths, pW1, pH1, '1', false, 1, true);
+        }else{
+          //************ */ card diploma style
+          pW2 = '86mm';
+          pH2 = '54mm';
+          pdf.genPDF(pages, paths, pW2, pH2, '1', false, 0.5, true);
+        }
         //publish diploma on A4 with pdf
         //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
 
-        sqlstr = env + "/pdfs_diploma_" + certID + ".asp?refID=" + batchID + "&kindID=" + req.query.kindID;
         let path = 'users/upload/students/diplomaPublish/' + batchID + '.pdf';
-        //************ */ card diploma style
-        //*pW2 = '86mm';
-        //*pH2 = '54mm';
-        //sqlstr = env + "/pdfs_diploma_C1_card.asp?refID=" + batchID;
-        //let path = 'users/upload/students/diplomaPublish/' + batchID + '1.pdf';
-        //************ */
+        if(req.query.card==0){
+          sqlstr = env + "/pdfs_diploma_" + certID + ".asp?refID=" + batchID + "&kindID=" + req.query.kindID;
+        }else{
+          //************ */ card diploma style
+          sqlstr = env + "/pdfs_diploma_card.asp?refID=" + batchID;
+        }
 
         filename = path;
         //pdf.genPDF(sqlstr, path, pW2, pH2, '', false, 0.5, false);
-        pdf.genPDF([sqlstr], [path], pW2, pH2, '', false, 0.5, false);
+        pdf.genPDF([sqlstr], [path], pW2, pH2, '', false, 0.5, true);
         //console.log('the path:',path);
         //return publish file path
         response = [batchID];
@@ -896,6 +909,29 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
       response = [];
       return res.send(response);
     }
+  });
+});
+
+//22.1. re_generate_diploma_spc 重新生成企业内证书
+//status: 0 成功  9 其他  msg, filename
+router.get('/re_generate_diploma_spc', function(req, res, next) {
+  sqlstr = "select *,'No.' as diplomaNo from v_diplomaInfo where type=1 and diplomaID=@diplomaID";   //企业内证书
+  params = {diplomaID:req.query.diplomaID};
+  db.excuteSQL(sqlstr, params, function(err, data1){
+    if (err) {
+      console.log(err);
+      response = [];
+      return res.send(response);
+    }
+    let pages = [];
+    let paths = [];
+    let str = [data1.recordset[0]["name"],data1.recordset[0]["certName"],data1.recordset[0]["diplomaID"],data1.recordset[0]["dept1Name"],data1.recordset[0]["job"],data1.recordset[0]["startDate"],data1.recordset[0]["term"],data1.recordset[0]["title"],data1.recordset[0]["photo_filename"],data1.recordset[0]["logo"],data1.recordset[0]["certID"],data1.recordset[0]["host"],data1.recordset[0]["stamp"]];
+    sqlstr = env + "/pdf.asp?kindID=" + (str.join(","));
+    //arr.push(str.join(","));
+    let path = 'users/upload/students/diplomas/' + data1.recordset[i]["diplomaID"] + '.pdf';
+    pages.push(sqlstr);
+    paths.push(path);
+    pdf.genPDF(pages, paths, '180mm', '120mm', '1', false, 1, false);
   });
 });
 
