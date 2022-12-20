@@ -728,12 +728,10 @@ router.post('/uploadBase64img', function(req, res, next) {
     uploadFolder = uploadHome + uploadFolder;
     createFolder(uploadFolder);
     fn = uploadFolder + fn + ".png";
-console.log(0);
+
     var base64Data = imgData.replace(/^data:image\/\w+;base64,/, "");
     var dataBuffer = Buffer.from(base64Data, 'base64');
-    console.log(1);
     fs.writeFile(fn, dataBuffer, function(err) {
-      console.log(2);
         if(err){
           res.send(err);
         }else{
@@ -742,7 +740,7 @@ console.log(0);
           //response.count = 1;
           sqlstr = "setUploadSingleFileLink";
           params = {"upID":upID, "key":req.body.username, "file":fn, "multiple":0, "registerID":currUser};
-          console.log("params:", params);
+          //console.log("params:", params);
           db.excuteProc(sqlstr, params, function(err, data){
             if (err) {
               console.log(err);

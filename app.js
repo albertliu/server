@@ -18,6 +18,7 @@ var publicRouter = require('./routes/public');
 var courseRouter = require('./routes/course');
 var filesRouter = require('./routes/files');
 var outfilesRouter = require('./routes/files');
+var bodyParser = require('body-parser');
 
 let redisClient = redis.createClient(redisConfig.sessionStore);
 
@@ -42,7 +43,8 @@ var corsOptions = {
   optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
 }
 app.use(cors(corsOptions));  //跨域访问
-
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
 
 redisClient.on('error', console.error);
 app.use(express.static('users'))

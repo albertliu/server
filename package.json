@@ -9,6 +9,7 @@
     "@alicloud/pop-core": "^1.7.9",
     "@alicloud/sms-sdk": "^1.1.6",
     "async": "^3.2.0",
+    "body-parser": "^1.20.1",
     "connect-redis": "^4.0.4",
     "constantinople": ">=3.1.1",
     "cookie-parser": "~1.4.4",
