@@ -1,29 +1,29 @@
 ///引入依赖
 const mssql = require('mssql');
 const config = {
-      user: 'sqlrw',
-      password: process.env.NODE_ENV_DB_PASSWD,
-      //server: 'DESKTOP-017P07F\\ALBERTSQL2012',
-      server: process.env.NODE_ENV_DB,
-      //server: 'iZ8ccky8b15s0lZ\\ELEARNINGSQL2012',
-      database: 'elearning',
-      port: 14333,
-      options:{
-          encrypt: false
-      },
-      pool: {
-          min: 0,
-          max: 10,
-          idleTimeoutMillis: 3000
-      }
-  };
+  user: 'sqlrw',
+  password: process.env.NODE_ENV_DB_PASSWD,
+  //server: 'DESKTOP-017P07F\\ALBERTSQL2012',
+  server: process.env.NODE_ENV_DB,
+  //server: 'iZ8ccky8b15s0lZ\\ELEARNINGSQL2012',
+  database: 'elearning',
+  port: 14333,
+  options: {
+    encrypt: false
+  },
+  pool: {
+    min: 0,
+    max: 10,
+    idleTimeoutMillis: 3000
+  }
+};
 
 const pool2 = new mssql.ConnectionPool(config);
 const pool2Connect = pool2.connect();
 
 pool2.on('error', err => {
-    // ... error handler
-    console.log(err);
+  // ... error handler
+  console.log(err);
 });
 
 
@@ -38,14 +38,14 @@ const units = {
         if (params != "") {
           //console.log("params:", params);
           for (var index in params) {
-              if (params[index] === undefined || params[index] === null) {
-                params[index] = "";
-              }
-              if (typeof params[index] == "string") {
-                  ps.input(index, mssql.NVarChar);
-              } else if (typeof params[index] == "number") {
-                  ps.input(index, mssql.Int);
-              }
+            if (params[index] === undefined || params[index] === null) {
+              params[index] = "";
+            }
+            if (typeof params[index] == "string") {
+              ps.input(index, mssql.NVarChar);
+            } else if (typeof params[index] == "number") {
+              ps.input(index, mssql.Int);
+            }
           }
         }
 
@@ -105,6 +105,31 @@ const units = {
         // ... error handler
         console.log("executeProc: Database Connection Failed! Bad Config:", err);
     })
+  },
+  excuteProcAsync: async function (proc, params) {
+    try {
+      const pool = await pool2Connect;
+      var req = pool.request(); // or: new sql.Request(pool2)
+      //var req = new mssql.Request(pool2);
+      if (params != "") {
+        for (var index in params) {
+          if (params[index] === undefined || params[index] === null) {
+            params[index] = "";
+          }
+          if (typeof params[index] == "string") {
+            req.input(index, mssql.NVarChar, params[index]);
+          } else if (typeof params[index] == "number") {
+            req.input(index, mssql.Int, params[index]);
+          }
+        }
+        //console.log("params:", params);
+      }
+      return req.execute(proc);
+    } catch (err) {
+      console.log("executeProc: Database Connection Failed! Bad Config:", err);
+      throw err;
+    }
+
   }
   /*
  * 默认config对象

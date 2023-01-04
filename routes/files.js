@@ -16,31 +16,31 @@ let xlsx = require('xlsx');
 //let xlsx_free = require('../utils/xlsx_free');
 var zip = require("../utils/zip");
 const { array } = require('pizzip/js/support');
-var upID = "", key = "", mark = "", currUser = "", host = "", today = date.format(new Date(),'YYYY-MM-DD');
+var upID = "", key = "", mark = "", currUser = "", host = "", today = date.format(new Date(), 'YYYY-MM-DD');
 var env = process.env.NODE_ENV_BACKEND;
 
-var createFolder = function(folder){
-  try{
-      fs.accessSync(folder); 
-  }catch(e){
-      fs.mkdirSync(folder);
-  }  
+var createFolder = function (folder) {
+  try {
+    fs.accessSync(folder);
+  } catch (e) {
+    fs.mkdirSync(folder);
+  }
 };
 /* GET home page. */
-router.get('/', function(req, res, next) {
+router.get('/', function (req, res, next) {
   //res.render('index', { title: 'Express' });
   console.log("The user order paramaters ip: %s  host: %s", ip, host)
   res.send(response);
 });
 
 var storage = multer.diskStorage({
-  destination: function (req, file, cb) { 
+  destination: function (req, file, cb) {
     //console.log("query:", req.query.upID, req.query.username)
     var uploadFolder = "";
     upID = req.query.upID;
     host = req.query.host;
     currUser = req.query.currUser;
-    switch(upID){
+    switch (upID) {
       case "student_photo":
         uploadFolder = "students/photos/";
         break;
@@ -108,7 +108,7 @@ var storage = multer.diskStorage({
     upID = req.query.upID;
     currUser = req.query.currUser;
     host = req.query.host;
-    switch(upID){
+    switch (upID) {
       case "student_photo":   //student photo will name with the username and original type, and write the path to studentInfo.
         fn = req.query.username;
         key = req.query.username;
@@ -181,25 +181,25 @@ var storage = multer.diskStorage({
         break;
       default:
         fn = file.originalname;
-        fn = fn.substr(0,fn.lastIndexOf(".")) + '-' + Date.now();
+        fn = fn.substr(0, fn.lastIndexOf(".")) + '-' + Date.now();
         key = req.query.username;
     }
-    cb(null, fn + "." + filenameArr[filenameArr.length-1]);
+    cb(null, fn + "." + filenameArr[filenameArr.length - 1]);
   }
 });
 
-var upload = multer({ 
+var upload = multer({
   storage: storage
 });
 
 var storageMultiple = multer.diskStorage({
-  destination: function (req, files, cb) { 
+  destination: function (req, files, cb) {
     //console.log("query:", req.query.upID, req.query.username)
     var uploadFolder = "";
     upID = req.query.upID;
     host = req.query.host;
     currUser = req.query.currUser;
-    switch(upID){
+    switch (upID) {
       case "student_photo":
         uploadFolder = "students/photos/";
         break;
@@ -227,23 +227,23 @@ var storageMultiple = multer.diskStorage({
     var filenameArr = file.originalname.split('.');
     //文件名不变
     fn = file.originalname;
-    key = fn.substr(0,fn.lastIndexOf("."));
+    key = fn.substr(0, fn.lastIndexOf("."));
     cb(null, fn);
   }
 });
 
-var uploadMultiple = multer({ 
+var uploadMultiple = multer({
   storage: storageMultiple
 });
 
 
 //5a. uploadSingle
-router.post('/uploadSingle', upload.single('avatar'), async function(req, res, next) {
+router.post('/uploadSingle', upload.single('avatar'), async function (req, res, next) {
   //console.log("req.query.upID:", req.query.upID);
   var file = req.file;
-  response = {"status":0, msg:"", "file":"", "count":0, "err_msg":"", "exist_msg":""}
+  response = { "status": 0, msg: "", "file": "", "count": 0, "err_msg": "", "exist_msg": "" }
   if (req.file.length === 0 || file == undefined) {  //判断一下文件是否存在，也可以在前端代码中进行判断。
-    res.render({"status":0, msg: "上传文件不能为空！"});
+    res.render({ "status": 0, msg: "上传文件不能为空！" });
     return;
   }
   //console.log('文件类型：%s', file.mimetype);
@@ -256,31 +256,31 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
   response.count = 1;
   sqlstr = "setUploadSingleFileLink";
   let register = key;
-  if(currUser>""){
+  if (currUser > "") {
     register = currUser;
   }
-  params = {"upID":upID, "key":key, "file":response.file, "multiple":0, "registerID":register};
+  params = { "upID": upID, "key": key, "file": response.file, "multiple": 0, "registerID": register };
   //console.log("params:", params);
-  db.excuteProc(sqlstr, params, function(err, data){
+  db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
-      let response = {"status":9};
+      let response = { "status": 9 };
       return res.send(response);
     }
     //console.log("response:", response);
     response.count = 1;
-    if(req.query.commMark != "studentList"){
+    if (req.query.commMark != "studentList") {
       return res.send(response);
     }
   });
 
   //deal xlsx  学员注册
-  if(upID == "student_list"){
+  if (upID == "student_list") {
     //console.log("file:", file.path);
     let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
     let sheetNames = workbook.SheetNames; //获取表明
     let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
-    var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
+    var data1 = xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let pn = "";
     let mn = "";
     let p1 = "";
@@ -294,65 +294,65 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
     let r_existOther_msg = "";
     let idx = 0;
     let job = "";
-    data1.forEach(function(val){
+    data1.forEach(function (val) {
       pn = val["电话"];
-      if(typeof(pn) == "undefined"){
+      if (typeof (pn) == "undefined") {
         pn = '';
       }
       mn = val["手机"];
-      if(typeof(mn) == "undefined"){
-         mn = '';
+      if (typeof (mn) == "undefined") {
+        mn = '';
       }
       p1 = val["身份证"];
-      if(typeof(p1) == "undefined"){
+      if (typeof (p1) == "undefined") {
         p1 = '';
       }
       p2 = val["姓名"];
-      if(typeof(p2) == "undefined"){
+      if (typeof (p2) == "undefined") {
         p2 = '';
       }
       job = val["工种/职务"] || val["工种"];
       sqlstr = "generateStudent";
-      params = {"username":p1.replace(/\s+/g,""), "name":p2.replace(/\s+/g,""), "dept1Name":val["单位"], "job":job, "mobile": ""+mn, "phone":""+pn, "education":val["文化程度"], "memo":val["备注"], "classID":key, "oldNo":val["序号"], "registerID":currUser};
+      params = { "username": p1.replace(/\s+/g, ""), "name": p2.replace(/\s+/g, ""), "dept1Name": val["单位"], "job": job, "mobile": "" + mn, "phone": "" + pn, "education": val["文化程度"], "memo": val["备注"], "classID": key, "oldNo": val["序号"], "registerID": currUser };
       //console.log("No.",val["序号"],job);
-      db.excuteProc(sqlstr, params, function(err, data){
+      db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
           console.log(err);
-          let response = {"status":9};
+          let response = { "status": 9 };
           return res.send(response);
         }
-        if(data.recordset[0]["err"]==1){
+        if (data.recordset[0]["err"] == 1) {
           r_err += data.recordset[0]["err"];
           r_err_msg += data.recordset[0]["name"] + " " + data.recordset[0]["username"] + "  ";
         }
-        if(data.recordset[0]["exist"]==1){
+        if (data.recordset[0]["exist"] == 1) {
           r_exist += data.recordset[0]["exist"];
           r_exist_msg += data.recordset[0]["name"] + "  ";
         }
-        if(data.recordset[0]["existOther"]==1){
+        if (data.recordset[0]["existOther"] == 1) {
           r_existOther += data.recordset[0]["existOther"];
           r_existOther_msg += data.recordset[0]["name"] + "(" + data.recordset[0]["msg"] + ")  ";
         }
-        if(data.recordset[0]["errNull"]==1){
+        if (data.recordset[0]["errNull"] == 1) {
           r_null += 1;
         }
         //
         idx += 1;
-        if(idx==data1.length){
+        if (idx == data1.length) {
           sqlstr = "autoSetClassSNo";   //adjuest student No in the class
-          params = {"classID":key};
+          params = { "classID": key };
           //console.log("params:", params);
-          db.excuteProc(sqlstr, params, function(err, data2){
+          db.excuteProc(sqlstr, params, function (err, data2) {
             if (err) {
               console.log(err);
-              let response = {"status":9};
+              let response = { "status": 9 };
               return res.send(response);
             }
           });
-          response.count = data1.length - r_err - r_exist - r_existOther -r_null;
-          response.err_msg = r_err_msg>""?"身份证号码错误，未导入：" + r_err_msg + "\n":"";
-          r_exist_msg = r_exist_msg>""?"学员已在本班级，未导入：" + r_exist_msg + "\n":"";
-          response.exist_msg = r_existOther_msg>""?r_exist_msg + "学员已在其他班级，未导入：" + r_existOther_msg:r_exist_msg;
+          response.count = data1.length - r_err - r_exist - r_existOther - r_null;
+          response.err_msg = r_err_msg > "" ? "身份证号码错误，未导入：" + r_err_msg + "\n" : "";
+          r_exist_msg = r_exist_msg > "" ? "学员已在本班级，未导入：" + r_exist_msg + "\n" : "";
+          response.exist_msg = r_existOther_msg > "" ? r_exist_msg + "学员已在其他班级，未导入：" + r_existOther_msg : r_exist_msg;
           //console.log("res1:",response,"r_err_msg:",r_err_msg);
           return res.send(response);
         }
@@ -361,32 +361,32 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
   }
 
   //deal xlsx 成绩单
-  if(upID == "score_list"){
+  if (upID == "score_list") {
     //console.log("file:", file.path);
     let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
     let sheetNames = workbook.SheetNames; //获取表明
     let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
-    var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
+    var data1 = xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let score = 0;
     let un = "";
-    data1.forEach(val=>{
+    data1.forEach(val => {
       sqlstr = "generateScore";
       //params = {"batchID":key, "username":val["身份证"], "certID":val["认证项目"], "score":""+val["成绩"], "startDate":val["发证日期"], "term": val["期限"], "diplomaID":""+val["证书编号"], "memo":val["备注"], "host":host, "registerID":currUser};
       score = val["成绩"];
       un = val["身份证"];
 
-      if(typeof(score) == "undefined"){
+      if (typeof (score) == "undefined") {
         score = '';
       }
-      if(typeof(un) == "undefined"){
+      if (typeof (un) == "undefined") {
         un = '';
       }
-      params = {"batchID":key, "passNo":String(val["考生标识"]), "username":un, "name":String(val["姓名"]), "score":String(score)};
+      params = { "batchID": key, "passNo": String(val["考生标识"]), "username": un, "name": String(val["姓名"]), "score": String(score) };
       //console.log("params:", params);
-      db.excuteProc(sqlstr, params, function(err, data){
+      db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
           console.log(err);
-          let response = {"status":9};
+          let response = { "status": 9 };
           return res.send(response);
         }
       });
@@ -396,14 +396,14 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
   }
 
   //deal xlsx 申报结果导入
-  if(upID == "apply_list"){
+  if (upID == "apply_list") {
     //console.log("file:", file.path);
     let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
     let sheetNames = workbook.SheetNames; //获取表明
     let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
     //console.log(sheet["A1"].v);
-    while(sheet["A1"].v != "学号"){
-      deleteRow(sheet,0); //删除第表头
+    while (sheet["A1"].v != "学号") {
+      deleteRow(sheet, 0); //删除第表头
     }
     /*
     deleteRow(sheet,0); //删除第1行
@@ -415,67 +415,67 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
     deleteRow(sheet,0); //删除第7行
     */
     //第8行是列标题
-    var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
+    var data1 = xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let un = "";
     let dt = "";
     let n = data1.length;
     let m = 0;
-    data1.forEach(val=>{
+    data1.forEach(val => {
       sqlstr = "generateApply";
       //params = {"batchID":key, "username":val["证件号码"], "certID":val["认证项目"], "score":""+val["成绩"], "startDate":val["发证日期"], "term": val["期限"], "diplomaID":""+val["证书编号"], "memo":val["备注"], "host":host, "registerID":currUser};
       un = val["证件号码"];
-      if(String(val["考试时间"]).slice(0,3) != "202"){
-        dt = new Date(new Date("1900-01-01").getTime() + (val["考试时间"] - 2) * 3600*24*1000 - 3600*8*1000 + 60*1000); 
+      if (String(val["考试时间"]).slice(0, 3) != "202") {
+        dt = new Date(new Date("1900-01-01").getTime() + (val["考试时间"] - 2) * 3600 * 24 * 1000 - 3600 * 8 * 1000 + 60 * 1000);
         dt = dt.Format("yyyy-MM-dd hh:mm");
-      }else{
+      } else {
         dt = val["考试时间"];
       }
 
-      if(typeof(un) == "undefined"){
+      if (typeof (un) == "undefined") {
         un = '';
       }
-      
-      params = {"batchID":key, "passNo":String(val["考核号"]), "username":un.replace(/\s+/g,""), "name":String(val["姓名"]), "examDate":dt};
+
+      params = { "batchID": key, "passNo": String(val["考核号"]), "username": un.replace(/\s+/g, ""), "name": String(val["姓名"]), "examDate": dt };
       //console.log("params:", params);
-      db.excuteProc(sqlstr, params, function(err, data){
+      db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
           console.log(err);
-          let response = {"status":9};
+          let response = { "status": 9 };
           return res.send(response);
         }
       });
       m += 1;
-      if(m==n){
+      if (m == n) {
         //处理完名单后，删除申报未通过的人
         sqlstr = "dealGenerateApply";
-        params = {"batchID":key, "registerID":currUser};
-        db.excuteProc(sqlstr, params, function(err, data2){
+        params = { "batchID": key, "registerID": currUser };
+        db.excuteProc(sqlstr, params, function (err, data2) {
           if (err) {
             console.log(err);
-            let response = {"status":9};
+            let response = { "status": 9 };
             return res.send(response);
           }
         });
       }
     });
-    
+
     response.count = data1.length;
     return res.send(response);
   }
 
   //deal xlsx 申报成绩证书导入
-  if(upID == "apply_score_list"){
+  if (upID == "apply_score_list") {
     //console.log("file:", file.path);
     let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
     let sheetNames = workbook.SheetNames; //获取表明
     let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
-    deleteRow(sheet,0); //删除第1行
-    deleteRow(sheet,0); //删除第2行
-    deleteRow(sheet,0); //删除第3行
-    deleteRow(sheet,0); //删除第4行
-    deleteRow(sheet,0); //删除第5行
+    deleteRow(sheet, 0); //删除第1行
+    deleteRow(sheet, 0); //删除第2行
+    deleteRow(sheet, 0); //删除第3行
+    deleteRow(sheet, 0); //删除第4行
+    deleteRow(sheet, 0); //删除第5行
     //第6行是列标题
-    var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
+    var data1 = xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let un = "";
     let up = "";
     let score1 = "";
@@ -484,7 +484,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
     let n = data1.length;
     let m = 0;
     let arr = "";
-    data1.forEach(val=>{
+    data1.forEach(val => {
       sqlstr = "generateApplyScore";
       arr = Object.values(val);
       //params = {"batchID":key, "username":val["证件号码"], "certID":val["认证项目"], "score":""+val["成绩"], "startDate":val["发证日期"], "term": val["期限"], "diplomaID":""+val["证书编号"], "memo":val["备注"], "host":host, "registerID":currUser};
@@ -495,101 +495,101 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
       score2 = val["应会"];
       pn = arr[9];
 
-      if(typeof(un) == "undefined"){
+      if (typeof (un) == "undefined") {
         un = '';
       }
-      if(typeof(up) == "undefined"){
+      if (typeof (up) == "undefined") {
         up = '';
       }
-      if(typeof(pn) == "undefined"){
+      if (typeof (pn) == "undefined") {
         pn = '';
       }
-      if(typeof(up) == "undefined"){
+      if (typeof (up) == "undefined") {
         up = '';
       }
-      if(typeof(score1) == "undefined" || parseFloat(score1).toString() == "NaN"){
+      if (typeof (score1) == "undefined" || parseFloat(score1).toString() == "NaN") {
         score1 = '';
       }
-      if(typeof(score2) == "undefined" || parseFloat(score2).toString() == "NaN"){
+      if (typeof (score2) == "undefined" || parseFloat(score2).toString() == "NaN") {
         score2 = '';
       }
-      
+
       //params = {"batchID":key, "passNo":String(val["操作证号码"]), "username":un, "name":String(val["姓名"]), "pass":up, "score1":score1, "score2":score2};
-      params = {"batchID":key, "passNo":pn.replace(/\s+/g,""), "username":un.replace(/\s+/g,""), "name":arr[3], "pass":up, "score1":score1, "score2":score2, "startDate":req.query.para, "registerID":currUser};
+      params = { "batchID": key, "passNo": pn.replace(/\s+/g, ""), "username": un.replace(/\s+/g, ""), "name": arr[3], "pass": up, "score1": score1, "score2": score2, "startDate": req.query.para, "registerID": currUser };
       //console.log("params:", params);
-      
-      db.excuteProc(sqlstr, params, function(err, data){
+
+      db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
           console.log(err);
-          let response = {"status":9};
+          let response = { "status": 9 };
           return res.send(response);
         }
       });
       m += 1;
-      if(m==n){
+      if (m == n) {
         //处理完名单后，填写发证日期
         sqlstr = "setGenerateApplyIssue";
-        params = {"batchID":key, "startDate":req.query.para, "registerID":currUser};
-        db.excuteProc(sqlstr, params, function(err, data2){
+        params = { "batchID": key, "startDate": req.query.para, "registerID": currUser };
+        db.excuteProc(sqlstr, params, function (err, data2) {
           if (err) {
             console.log(err);
-            let response = {"status":9};
+            let response = { "status": 9 };
             return res.send(response);
           }
         });
       }
-      
+
     });
-    
+
     response.count = data1.length;
     return res.send(response);
   }
 
   //deal xlsx 预报名名单
-  if(upID == "ref_student_list"){
+  if (upID == "ref_student_list") {
     //console.log("file:", file.path);
     //先删除以前的名单
     sqlstr = "delRefStudent";
-    params = {"batchID":key};
-    db.excuteProc(sqlstr, params, function(err, data){
+    params = { "batchID": key };
+    db.excuteProc(sqlstr, params, function (err, data) {
       if (err) {
         console.log(err);
-        let response = {"status":9};
+        let response = { "status": 9 };
         return res.send(response);
       }
     });
-    
+
     let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
     let sheetNames = workbook.SheetNames; //获取表名
     let sheet = workbook.Sheets[sheetNames[0]]; //通过表名得到表对象
-    if(sheet['A1'] != '序号'){
-      deleteRow(sheet,0); //删除第一行(标题)
+    if (sheet['A1'] != '序号') {
+      deleteRow(sheet, 0); //删除第一行(标题)
     }
-    var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
+    var data1 = xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let phone = "";
     let un = "";
     let ex = "";
-    data1.forEach(val=>{
+    data1.forEach(val => {
       sqlstr = "generateRefStudent";
       phone = val["手机"];
       un = val["身份证号码"];
       ex = val["证书有效期"];
 
-      if(typeof(phone) == "undefined"){
+      if (typeof (phone) == "undefined") {
         phone = '';
       }
-      if(typeof(un) == "undefined"){
+      if (typeof (un) == "undefined") {
         un = '';
       }
-      if(typeof(ex) == "undefined"){
+      if (typeof (ex) == "undefined") {
         ex = '';
       }
-      params = {"batchID":key, "ID":String(val["序号"]), "dept1":val["公司"], "dept2":val["加油站名称"], "name":val["姓名"], "username":un, "education":val["文化程度"], "job":val["岗位"], "mobile":String(phone), "expireDate":String(ex), "memo":val["备注"], "invoice":val["开票信息"]};
+      params = { "batchID": key, "ID": String(val["序号"]), "dept1": val["公司"], "dept2": val["加油站名称"], "name": val["姓名"], "username": un, "education": val["文化程度"], "job": val["岗位"], "mobile": String(phone), "expireDate": String(ex), "memo": val["备注"], "invoice": val["开票信息"] };
       //console.log("params:", params);
-      db.excuteProc(sqlstr, params, function(err, data){
+      db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
           console.log(err);
-          let response = {"status":9};
+          let response = { "status": 9 };
           return res.send(response);
         }
       });
@@ -599,39 +599,39 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
   }
 
   //deal xlsx  名单比较
-  if(upID == "check_student_list"){
+  if (upID == "check_student_list") {
     //console.log("file:", file.path);
     let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
     let sheetNames = workbook.SheetNames; //获取表明
     let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
-    var data1 =xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
+    var data1 = xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let pn = currUser + '-' + Date.now();
     let idx = 0;
     let xh = "";
-    data1.forEach(function(val){
+    data1.forEach(function (val) {
       sqlstr = "checkStudentOrder_import";
       xh = val["序号"];
-      if(typeof(xh) == "undefined"){
+      if (typeof (xh) == "undefined") {
         xh = '';
       }
-      params = {"username":val["身份证"].replace(/\s+/g,""), "name":val["姓名"].replace(/\s+/g,""), "dept1Name":val["单位"], "memo":val["备注"], "No":xh, "batchID":pn};
+      params = { "username": val["身份证"].replace(/\s+/g, ""), "name": val["姓名"].replace(/\s+/g, ""), "dept1Name": val["单位"], "memo": val["备注"], "No": xh, "batchID": pn };
       //console.log("params:", params);
-      db.excuteProc(sqlstr, params, function(err, data){
+      db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
           console.log(err);
-          let response = {"status":9};
+          let response = { "status": 9 };
           return res.send(response);
         }
         //console.log("data:",data.recordset[0],"idx:",idx);
         idx += 1;
-        if(idx==data1.length){
+        if (idx == data1.length) {
           sqlstr = "checkStudentOrder";
-          params = {"certID":key, "batchID":pn};
+          params = { "certID": key, "batchID": pn };
           //console.log("params:", params);
-          db.excuteProc(sqlstr, params, function(err, data2){
+          db.excuteProc(sqlstr, params, function (err, data2) {
             if (err) {
               console.log(err);
-              let response = {"status":9};
+              let response = { "status": 9 };
               return res.send(response);
             }
             //console.log("data:",data.recordset[0],"idx:",idx);
@@ -641,10 +641,10 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
             let path = 'users/upload/projects/templates/' + '学员信息核对结果' + '模板.xlsx';
             //generate diploma paper with pdf
             let path1 = 'users/upload/others/' + '学员信息核对结果' + '_' + Date.now() + '.xlsx';
-            xlsxx.writeExcel({"title":'培训人员信息核对情况', "list":data2.recordset},path,path1,function(re){
+            xlsxx.writeExcel({ "title": '培训人员信息核对情况', "list": data2.recordset }, path, path1, function (re) {
               //console.log('the file:',re);
               //return publish file path
-              return res.send({"file":re});
+              return res.send({ "file": re });
             });
           });
         }
@@ -653,117 +653,135 @@ router.post('/uploadSingle', upload.single('avatar'), async function(req, res, n
   }
 });
 
-router.post('/uploadMultiple', uploadMultiple.array('avatar',1000), function(req, res, next) {
+router.post('/uploadMultiple', uploadMultiple.array('avatar', 1000), async function (req, res, next) {
   //console.log("req.query.upID:", req.query.upID);
   var files = req.files;
-  response = {"status":0, msg:"", "file":"", "count":0}
+  response = { "status": 0, msg: "", "file": "", "count": 0 }
   if (req.files.length === 0) {  //判断一下文件是否存在，也可以在前端代码中进行判断。
-    res.render({"status":1, msg: "上传文件不能为空！"});
+    res.render({ "status": 1, msg: "上传文件不能为空！" });
     return;
   }
   //生成上传记录
   sqlstr = "generateMaterial";
-  params = {"kindID":upID, "qty":req.files.length, "host":host, "registerID":currUser};
+  params = { "kindID": upID, "qty": req.files.length, "host": host, "registerID": currUser };
   response.count = req.files.length;
+  let r_err_msg = "";
+  let r_no_msg = "";
+  let r_err_count = 0;
   //console.log("params:", params);
-  db.excuteProc(sqlstr, params, function(err, data){
-    if (err) {
-      console.log(err);
-      let response = {"status":9};
-      return res.send(response);
-    }
-    let batchID = data.returnValue;
-    //console.log(data);
-    if(batchID > 0){
+  try {
+    const fileData = await db.excuteProcAsync(sqlstr, params);
+    let batchID = fileData.returnValue;
+    if (batchID > 0) {
       for (var i in files) {
         let file = files[i];
         let fn = file.filename;
         sqlstr = "setUploadSingleFileLink";
-        params = {"upID":upID, "key":fn.substr(0,fn.lastIndexOf(".")), "file":file.path.substr(file.path.indexOf("\\")), "multiple":batchID, "registerID":currUser};
+        params = { "upID": upID, "key": fn.substr(0, fn.lastIndexOf(".")), "file": file.path.substr(file.path.indexOf("\\")), "multiple": batchID, "registerID": currUser };
         //console.log("params:", params);
-        db.excuteProc(sqlstr, params, function(err, data){
-          if (err) {
-            console.log(err);
-            let response = {"status":9};
-            return res.send(response);
-          }
-        });
+        const data = await db.excuteProcAsync(sqlstr, params);
+
+        if (data.returnValue == 1) {
+          r_err_msg += fn.substr(0, fn.lastIndexOf(".")) + ",";
+          r_err_count += 1;
+        }
+        if (data.returnValue == 2) {
+          r_no_msg += fn.substr(0, fn.lastIndexOf(".")) + ",";
+          r_err_count += 1;
+        }
       }
+      if (r_err_msg > "") {
+        r_err_msg = "以下身份证号码错误：" + r_err_msg;
+      }
+      if (r_no_msg > "") {
+        r_no_msg = " 以下人员系统中不存在：" + r_no_msg;
+      }
+      response.err_msg = r_err_msg + r_no_msg;
+      response.count = response.count - r_err_count;
+      res.send(response);
     }
-  });
-  
-  res.send(response);
+
+  } catch (err) {
+    console.log(err);
+    let response = { "status": 9 };
+    return res.send(response);
+  }
+
+
+
+
+
 });
 
-router.post('/uploadBase64img', function(req, res, next) {
+router.post('/uploadBase64img', function (req, res, next) {
   //console.log("req.query.upID:", req.query.upID);
-    //接收前台POST过来的base64
-    var imgData = req.body.imgData;
-    //过滤data:URL
-    var uploadFolder = "";
-    var fn = "";
-    upID = req.body.upID;
-    currUser = req.body.currUser;
-    switch(upID){
-      case "student_photo":
-        uploadFolder = "students/photos/";
-        fn = req.body.username;
-        break;
-      case "student_IDcardA":
-        uploadFolder = "students/IDcards/";
-        fn = req.body.username + "a";
-        break;
-      case "student_IDcardB":
-        uploadFolder = "students/IDcards/";
-        fn = req.body.username + "b";
-        break;
-      case "student_letter_signature":
-        uploadFolder = "students/signature/";
-        fn = req.body.username;
-        break;
-      default:
-        uploadFolder = "others/";
-        fn = req.body.username;
-    }
-    uploadFolder = uploadHome + uploadFolder;
-    createFolder(uploadFolder);
-    fn = uploadFolder + fn + ".png";
+  //接收前台POST过来的base64
+  var imgData = req.body.imgData;
+  //过滤data:URL
+  var uploadFolder = "";
+  var fn = "";
+  upID = req.body.upID;
+  currUser = req.body.currUser;
+  switch (upID) {
+    case "student_photo":
+      uploadFolder = "students/photos/";
+      fn = req.body.username;
+      break;
+    case "student_IDcardA":
+      uploadFolder = "students/IDcards/";
+      fn = req.body.username + "a";
+      break;
+    case "student_IDcardB":
+      uploadFolder = "students/IDcards/";
+      fn = req.body.username + "b";
+      break;
+    case "student_letter_signature":
+      uploadFolder = "students/signature/";
+      fn = req.body.username;
+      break;
+    default:
+      uploadFolder = "others/";
+      fn = req.body.username;
+  }
+  uploadFolder = uploadHome + uploadFolder;
+  createFolder(uploadFolder);
+  fn = uploadFolder + fn + ".png";
 
-    var base64Data = imgData.replace(/^data:image\/\w+;base64,/, "");
-    var dataBuffer = Buffer.from(base64Data, 'base64');
-    fs.writeFile(fn, dataBuffer, function(err) {
-        if(err){
-          res.send(err);
-        }else{
-          //res.send("保存成功！");
-          fn = fn.replace("./users","");
-          //response.count = 1;
-          sqlstr = "setUploadSingleFileLink";
-          params = {"upID":upID, "key":req.body.username, "file":fn, "multiple":0, "registerID":currUser};
-          //console.log("params:", params);
-          db.excuteProc(sqlstr, params, function(err, data){
-            if (err) {
-              console.log(err);
-              let response = {"status":9};
-              return res.send(response);
-            }
-            //response.count = 1;
-          });
-          
-          res.send({"status":0});
+  var base64Data = imgData.replace(/^data:image\/\w+;base64,/, "");
+  var dataBuffer = Buffer.from(base64Data, 'base64');
+  fs.writeFile(fn, dataBuffer, function (err) {
+    if (err) {
+      res.send(err);
+    } else {
+      //res.send("保存成功！");
+      fn = fn.replace("./users", "");
+      //response.count = 1;
+      sqlstr = "setUploadSingleFileLink";
+      params = { "upID": upID, "key": req.body.username, "file": fn, "multiple": 0, "registerID": currUser };
+      //console.log("params:", params);
+      db.excuteProc(sqlstr, params, function (err, data) {
+        if (err) {
+          console.log(err);
+          let response = { "status": 9 };
+          return res.send(response);
         }
-    });
+        //response.count = 1;
+      });
+
+      res.send({ "status": 0 });
+    }
+  });
 });
 
 //22. generate_diploma_byCertID
 //status: 0 成功  9 其他  msg, filename
-router.get('/generate_diploma_byCertID', function(req, res, next) {
+router.get('/generate_diploma_byCertID', function (req, res, next) {
   sqlstr = "generateDiplomaByCertID";
-  params = {certID:req.query.certID, batchID:req.query.batchID, selList:req.query.selList, selList1:req.query.selList1, host:req.query.host, registerID:req.query.username};
+  params = { certID: req.query.certID, batchID: req.query.batchID, selList: req.query.selList, selList1: req.query.selList1, host: req.query.host, registerID: req.query.username };
   //console.log(params);
   //generate diploma data
   let response = [];
-  db.excuteProc(sqlstr, params, function(err, data){
+  db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
       response = [];
@@ -772,10 +790,10 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
     let batchID = data.returnValue;
     //console.log(data,":",batchID);
     let filename = "";
-    if(batchID > 0){
+    if (batchID > 0) {
       sqlstr = "select *,'No.' as diplomaNo from v_diplomaInfo where type=1 and batchID=" + batchID;   //企业内证书
       params = {};
-      db.excuteSQL(sqlstr, params, function(err, data1){
+      db.excuteSQL(sqlstr, params, function (err, data1) {
         if (err) {
           console.log(err);
           response = [];
@@ -784,8 +802,8 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
         let pages = [];
         let paths = [];
         //generate diploma paper with pdf
-        for (var i in data1.recordset){
-          let str = [data1.recordset[i]["name"],data1.recordset[i]["certName"],data1.recordset[i]["diplomaID"],data1.recordset[i]["dept1Name"],data1.recordset[i]["job"],data1.recordset[i]["startDate"],data1.recordset[i]["term"],data1.recordset[i]["title"],data1.recordset[i]["photo_filename"],data1.recordset[i]["logo"],data1.recordset[i]["certID"],data1.recordset[i]["host"],data1.recordset[i]["stamp"]];
+        for (var i in data1.recordset) {
+          let str = [data1.recordset[i]["name"], data1.recordset[i]["certName"], data1.recordset[i]["diplomaID"], data1.recordset[i]["dept1Name"], data1.recordset[i]["job"], data1.recordset[i]["startDate"], data1.recordset[i]["term"], data1.recordset[i]["title"], data1.recordset[i]["photo_filename"], data1.recordset[i]["logo"], data1.recordset[i]["certID"], data1.recordset[i]["host"], data1.recordset[i]["stamp"]];
           sqlstr = env + "/pdf.asp?kindID=" + (str.join(","));
           //arr.push(str.join(","));
           let path = 'users/upload/students/diplomas/' + data1.recordset[i]["diplomaID"] + '.pdf';
@@ -806,7 +824,7 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
         response = [filename];
         return res.send(response);
       });
-    }else{
+    } else {
       response = [];
       return res.send(response);
     }
@@ -815,14 +833,14 @@ router.get('/generate_diploma_byCertID', function(req, res, next) {
 
 //22. generate_diploma_byClassID
 //status: 0 成功  9 其他  msg, filename
-router.post('/generate_diploma_byClassID', function(req, res, next) {
+router.post('/generate_diploma_byClassID', function (req, res, next) {
   sqlstr = "updateGenerateDiplomaInfo";
   //@ID int,@classID varchar(50), @selList varchar(4000),@printed int,@printDate varchar(50),@delivery int,@deliveryDate varchar(50),@host nvarchar(50),@memo nvarchar(500),@registerID varchar(50)
-  params = {ID:req.query.ID, certID:req.query.certID, selList:req.body.selList, startDate:req.query.startDate, class_startDate:req.query.class_startDate, class_endDate:req.query.class_endDate, printed:0, printDate:'', delivery:0, deliveryDate:'', styleID:req.query.card, host:'', memo:req.query.memo, registerID:req.query.registerID};
+  params = { ID: req.query.ID, certID: req.query.certID, selList: req.body.selList, startDate: req.query.startDate, class_startDate: req.query.class_startDate, class_endDate: req.query.class_endDate, printed: 0, printDate: '', delivery: 0, deliveryDate: '', styleID: req.query.card, host: '', memo: req.query.memo, registerID: req.query.registerID };
   //console.log(params);
   //generate diploma data
   let response = [];
-  db.excuteProc(sqlstr, params, function(err, data){
+  db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
       response = [];
@@ -831,11 +849,11 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
     let batchID = data.returnValue;
     //console.log(data,":",batchID);
     let filename = "";
-    if(batchID > 0){
+    if (batchID > 0) {
       //sqlstr = "select * from v_diplomaInfo where batchID=" + batchID;   //证书
       sqlstr = "getDiplomaListByBatchID";
-      params = {batchID:batchID};
-      db.excuteProc(sqlstr, params, function(err, data1){
+      params = { batchID: batchID };
+      db.excuteProc(sqlstr, params, function (err, data1) {
         if (err) {
           console.log(err);
           response = [];
@@ -850,9 +868,9 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
         let pages = [];
         let paths = [];
         certID = data1.recordset[0]["certID"];
-        if(certID == "C2" || certID=="C30" || certID=="C31" || certID=="C35" || certID == "C18" || certID == "C19"){
+        if (certID == "C2" || certID == "C30" || certID == "C31" || certID == "C35" || certID == "C18" || certID == "C19") {
           certID = "C2";
-        }else{
+        } else {
           pW1 = '280mm';
           pH1 = '180mm';
           pW2 = '178mm';
@@ -861,11 +879,11 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
         }
 
         //generate diploma paper with pdf
-        for (var i in data1.recordset){
-          let str = [data1.recordset[i]["diplomaID"],data1.recordset[i]["name"],data1.recordset[i]["username"],data1.recordset[i]["certID"],data1.recordset[i]["certName"],data1.recordset[i]["hostName"],data1.recordset[i]["job"],data1.recordset[i]["startDate"],data1.recordset[i]["endDate"],data1.recordset[i]["title"],data1.recordset[i]["photo_filename"],data1.recordset[i]["term"],data1.recordset[i]["sexName"],data1.recordset[i]["diplomaNo"],data1.recordset[i]["educationName"],data1.recordset[i]["class_startDate"],data1.recordset[i]["class_endDate"]];
-          if(req.query.card==0){
+        for (var i in data1.recordset) {
+          let str = [data1.recordset[i]["diplomaID"], data1.recordset[i]["name"], data1.recordset[i]["username"], data1.recordset[i]["certID"], data1.recordset[i]["certName"], data1.recordset[i]["hostName"], data1.recordset[i]["job"], data1.recordset[i]["startDate"], data1.recordset[i]["endDate"], data1.recordset[i]["title"], data1.recordset[i]["photo_filename"], data1.recordset[i]["term"], data1.recordset[i]["sexName"], data1.recordset[i]["diplomaNo"], data1.recordset[i]["educationName"], data1.recordset[i]["class_startDate"], data1.recordset[i]["class_endDate"]];
+          if (req.query.card == 0) {
             sqlstr = env + "/pdf_" + certID + ".asp?kindID=" + (str.join(","));
-          }else{
+          } else {
             //************ */ card diploma style
             sqlstr = env + "/pdf_card.asp?kindID=" + (str.join(","));
           }
@@ -876,9 +894,9 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
           paths.push(path);
           //pdf.genPDF(sqlstr, path, pW1, pH1, '1', false, 1, false);
         }
-        if(req.query.card==0){
+        if (req.query.card == 0) {
           pdf.genPDF(pages, paths, pW1, pH1, '1', false, 1, true);
-        }else{
+        } else {
           //************ */ card diploma style
           pW2 = '86mm';
           pH2 = '54mm';
@@ -888,9 +906,9 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
         //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
 
         let path = 'users/upload/students/diplomaPublish/' + batchID + '.pdf';
-        if(req.query.card==0){
+        if (req.query.card == 0) {
           sqlstr = env + "/pdfs_diploma_" + certID + ".asp?refID=" + batchID + "&kindID=" + req.query.kindID;
-        }else{
+        } else {
           //************ */ card diploma style
           sqlstr = env + "/pdfs_diploma_card.asp?refID=" + batchID;
         }
@@ -903,7 +921,7 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
         response = [batchID];
         return res.send(response);
       });
-    }else{
+    } else {
       response = [];
       return res.send(response);
     }
@@ -912,10 +930,10 @@ router.post('/generate_diploma_byClassID', function(req, res, next) {
 
 //22.1. re_generate_diploma_spc 重新生成企业内证书
 //status: 0 成功  9 其他  msg, filename
-router.get('/re_generate_diploma_spc', function(req, res, next) {
+router.get('/re_generate_diploma_spc', function (req, res, next) {
   sqlstr = "select *,'No.' as diplomaNo from v_diplomaInfo where type=1 and diplomaID=@diplomaID";   //企业内证书
-  params = {diplomaID:req.query.diplomaID};
-  db.excuteSQL(sqlstr, params, function(err, data1){
+  params = { diplomaID: req.query.diplomaID };
+  db.excuteSQL(sqlstr, params, function (err, data1) {
     if (err) {
       console.log(err);
       response = [];
@@ -923,7 +941,7 @@ router.get('/re_generate_diploma_spc', function(req, res, next) {
     }
     let pages = [];
     let paths = [];
-    let str = [data1.recordset[0]["name"],data1.recordset[0]["certName"],data1.recordset[0]["diplomaID"],data1.recordset[0]["dept1Name"],data1.recordset[0]["job"],data1.recordset[0]["startDate"],data1.recordset[0]["term"],data1.recordset[0]["title"],data1.recordset[0]["photo_filename"],data1.recordset[0]["logo"],data1.recordset[0]["certID"],data1.recordset[0]["host"],data1.recordset[0]["stamp"]];
+    let str = [data1.recordset[0]["name"], data1.recordset[0]["certName"], data1.recordset[0]["diplomaID"], data1.recordset[0]["dept1Name"], data1.recordset[0]["job"], data1.recordset[0]["startDate"], data1.recordset[0]["term"], data1.recordset[0]["title"], data1.recordset[0]["photo_filename"], data1.recordset[0]["logo"], data1.recordset[0]["certID"], data1.recordset[0]["host"], data1.recordset[0]["stamp"]];
     sqlstr = env + "/pdf.asp?kindID=" + (str.join(","));
     //arr.push(str.join(","));
     let path = 'users/upload/students/diplomas/' + data1.recordset[i]["diplomaID"] + '.pdf';
@@ -936,18 +954,18 @@ router.get('/re_generate_diploma_spc', function(req, res, next) {
 //22a. generate_student_photos
 //status: 0 成功  9 其他  msg, filename
 //kindID: 0 照片  1 身份证正面  2 身份证背面  3 学历证书  4 其他证书
-router.get('/generate_student_photos', function(req, res, next) {
+router.get('/generate_student_photos', function (req, res, next) {
   let response = [];
   let filename = "";
   sqlstr = env + "/pdfs_student_photos.asp?item=" + req.query.item + "&kindID=" + req.query.kindID;
   //sqlstr = env + "/pdf1.asp?kindID=" + req.query.kindID;
   //console.log(sqlstr);
-  let path = 'users/public/temp/student_photos_' + Date.parse( new Date() ).toString() + '.pdf';
+  let path = 'users/public/temp/student_photos_' + Date.parse(new Date()).toString() + '.pdf';
   filename = path;
   //console.log(sqlstr, filename);
   pdf.genPDF([sqlstr], [path], '297mm', '210mm', '1', false, 1, false);
   //pdf.genPDF(sqlstr, path, '180mm', '120mm', '1', false, 1);
-  
+
   //return publish file path
   response = [filename];
   return res.send(response);
@@ -955,7 +973,7 @@ router.get('/generate_student_photos', function(req, res, next) {
 
 //generate_entryform_byProjectID
 //status: 0 成功  9 其他  msg, filename
-router.get('/generate_entryform_byProjectID', function(req, res, next) {
+router.get('/generate_entryform_byProjectID', function (req, res, next) {
   let projectID = req.query.projectID;
   let certID = req.query.certID;
   let path1 = 'users/upload/projects/templates/entry_form_' + certID + '.docx';
@@ -963,15 +981,15 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
   var arr = new Array();
   sqlstr = "select a.*,(case when b.SNo=0 then '' else cast(b.SNo as varchar) end) as SNo,b.ID as enterID from v_studentInfo a, studentCourseList b where a.username=b.username and b.checked=1 and b.projectID='" + projectID + "'";   //获取指定招生批次下的已确认名单
   params = {};
-  db.excuteSQL(sqlstr, params, function(err, data1){
+  db.excuteSQL(sqlstr, params, function (err, data1) {
     if (err) {
       console.log(err);
       response = [];
       return res.send(response);
     }
     //generate entry form to a single file for every student.
-    for (var i in data1.recordset){
-      params = {ID:data1.recordset[i]["username"], name:data1.recordset[i]["name"], SNo:data1.recordset[i]["SNo"], sex:data1.recordset[i]["sexName"], birthday:data1.recordset[i]["birthday"], age:data1.recordset[i]["age"], host:data1.recordset[i]["hostName"], dept1:data1.recordset[i]["dept1Name"], dept2:data1.recordset[i]["dept2Name"], job:data1.recordset[i]["job"], education:data1.recordset[i]["educationName"], phone:data1.recordset[i]["phone"], mobile:data1.recordset[i]["mobile"], imgPhoto:"users" + data1.recordset[i]["photo_filename"], imgIDa:"users" + data1.recordset[i]["IDa_filename"], imgID:"users" + data1.recordset[i]["IDa_filename"], imgEdu:"users" + data1.recordset[i]["edu_filename"], address:'', date:today};
+    for (var i in data1.recordset) {
+      params = { ID: data1.recordset[i]["username"], name: data1.recordset[i]["name"], SNo: data1.recordset[i]["SNo"], sex: data1.recordset[i]["sexName"], birthday: data1.recordset[i]["birthday"], age: data1.recordset[i]["age"], host: data1.recordset[i]["hostName"], dept1: data1.recordset[i]["dept1Name"], dept2: data1.recordset[i]["dept2Name"], job: data1.recordset[i]["job"], education: data1.recordset[i]["educationName"], phone: data1.recordset[i]["phone"], mobile: data1.recordset[i]["mobile"], imgPhoto: "users" + data1.recordset[i]["photo_filename"], imgIDa: "users" + data1.recordset[i]["IDa_filename"], imgID: "users" + data1.recordset[i]["IDa_filename"], imgEdu: "users" + data1.recordset[i]["edu_filename"], address: '', date: today };
       //console.log(params);
       let path0 = 'users/upload/projects/entryforms/projectID' + data1.recordset[i]["enterID"] + '.docx';
       arr.push(path0);
@@ -979,32 +997,32 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
     }
     //merge all the single file to one big file, and delete them after merging.
     //console.log(arr);
-    docx.mergeDocx(arr,path2);
+    docx.mergeDocx(arr, path2);
     //link the filename to the project
     sqlstr = "setUploadSingleFileLink";
     path2 = path2.substr(path2.indexOf("\/"));
-    params = {"upID":'project_entryform', "key":projectID, "file":path2, "multiple":0, "registerID":req.query.registerID};
+    params = { "upID": 'project_entryform', "key": projectID, "file": path2, "multiple": 0, "registerID": req.query.registerID };
     //console.log("params:", params);
-    db.excuteProc(sqlstr, params, function(err, data){
+    db.excuteProc(sqlstr, params, function (err, data) {
       if (err) {
         console.log(err);
-        let response = {"status":9};
+        let response = { "status": 9 };
         return res.send(response);
       }
       response.count = 1;
     });
     //give student no for every student of the project
     sqlstr = "setProjectStudentNo";
-    params = {"projectID":projectID, "username":req.query.registerID};
+    params = { "projectID": projectID, "username": req.query.registerID };
     //console.log("params:", params);
-    db.excuteProc(sqlstr, params, function(err, data){
+    db.excuteProc(sqlstr, params, function (err, data) {
       if (err) {
         console.log(err);
-        let response = {"status":9};
+        let response = { "status": 9 };
         return res.send(response);
       }
     });
-    
+
     //return file path
     response = [path2];
     return res.send(response);
@@ -1013,14 +1031,14 @@ router.get('/generate_entryform_byProjectID', function(req, res, next) {
 
 //generate_entryform
 //status: 0 成功  9 其他  msg, filename
-router.get('/generate_entryform', function(req, res, next) {
+router.get('/generate_entryform', function (req, res, next) {
   let enterID = req.query.enterID;
   let certID = req.query.certID;
   let path1 = 'users/upload/projects/templates/entry_form_' + certID + '.docx';
   var arr = new Array();
   sqlstr = "select a.*,(case when b.SNo=0 then '' else cast(b.SNo as varchar) end) as SNo,b.ID as enterID from v_studentInfo a, studentCourseList b where a.username=b.username and b.ID=" + enterID;   //获取指定报名表信息
   params = {};
-  db.excuteSQL(sqlstr, params, function(err, data1){
+  db.excuteSQL(sqlstr, params, function (err, data1) {
     if (err) {
       console.log(err);
       response = [];
@@ -1028,26 +1046,26 @@ router.get('/generate_entryform', function(req, res, next) {
     }
     //generate entry form to a single file for every student.
     var i = 0;
-      params = {ID:data1.recordset[i]["username"], name:data1.recordset[i]["name"], SNo:data1.recordset[i]["SNo"], sex:data1.recordset[i]["sexName"], birthday:data1.recordset[i]["birthday"], age:data1.recordset[i]["age"], host:data1.recordset[i]["hostName"], dept1:data1.recordset[i]["dept1Name"], dept2:data1.recordset[i]["dept2Name"], job:data1.recordset[i]["job"], education:data1.recordset[i]["educationName"], phone:data1.recordset[i]["phone"], mobile:data1.recordset[i]["mobile"], imgPhoto:"users" + data1.recordset[i]["photo_filename"], imgIDa:"users" + data1.recordset[i]["IDa_filename"], imgID:"users" + data1.recordset[i]["IDa_filename"], imgEdu:"users" + data1.recordset[i]["edu_filename"], address:'', date:today};
-      //console.log(params);
-      let path0 = 'users/upload/projects/entryforms/projectID' + data1.recordset[i]["enterID"] + '.docx';
-      docx.writeDoc(params, path1, path0);
+    params = { ID: data1.recordset[i]["username"], name: data1.recordset[i]["name"], SNo: data1.recordset[i]["SNo"], sex: data1.recordset[i]["sexName"], birthday: data1.recordset[i]["birthday"], age: data1.recordset[i]["age"], host: data1.recordset[i]["hostName"], dept1: data1.recordset[i]["dept1Name"], dept2: data1.recordset[i]["dept2Name"], job: data1.recordset[i]["job"], education: data1.recordset[i]["educationName"], phone: data1.recordset[i]["phone"], mobile: data1.recordset[i]["mobile"], imgPhoto: "users" + data1.recordset[i]["photo_filename"], imgIDa: "users" + data1.recordset[i]["IDa_filename"], imgID: "users" + data1.recordset[i]["IDa_filename"], imgEdu: "users" + data1.recordset[i]["edu_filename"], address: '', date: today };
+    //console.log(params);
+    let path0 = 'users/upload/projects/entryforms/projectID' + data1.recordset[i]["enterID"] + '.docx';
+    docx.writeDoc(params, path1, path0);
     //merge all the single file to one big file, and delete them after merging.
     //console.log(arr);
     //link the filename to the enter
     sqlstr = "setUploadSingleFileLink";
     path0 = path0.substr(path0.indexOf("\/"));
-    params = {"upID":'enter_entryform', "key":enterID, "file":path0, "multiple":0, "registerID":req.query.registerID};
+    params = { "upID": 'enter_entryform', "key": enterID, "file": path0, "multiple": 0, "registerID": req.query.registerID };
     //console.log("params:", params);
-    db.excuteProc(sqlstr, params, function(err, data){
+    db.excuteProc(sqlstr, params, function (err, data) {
       if (err) {
         console.log(err);
-        let response = {"status":9};
+        let response = { "status": 9 };
         return res.send(response);
       }
       response.count = 1;
     });
-    
+
     //return file path
     response = [path0];
     return res.send(response);
@@ -1057,13 +1075,13 @@ router.get('/generate_entryform', function(req, res, next) {
 //22. generate_diploma_byCertID
 //status: 0 成功  9 其他  msg, filename
 //mark: 0 生成准考证  1 保存信息
-router.get('/generate_passcard_byClassID', function(req, res, next) {
+router.get('/generate_passcard_byClassID', function (req, res, next) {
   sqlstr = "updateGeneratePasscardInfo";
-  params = {mark:req.query.mark, ID:req.query.ID, classID:req.query.classID, selList:req.query.selList, title:req.query.title, startNo:req.query.startNo, startDate:req.query.startDate, startTime:req.query.startTime, address:req.query.address, notes:req.query.notes, memo:req.query.memo, registerID:req.query.username};
+  params = { mark: req.query.mark, ID: req.query.ID, classID: req.query.classID, selList: req.query.selList, title: req.query.title, startNo: req.query.startNo, startDate: req.query.startDate, startTime: req.query.startTime, address: req.query.address, notes: req.query.notes, memo: req.query.memo, registerID: req.query.username };
   //console.log(params);
   //generate diploma data
   let response = [];
-  db.excuteProc(sqlstr, params, function(err, data){
+  db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
       response = [];
@@ -1072,7 +1090,7 @@ router.get('/generate_passcard_byClassID', function(req, res, next) {
     let batchID = data.returnValue;
     //console.log(data,":",batchID);
     let filename = "";
-    if(batchID > 0 && req.query.mark==0){
+    if (batchID > 0 && req.query.mark == 0) {
       //publish diploma on A4 with pdf
       //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
       sqlstr = env + "/pdfs_passcard.asp?refID=" + batchID;
@@ -1083,11 +1101,11 @@ router.get('/generate_passcard_byClassID', function(req, res, next) {
       //console.log('the path:',path);
       //return publish file path
       sqlstr = "updateGeneratePasscardFile";
-      params = {ID:batchID, filename:filename.replace("users/","/")};
+      params = { ID: batchID, filename: filename.replace("users/", "/") };
       //console.log(params);
       //generate diploma data
       let response = [];
-      db.excuteProc(sqlstr, params, function(err, data){
+      db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
           console.log(err);
           response = [];
@@ -1096,7 +1114,7 @@ router.get('/generate_passcard_byClassID', function(req, res, next) {
         response = [batchID];
         return res.send(response);
       });
-    }else{
+    } else {
       response = [];
       return res.send(response);
     }
@@ -1106,13 +1124,13 @@ router.get('/generate_passcard_byClassID', function(req, res, next) {
 //22. generate_diploma_byCertID
 //status: 0 成功  9 其他  msg, filename
 //mark: 0 生成准考证  1 保存信息
-router.get('/generate_passcard_byExamID', function(req, res, next) {
+router.get('/generate_passcard_byExamID', function (req, res, next) {
   sqlstr = "setPassNo4Exam";
-  params = {examID:req.query.ID, registerID:req.query.username};
+  params = { examID: req.query.ID, registerID: req.query.username };
   //console.log(params);
   //generate diploma data
   let response = [];
-  db.excuteProc(sqlstr, params, function(err, data){
+  db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
       response = [];
@@ -1121,7 +1139,7 @@ router.get('/generate_passcard_byExamID', function(req, res, next) {
     let batchID = req.query.ID;
     //console.log(data,":",batchID);
     let filename = "";
-    if(batchID > 0 && req.query.mark==0){
+    if (batchID > 0 && req.query.mark == 0) {
       //publish diploma on A4 with pdf
       //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
       sqlstr = env + "/pdfs_passcard.asp?refID=" + batchID;
@@ -1132,11 +1150,11 @@ router.get('/generate_passcard_byExamID', function(req, res, next) {
       //console.log('the path:',path);
       //return publish file path
       sqlstr = "updateGeneratePasscardFile";
-      params = {ID:batchID, filename:filename.replace("users/","/")};
+      params = { ID: batchID, filename: filename.replace("users/", "/") };
       //console.log(params);
       //generate diploma data
       let response = [];
-      db.excuteProc(sqlstr, params, function(err, data){
+      db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
           console.log(err);
           response = [];
@@ -1145,7 +1163,7 @@ router.get('/generate_passcard_byExamID', function(req, res, next) {
         response = [batchID];
         return res.send(response);
       });
-    }else{
+    } else {
       response = [];
       return res.send(response);
     }
@@ -1154,60 +1172,29 @@ router.get('/generate_passcard_byExamID', function(req, res, next) {
 
 //22a. generate_fireman_materials
 //status: 0 成功  9 其他  msg, filename
-router.get('/generate_fireman_materials', function(req, res, next) {
-    let filename = "";
-    let filename1 = "";
-    if(req.query.enterID > 0){
-      //publish diploma on A4 with pdf
-      //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
-      sqlstr = env + "/pdfs_fireman.asp?item=" + req.query.username + "&refID=0";
-      let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '证明材料.pdf';
-      filename = path.replace("users/","/");
-      pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
-      
-      sqlstr = env + "/pdf_entryform_C20.asp?nodeID=" + req.query.enterID;
-      let path1 = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '报名表.pdf';
-      filename1 = path1.replace("users/","/");
-      pdf.genPDF([sqlstr], [path1], '210mm', '297mm', '', false, 0.5, false);
-      //console.log('the path:',path);
-      //return publish file path
-      sqlstr = "updateFiremanMaterials";
-      //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
-      params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
-      //console.log(params);
-      //generate diploma data
-      db.excuteProc(sqlstr, params, function(err, data){
-        if (err) {
-          console.log(err);
-          response = [];
-          return res.send(response);
-        }
-        response = [filename];
-        return res.send(response);
-      });
-    }else{
-      response = [];
-      return res.send(response);
-    }
-});
-
-//22a. generate_IDcard_materials
-//status: 0 成功  9 其他  msg, filename
-router.get('/generate_IDcard_materials', function(req, res, next) {
+router.get('/generate_fireman_materials', function (req, res, next) {
   let filename = "";
-  if(req.query.username > ""){
+  let filename1 = "";
+  if (req.query.enterID > 0) {
     //publish diploma on A4 with pdf
     //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
-    sqlstr = env + "/pdfs_fireman.asp?item=" + req.query.username + "&refID=1";
-    let path = 'users/upload/students/IDcardMaterials/' + req.query.username + '身份证正反面.pdf';
-    filename = path.replace("users/","/");
+    sqlstr = env + "/pdfs_fireman.asp?item=" + req.query.username + "&refID=0";
+    let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '证明材料.pdf';
+    filename = path.replace("users/", "/");
     pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
-    sqlstr = "updateIDcardsMaterials";
+
+    sqlstr = env + "/pdf_entryform_C20.asp?nodeID=" + req.query.enterID;
+    let path1 = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '报名表.pdf';
+    filename1 = path1.replace("users/", "/");
+    pdf.genPDF([sqlstr], [path1], '210mm', '297mm', '', false, 0.5, false);
+    //console.log('the path:',path);
+    //return publish file path
+    sqlstr = "updateFiremanMaterials";
     //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
-    params = {username:req.query.username, filename:filename};
+    params = { enterID: req.query.enterID, filename: filename, filename1: filename1 };
     //console.log(params);
     //generate diploma data
-    db.excuteProc(sqlstr, params, function(err, data){
+    db.excuteProc(sqlstr, params, function (err, data) {
       if (err) {
         console.log(err);
         response = [];
@@ -1216,7 +1203,38 @@ router.get('/generate_IDcard_materials', function(req, res, next) {
       response = [filename];
       return res.send(response);
     });
-  }else{
+  } else {
+    response = [];
+    return res.send(response);
+  }
+});
+
+//22a. generate_IDcard_materials
+//status: 0 成功  9 其他  msg, filename
+router.get('/generate_IDcard_materials', function (req, res, next) {
+  let filename = "";
+  if (req.query.username > "") {
+    //publish diploma on A4 with pdf
+    //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
+    sqlstr = env + "/pdfs_fireman.asp?item=" + req.query.username + "&refID=1";
+    let path = 'users/upload/students/IDcardMaterials/' + req.query.username + '身份证正反面.pdf';
+    filename = path.replace("users/", "/");
+    pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
+    sqlstr = "updateIDcardsMaterials";
+    //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
+    params = { username: req.query.username, filename: filename };
+    //console.log(params);
+    //generate diploma data
+    db.excuteProc(sqlstr, params, function (err, data) {
+      if (err) {
+        console.log(err);
+        response = [];
+        return res.send(response);
+      }
+      response = [filename];
+      return res.send(response);
+    });
+  } else {
     response = [];
     return res.send(response);
   }
@@ -1224,45 +1242,45 @@ router.get('/generate_IDcard_materials', function(req, res, next) {
 
 //22b. generate_fireman_zip
 //status: 0 成功  9 其他  msg, filename
-router.get('/generate_fireman_zip', function(req, res, next) {
+router.get('/generate_fireman_zip', function (req, res, next) {
   let filename = "";
-  if(req.query.enterID > 0){
+  if (req.query.enterID > 0) {
     let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '.zip';
-    filename = path.replace("users/","/");
+    filename = path.replace("users/", "/");
     var p = [];
     sqlstr = "select * from v_firemanEnterInfo where enterID=@enterID";   //获取指定招生批次下的已确认名单
-    params = {enterID:req.query.enterID};
-    db.excuteSQL(sqlstr, params, function(err, data1){
+    params = { enterID: req.query.enterID };
+    db.excuteSQL(sqlstr, params, function (err, data1) {
       if (err) {
         console.log(err);
         response = [];
         return res.send(response);
       }
-      if(data1.recordset[0]["photo_filename"]>""){
+      if (data1.recordset[0]["photo_filename"] > "") {
         p.push("users" + data1.recordset[0]["photo_filename"]);
       }
-      if(data1.recordset[0]["IDa_filename"]>""){
+      if (data1.recordset[0]["IDa_filename"] > "") {
         p.push("users" + data1.recordset[0]["IDa_filename"]);
       }
-      if(data1.recordset[0]["materials"]>""){
+      if (data1.recordset[0]["materials"] > "") {
         p.push("users" + data1.recordset[0]["materials"]);
       }
-      if(data1.recordset[0]["materials1"]>""){
+      if (data1.recordset[0]["materials1"] > "") {
         p.push("users" + data1.recordset[0]["materials1"]);
       }
       p.push('users/upload/projects/ref/消防行业职业技能鉴定考生报名指导手册.docx');
       p.push('users/upload/projects/ref/消防行业职业技能鉴定考生报名过程演示.mp4');
       //zip.doZIP([path,path1,'users/upload/projects/ref/消防行业职业技能鉴定考生报名指导手册.docx','users/upload/projects/ref/消防行业职业技能鉴定考生报名过程演示.mp4'],path2);
-      zip.doZIP(p,path);
+      zip.doZIP(p, path);
     });
     //console.log('the path:',path);
     //return publish file path
     sqlstr = "updateFiremanZip";
     //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
-    params = {enterID:req.query.enterID, zip:filename};
+    params = { enterID: req.query.enterID, zip: filename };
     //console.log(params);
     //generate diploma data
-    db.excuteProc(sqlstr, params, function(err, data){
+    db.excuteProc(sqlstr, params, function (err, data) {
       if (err) {
         console.log(err);
         response = [];
@@ -1271,7 +1289,7 @@ router.get('/generate_fireman_zip', function(req, res, next) {
       response = [filename];
       return res.send(response);
     });
-  }else{
+  } else {
     response = [];
     return res.send(response);
   }
@@ -1279,29 +1297,29 @@ router.get('/generate_fireman_zip', function(req, res, next) {
 
 //22a. generate_refund_list
 //status: 0 成功  9 其他  msg, filename
-router.get('/generate_excel', function(req, res, next) {
+router.get('/generate_excel', function (req, res, next) {
   let filename = "";
   var title = "";
-  if(req.query.classID > ''){
+  if (req.query.classID > '') {
     //publish diploma on A4 with pdf
     //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
     //sqlstr = "select * from dbo.getRefundList(@selList,@price)";
-    if(req.query.tag=="generate_refund_list"){
+    if (req.query.tag == "generate_refund_list") {
       sqlstr = "select * from dbo.getRefundListByClass(@classID,@price)";
-      params = {classID:req.query.classID, price:req.query.price};
-      title = {"className":req.query.className, "date":req.query.date, "adviser":req.query.adviser, "teacher":req.query.teacher};
+      params = { classID: req.query.classID, price: req.query.price };
+      title = { "className": req.query.className, "date": req.query.date, "adviser": req.query.adviser, "teacher": req.query.teacher };
     }
-    if(req.query.tag=="student_list_in_class"){
+    if (req.query.tag == "student_list_in_class") {
       sqlstr = "select * from dbo.getStudentListInClass(@classID,@row,@top)";
-      params = {classID:req.query.classID, row:req.query.row, top:req.query.top};
-      title = {"className":req.query.className, "date":req.query.date, "adviser":req.query.adviser, "teacher":req.query.teacher};
+      params = { classID: req.query.classID, row: req.query.row, top: req.query.top };
+      title = { "className": req.query.className, "date": req.query.date, "adviser": req.query.adviser, "teacher": req.query.teacher };
     }
-    if(req.query.tag=="class_schedule"){
+    if (req.query.tag == "class_schedule") {
       sqlstr = "select * from v_classSchedule where classID=@classID";
-      params = {classID:req.query.classID};
+      params = { classID: req.query.classID };
       title = eval('(' + req.query.pobj + ')');
     }
-    db.excuteSQL(sqlstr, params, function(err, data){
+    db.excuteSQL(sqlstr, params, function (err, data) {
       if (err) {
         console.log(err);
         response = [];
@@ -1313,62 +1331,62 @@ router.get('/generate_excel', function(req, res, next) {
       let path = 'users/upload/projects/templates/' + req.query.mark + '模板.xlsx';
       //generate diploma paper with pdf
       let path1 = 'users/upload/others/' + req.query.mark + '_' + Date.now() + '.xlsx';
-      xlsxx.writeExcel({"title":title, "list":data.recordset},path,path1,function(fn){
+      xlsxx.writeExcel({ "title": title, "list": data.recordset }, path, path1, function (fn) {
         //console.log('the class:',req.query.class);
         //return publish file path
         response = [fn];
         return res.send(response);
       });
     });
-  }else{
+  } else {
     response = [];
     return res.send(response);
   }
 });
 
-router.get('/form', function(req, res, next){
-  var form = fs.readFileSync('./form.html', {encoding: 'utf8'});
+router.get('/form', function (req, res, next) {
+  var form = fs.readFileSync('./form.html', { encoding: 'utf8' });
   res.send(form);
 });
 
 //test
-router.get('/compressImages', function(req, res, next) {
+router.get('/compressImages', function (req, res, next) {
   let path = req.query.path;
   //console.log(path);
-  fs.readdir(path, function(err, files){
+  fs.readdir(path, function (err, files) {
     //err 为错误 , files 文件名列表包含文件夹与文件
-        if(err){
-            console.log('error:\n' + err);
-            return;
-        }
-        let i = 0;
-        //console.log(1);
-        files.forEach(function(file){
-            //console.log("file:",file);
-            fs.stat(path + '/' + file, function(err, stat){
-                if(err){console.log(err); return;}
-                if(!stat.isDirectory() && file.indexOf('.png') == -1 && stat.size>100000){                 
-                    // 如果是文件夹遍历
-                    //explorer(path + '/' + file);
-                    // 读出所有的文件
-                    //console.log('文件名:' + path + '/' + file);
-                    var name = path + '/' + file;
-                    var outName = name;
-                    i += 1;
-                    images(name)
+    if (err) {
+      console.log('error:\n' + err);
+      return;
+    }
+    let i = 0;
+    //console.log(1);
+    files.forEach(function (file) {
+      //console.log("file:",file);
+      fs.stat(path + '/' + file, function (err, stat) {
+        if (err) { console.log(err); return; }
+        if (!stat.isDirectory() && file.indexOf('.png') == -1 && stat.size > 100000) {
+          // 如果是文件夹遍历
+          //explorer(path + '/' + file);
+          // 读出所有的文件
+          //console.log('文件名:' + path + '/' + file);
+          var name = path + '/' + file;
+          var outName = name;
+          i += 1;
+          images(name)
 
-                        .save(outName, {               //Save the image to a file,whih quality 50
-                                quality : 50                    //保存图片到文件,图片质量为50
-                            });
-
-                }               
+            .save(outName, {               //Save the image to a file,whih quality 50
+              quality: 50                    //保存图片到文件,图片质量为50
             });
 
-        });
-        response = [i];
-        return res.send(response);
-    
+        }
+      });
+
     });
+    response = [i];
+    return res.send(response);
+
+  });
 });
 
 /*
@@ -1395,8 +1413,8 @@ function genExcel(mark, title, rs) {
   let path = 'users/upload/projects/templates/' + mark + '模板.xlsx';
   //generate diploma paper with pdf
   let path1 = 'users/upload/others/' + mark + '_' + Date.now() + '.xlsx';
-  xlsxx.writeExcel({"title":title, "list":rs},path,path1,function(fn){
-    console.log('the file:',fn);
+  xlsxx.writeExcel({ "title": title, "list": rs }, path, path1, function (fn) {
+    console.log('the file:', fn);
     //return publish file path
     return fn;
   });
@@ -1411,9 +1429,9 @@ function deleteRow(ws, index) {
   const range = xlsx.utils.decode_range(ws['!ref']);
 
   for (let row = index; row < range.e.r; row++) {
-      for (let col = range.s.c; col <= range.e.c; col++) {
-          ws[encodeCell(row, col)] = ws[encodeCell(row + 1, col)];
-      }
+    for (let col = range.s.c; col <= range.e.c; col++) {
+      ws[encodeCell(row, col)] = ws[encodeCell(row + 1, col)];
+    }
   }
 
   range.e.r--;
@@ -1426,9 +1444,9 @@ function deleteCol(ws, index) {
   const range = xlsx.utils.decode_range(ws['!ref']);
 
   for (let col = index; col < range.e.c; col++) {
-      for (let row = range.s.r; row <= range.e.r; row++) {
-          ws[encodeCell(row, col)] = ws[encodeCell(row, col + 1)];
-      }
+    for (let row = range.s.r; row <= range.e.r; row++) {
+      ws[encodeCell(row, col)] = ws[encodeCell(row, col + 1)];
+    }
   }
 
   range.e.c--;
@@ -1436,25 +1454,24 @@ function deleteCol(ws, index) {
   ws['!ref'] = xlsx.utils.encode_range(range.s, range.e);
 }
 
-Date.prototype.Format = function(fmt)   
-{ 
-//author:wangweizhen
-  var o = {   
-    "M+" : this.getMonth()+1,                 //月份   
-    "d+" : this.getDate(),                    //日
-    "h+" : this.getHours(),                   //小时   
-    "m+" : this.getMinutes(),                 //分   
-    "s+" : this.getSeconds(),                 //秒   
-    "q+" : Math.floor((this.getMonth()+3)/3), //季度   
-    "S"  : this.getMilliseconds()             //毫秒   
-  };   
-  if(/(y+)/.test(fmt))   
-    fmt=fmt.replace(RegExp.$1, (this.getFullYear()+"").substr(4 - RegExp.$1.length));   
-  for(var k in o)   
-    if(new RegExp("("+ k +")").test(fmt))   
-  fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));   
-  return fmt;   
-}; 
+Date.prototype.Format = function (fmt) {
+  //author:wangweizhen
+  var o = {
+    "M+": this.getMonth() + 1,                 //月份   
+    "d+": this.getDate(),                    //日
+    "h+": this.getHours(),                   //小时   
+    "m+": this.getMinutes(),                 //分   
+    "s+": this.getSeconds(),                 //秒   
+    "q+": Math.floor((this.getMonth() + 3) / 3), //季度   
+    "S": this.getMilliseconds()             //毫秒   
+  };
+  if (/(y+)/.test(fmt))
+    fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+  for (var k in o)
+    if (new RegExp("(" + k + ")").test(fmt))
+      fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+  return fmt;
+};
 
 /*
 Date.prototype.Format = function(formatStr)   
@@ -1482,6 +1499,6 @@ Date.prototype.Format = function(formatStr)
     str=str.replace(/s|S/g,this.getSeconds());   
   
     return str;   
-}*/   
-  
+}*/
+
 module.exports = router;
