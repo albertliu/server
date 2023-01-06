@@ -915,7 +915,7 @@ router.post('/generate_diploma_byClassID', function (req, res, next) {
 
         filename = path;
         //pdf.genPDF(sqlstr, path, pW2, pH2, '', false, 0.5, false);
-        pdf.genPDF([sqlstr], [path], pW2, pH2, '', false, 0.5, true);
+        pdf.genPDF([sqlstr], [path], pW2, pH2, '', false, 0.5, false);
         //console.log('the path:',path);
         //return publish file path
         response = [batchID];
