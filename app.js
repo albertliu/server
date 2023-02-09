@@ -24,8 +24,8 @@ let redisClient = redis.createClient(redisConfig.sessionStore);
 
 var app = express();
 
-//var hosts = ['','znxf.','spc.','shm.','yuc.','ding.','gsgl.','jia.','jiah.','tai.','wen.'];
-var hosts = ['','znxf.','spc.','shm.'];
+var hosts = ['','znxf.','spc.','shm.','yuc.','ding.','gsgl.','jia.','jiah.','tai.','wen.'];
+//var hosts = ['','znxf.','spc.','shm.'];
 var ports = ['',':3000',':3003',':8082'];
 var orig = [];
 for(var v of hosts){
