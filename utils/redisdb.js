@@ -2,7 +2,10 @@ const redisConfig = {
     appID : "elearning",
     session_secret : 'Asecret123-ShElearning2020',
     cookie : {
-        maxAge : 10 * 24 * 60 * 60 * 1000     //user page cookie expire(ms)  10 days
+        maxAge : 10 * 24 * 60 * 60 * 1000,     //user page cookie expire(ms)  10 days
+        secure: false,
+        httpOnly: true,
+        sameSite: 'none',
     },
     sessionStore : {
         host : "127.0.0.1",

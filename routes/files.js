@@ -706,11 +706,6 @@ router.post('/uploadMultiple', uploadMultiple.array('avatar', 1000), async funct
     let response = { "status": 9 };
     return res.send(response);
   }
-
-
-
-
-
 });
 
 router.post('/uploadBase64img', function (req, res, next) {
@@ -1288,6 +1283,90 @@ router.get('/generate_fireman_zip', function (req, res, next) {
       }
       response = [filename];
       return res.send(response);
+    });
+  } else {
+    response = [];
+    return res.send(response);
+  }
+});
+
+//22d. generate_emergency_materials
+//status: 0 成功  9 其他  msg, emergency item
+router.get('/generate_emergency_materials', function (req, res, next) {
+  let filename = "";
+  let filename1 = "";
+  if (req.query.nodeID > 0) {
+    //publish diploma on A4 with pdf
+    sqlstr = env + "/entryform_C12.asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + req.query.refID + "&keyID=" + req.query.keyID;
+    let path = 'users/upload/students/firemanMaterials/' + req.query.refID + '_' + req.query.nodeID + '报名材料.pdf';
+    filename = path.replace("users/", "/");
+    pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
+    //return publish file path
+    sqlstr = "updateEnterMaterials";
+    //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
+    params = { enterID: req.query.nodeID, filename1: filename, filename2: "", filename3:"" };
+    //generate diploma data
+    db.excuteProc(sqlstr, params, function (err, data) {
+      if (err) {
+        console.log(err);
+        response = [];
+        return res.send(response);
+      }
+      response = [filename];
+      return res.send(response);
+    });
+  } else {
+    response = [];
+    return res.send(response);
+  }
+});
+
+//22e. generate_material_zip
+//kind: class - classID; apply - apply.ID
+//status: 0 成功  9 其他  msg, filename
+router.get('/generate_material_zip', function (req, res, next) {
+  let filename = "";
+  if (req.query.refID > "") {
+    let path = 'users/upload/students/firemanMaterials/' + req.query.kind + '_' + req.query.refID + '.zip';
+    filename = path.replace("users/", "/");
+    var p = [];
+    if(req.query.kind=="class"){
+      sqlstr = "select file1 from studentCourseList where classID=@ID and file1>''";   //获取指定班级下的名单
+    }else{
+      sqlstr = "select file1 from studentCourseList where applyID=@ID and file1>''";   //获取指定申报下的名单
+    }
+    
+    params = { ID: req.query.refID };
+    db.excuteSQL(sqlstr, params, function (err, data1) {
+      if (err) {
+        console.log(err);
+        response = [];
+        return res.send(response);
+      }
+
+      if(data1.recordset.length > 0){
+        for (var i in data1.recordset) {
+          p.push("users" + data1.recordset[i]["file1"]);
+        }
+        zip.doZIP(p, path);
+
+        sqlstr = "updateMaterialZip";
+        params = { refID: req.query.refID, kind:req.query.kind, zip: filename };
+        //console.log(params);
+        //generate diploma data
+        db.excuteProc(sqlstr, params, function (err, data) {
+          if (err) {
+            console.log(err);
+            response = [];
+            return res.send(response);
+          }
+          response = [filename];
+          return res.send(response);
+        });
+      }else {
+        response = [];
+        return res.send(response);
+      }
     });
   } else {
     response = [];
