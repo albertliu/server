@@ -722,6 +722,14 @@ router.post('/uploadBase64img', function (req, res, next) {
       uploadFolder = "students/photos/";
       fn = req.body.username;
       break;
+    case "student_education":
+      uploadFolder = "students/educations/";
+      fn = req.body.username;
+      break;
+    case "student_employment":
+      uploadFolder = "students/employments/";
+      fn = req.body.username;
+      break;
     case "student_IDcardA":
       uploadFolder = "students/IDcards/";
       fn = req.body.username + "a";
