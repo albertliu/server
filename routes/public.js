@@ -6,6 +6,8 @@ let xlsx = require('xlsx');
 var qr = require('qr-image');
 const path = require('path');
 const pdf = require('pdf-poppler');
+//const jimp= require("jimp");
+const images= require("images");
 const { NetworkAuthenticationRequire } = require('http-errors');
 var uploadHome = './users/upload/';
 var downloadHome = './users/public/';
@@ -203,6 +205,35 @@ router.get('/getStudentMaterials', function(req, res) {
       return res.send(response);
     }
     response = data.recordset;
+    /*if(data.recordset.length>0){
+      console.log("count:",data.recordset.length);
+      let re = data.recordset;
+      for (var i in re){
+        
+        if(re[i]["filename"].indexOf(".jpg")>=0 || re[i]["filename"].indexOf(".jpeg")>=0){
+          console.log("filename:","./users" + re[i]["filename"],i);
+          jimp.read("./users" + re[i]["filename"], function (err, image) {
+            //If there is an error in reading the image, 
+            //we will print the error in our terminal
+            if (err) {
+              console.log(err)
+            } 
+            //Otherwise we convert the image into PNG format 
+            //and save it inside images folder using write() method.
+            else {
+              console.log("filename1:","./users" + re[i]["filename"].replace(".jpg",".png").replace(".jpeg",".png"),i);
+              image.write("./users" + re[i]["filename"].replace(".jpg",".png").replace(".jpeg",".png"));
+              console.log("00",i);
+            }
+          });
+        }
+        console.log("filename:","./users" + re[i]["filename"],i);
+        images("./users" + re[i]["filename"])
+        .save("./users" + re[i]["filename"], { //Save the image to a file,whih quality 50
+        quality : 50 //保存图片到文件,图片质量为50
+        });
+      }
+    }*/
     //console.log(response);
     return res.send(response);
   });

@@ -3,7 +3,7 @@ const puppeteer = require('puppeteer');
 const pdf ={
   async genPDF(pdf_string, path, w, h, p, land, s, pb) {
     const browser = await puppeteer.launch({
-      args: ['--disable-dev-shm-usage', '--no-sandbox'],
+      args: ['--disable-dev-shm-usage', '--no-sandbox', '--disable-pdf-tagging'],
     });
     const page = await browser.newPage();
     try {

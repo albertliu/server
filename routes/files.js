@@ -761,7 +761,7 @@ router.post('/uploadBase64img', function (req, res, next) {
       //response.count = 1;
       sqlstr = "setUploadSingleFileLink";
       params = { "upID": upID, "key": req.body.username, "file": fn, "multiple": 0, "registerID": currUser };
-      //console.log("params:", params);
+      console.log("params:", params);
       db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
           console.log(err);
@@ -1305,7 +1305,14 @@ router.get('/generate_emergency_materials', function (req, res, next) {
   let filename1 = "";
   if (req.query.nodeID > 0) {
     //publish diploma on A4 with pdf
-    sqlstr = env + "/entryform_C12.asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + req.query.refID + "&keyID=" + req.query.keyID;
+    let certID = req.query.certID;
+    if(certID=="C16" || certID=="C17"){
+      certID = "C16";
+    }
+    if(certID=="C12" || certID=="C15" || certID=="C24" || certID=="C25" || certID=="C26"){
+      certID = "C12";
+    }
+    sqlstr = env + "/entryform_" + certID + ".asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + req.query.refID + "&keyID=" + req.query.keyID;
     let path = 'users/upload/students/firemanMaterials/' + req.query.refID + '_' + req.query.nodeID + '报名材料.pdf';
     filename = path.replace("users/", "/");
     pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
@@ -1331,17 +1338,26 @@ router.get('/generate_emergency_materials', function (req, res, next) {
 
 //22e. generate_material_zip
 //kind: class - classID; apply - apply.ID
+//type: m - materials; p - photo
 //status: 0 成功  9 其他  msg, filename
 router.get('/generate_material_zip', function (req, res, next) {
   let filename = "";
   if (req.query.refID > "") {
-    let path = 'users/upload/students/firemanMaterials/' + req.query.kind + '_' + req.query.refID + '.zip';
+    let path = 'users/upload/students/firemanMaterials/' + req.query.type + '_' + req.query.kind + '_' + req.query.refID + '.zip';
     filename = path.replace("users/", "/");
     var p = [];
     if(req.query.kind=="class"){
-      sqlstr = "select file1 from studentCourseList where classID=@ID and file1>''";   //获取指定班级下的名单
+      if(req.query.type=="m"){
+        sqlstr = "select file1 from studentCourseList where classID=@ID and file1>''";   //获取指定班级下的名单
+      }else{  
+        sqlstr = "select photo_filename as file1 from v_studentCourseList where classID=@ID and photo_filename>''";   //获取指定班级下的名单
+      }
     }else{
-      sqlstr = "select file1 from studentCourseList where applyID=@ID and file1>''";   //获取指定申报下的名单
+      if(req.query.type=="m"){
+        sqlstr = "select file1 from studentCourseList where applyID=@ID and file1>''";   //获取指定申报下的名单
+      }else{  
+        sqlstr = "select photo_filename as file1 from v_studentCourseList where applyID=@ID and photo_filename>''";   //获取指定班级下的名单
+      }
     }
     
     params = { ID: req.query.refID };
@@ -1359,7 +1375,7 @@ router.get('/generate_material_zip', function (req, res, next) {
         zip.doZIP(p, path);
 
         sqlstr = "updateMaterialZip";
-        params = { refID: req.query.refID, kind:req.query.kind, zip: filename };
+        params = { refID: req.query.refID, kind:req.query.kind, type:req.query.type, zip: filename };
         //console.log(params);
         //generate diploma data
         db.excuteProc(sqlstr, params, function (err, data) {
