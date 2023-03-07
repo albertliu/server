@@ -33,9 +33,9 @@ const pdf ={
         //console.log(pdf_string[i],path[i]);
         await page.goto(pdf_string[i], {waitUntil: 'networkidle0'});//默认30秒超时，见文档
         await page.content();
-        await page.waitForNavigation({
-          waitUntil: 'networkidle0',
-        });
+        //await page.waitForNavigation({
+        //  waitUntil: 'networkidle0',
+        //});
         await page.pdf({
           //path: 'views/hn.pdf',
           path: path[i], 
