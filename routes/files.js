@@ -931,6 +931,21 @@ router.post('/generate_diploma_byClassID', function (req, res, next) {
   });
 });
 
+//22.1. cancel_diplomas 撤销证书
+//status: 0 成功  9 其他  msg, filename
+router.post('/cancel_diplomas', function (req, res, next) {
+  sqlstr = "cancelDiplomas";   
+  params = { selList: req.body.selList, registerID: req.query.registerID};
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      response = [];
+      return res.send(response);
+    }
+    return res.send(["0"]);
+  });
+});
+
 //22.1. re_generate_diploma_spc 重新生成企业内证书
 //status: 0 成功  9 其他  msg, filename
 router.get('/re_generate_diploma_spc', function (req, res, next) {
