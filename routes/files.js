@@ -852,7 +852,7 @@ router.post('/generate_diploma_byClassID', function (req, res, next) {
     let batchID = data.returnValue;
     //console.log(data,":",batchID);
     let filename = "";
-    if (batchID > 0 && req.body.selList>"") {
+    if (batchID > 0) {
       //sqlstr = "select * from v_diplomaInfo where batchID=" + batchID;   //证书
       sqlstr = "getDiplomaListByBatchID";
       params = { batchID: batchID };
