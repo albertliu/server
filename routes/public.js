@@ -814,6 +814,22 @@ router.post('/send_message_submit_attention_close', function(req, res, next) {
     });
 });
 
+//4. 批量拒绝/撤销制作证书申请。
+router.post('/refuse_diploma_order', function(req, res, next) {
+    sqlstr = "refuse_diploma_order";
+    params = {kind:req.body.kind, selList: req.body.selList, registerID: req.body.registerID };
+    //console.log(params);
+    db.excuteProc(sqlstr, params, function (err, data) {
+        if (err) {
+            console.log(err);
+            let response = { "status": 9, msg:"系统错误。" };
+            return res.send(response);
+        }
+        let response = { "status": 0, "msg": "操作成功。" };
+        return res.send(response);
+    });
+});
+
 router.get('/get_user_qr', function (req, res, next) {
   //console.log("homeUrl:", homeUrl);
   var text = "http://" + req.query.host + homeUrl.replace("http://",".") + "?username=" + req.query.username;
