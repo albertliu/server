@@ -6,6 +6,7 @@ var util = require('util');
 var fs = require('fs');
 var date = require("silly-datetime");
 var images = require("images");
+const moment = require('moment');
 
 var response, sqlstr, params;
 var uploadHome = './users/upload/';
@@ -515,7 +516,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
       }
 
       //params = {"batchID":key, "passNo":String(val["操作证号码"]), "username":un, "name":String(val["姓名"]), "pass":up, "score1":score1, "score2":score2};
-      params = { "batchID": key, "passNo": pn.replace(/\s+/g, ""), "username": un.replace(/\s+/g, ""), "name": arr[3], "pass": up, "score1": score1, "score2": score2, "startDate": req.query.para, "registerID": currUser };
+      params = { "batchID": key, "passNo": pn.replace(/\s+/g, ""), "username": un.replace(/\s+/g, ""), "name": arr[3], "pass": up, "score1": score1, "score2": score2, "startDate": (req.query.para==""?changeDate(arr[6],"YYYY-MM-DD"):req.query.para), "registerID": currUser };
       //console.log("params:", params);
 
       db.excuteProc(sqlstr, params, function (err, data) {
@@ -1591,6 +1592,11 @@ Date.prototype.Format = function (fmt) {
   return fmt;
 };
 
+const changeDate = (timeNum, fmt) => {
+  const d = timeNum - 1;
+  const t = Math.round((d - Math.floor(d)) * 24 * 60 * 60);
+  return moment(new Date(1900, 0, d, 0, 0, t)).format(fmt);
+}
 /*
 Date.prototype.Format = function(formatStr)   
 {   
