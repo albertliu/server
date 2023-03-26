@@ -749,7 +749,7 @@ router.post('/uploadBase64img', function (req, res, next) {
   }
   uploadFolder = uploadHome + uploadFolder;
   createFolder(uploadFolder);
-  fn = uploadFolder + fn + ".png";
+  fn = uploadFolder + fn + ".bmp";
 
   var base64Data = imgData.replace(/^data:image\/\w+;base64,/, "");
   var dataBuffer = Buffer.from(base64Data, 'base64');
@@ -932,11 +932,26 @@ router.post('/generate_diploma_byClassID', function (req, res, next) {
   });
 });
 
-//22.1. cancel_diplomas 撤销证书
+//22.1. cancel_diplomas 批量撤销证书
 //status: 0 成功  9 其他  msg, filename
 router.post('/cancel_diplomas', function (req, res, next) {
   sqlstr = "cancelDiplomas";   
-  params = { selList: req.body.selList, registerID: req.query.registerID};
+  params = { selList: req.body.selList, kind: req.query.kind, registerID: req.query.registerID};
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      response = [];
+      return res.send(response);
+    }
+    return res.send(["0"]);
+  });
+});
+
+//22.1. cancel_diploma 撤销某个证书
+//status: 0 成功  9 其他  msg, filename
+router.post('/cancel_diploma', function (req, res, next) {
+  sqlstr = "cancelDiploma";   
+  params = { diplomaID: req.query.diplomaID, registerID: req.query.registerID};
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
