@@ -807,7 +807,7 @@ router.get('/generate_diploma_byCertID', function (req, res, next) {
         let paths = [];
         //generate diploma paper with pdf
         for (var i in data1.recordset) {
-          let str = [data1.recordset[i]["name"], data1.recordset[i]["certName"], data1.recordset[i]["diplomaID"], data1.recordset[i]["dept1Name"], data1.recordset[i]["job"], data1.recordset[i]["startDate"], data1.recordset[i]["term"], data1.recordset[i]["title"], data1.recordset[i]["photo_filename"], data1.recordset[i]["logo"], data1.recordset[i]["certID"], data1.recordset[i]["host"], data1.recordset[i]["stamp"]];
+          let str = [data1.recordset[i]["name"], data1.recordset[i]["certName"], data1.recordset[i]["diplomaID"], data1.recordset[i]["dept1Name"], data1.recordset[i]["job"], data1.recordset[i]["startDate"], data1.recordset[i]["term"], data1.recordset[i]["title"], data1.recordset[i]["photo_filename"], data1.recordset[i]["logo"], data1.recordset[i]["certID"], data1.recordset[i]["host"], data1.recordset[i]["stamp"], data1.recordset[i]["trainingDate"], data1.recordset[i]["score"]];
           sqlstr = env + "/pdf.asp?kindID=" + (str.join(","));
           //arr.push(str.join(","));
           let path = 'users/upload/students/diplomas/' + data1.recordset[i]["diplomaID"] + '.pdf';
