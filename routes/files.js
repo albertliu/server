@@ -1385,7 +1385,7 @@ router.get('/generate_material_zip', function (req, res, next) {
   if (req.query.refID > "") {
     let path = 'users/upload/students/firemanMaterials/' + req.query.type + '_' + req.query.kind + '_' + req.query.refID + '.zip';
     filename = path.replace("users/", "/");
-    var p = [];
+    
     if(req.query.kind=="class"){
       if(req.query.type=="m"){
         sqlstr = "select file1 from studentCourseList where classID=@ID and file1>''";   //获取指定班级下的存档材料
@@ -1417,10 +1417,13 @@ router.get('/generate_material_zip', function (req, res, next) {
       }
 
       if(data1.recordset.length > 0){
+        let p = [];
         for (var i in data1.recordset) {
           p.push("users" + data1.recordset[i]["file1"]);
         }
+        //console.log("p", p);
         zip.doZIP(p, path);
+        p = [];
 
         sqlstr = "updateMaterialZip";
         params = { refID: req.query.refID, kind:req.query.kind, type:req.query.type, zip: filename };

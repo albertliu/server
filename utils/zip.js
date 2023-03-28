@@ -4,7 +4,6 @@ var fs = require('fs');
 var path = require('path');
 const JSZIP  = require('jszip');
 
-var zips = new JSZIP();
 var uploadHome = './users/upload/';
 
 var createFolder = function(folder){
@@ -37,6 +36,7 @@ const zip ={
     //fileSource: 带路径的word模板文件名，占位符{name1}，将由data中的变量值替换
     async doZIP(fList,target) {
         //添加文件到目标
+        const zips = new JSZIP();
         for (var i in fList){
             zips.file(path.basename(fList[i]), fs.readFileSync(fList[i]));
         }
