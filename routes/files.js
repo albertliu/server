@@ -749,7 +749,7 @@ router.post('/uploadBase64img', function (req, res, next) {
   }
   uploadFolder = uploadHome + uploadFolder;
   createFolder(uploadFolder);
-  fn = uploadFolder + fn + ".bmp";
+  fn = uploadFolder + fn + ".jpg";
 
   var base64Data = imgData.replace(/^data:image\/\w+;base64,/, "");
   var dataBuffer = Buffer.from(base64Data, 'base64');
