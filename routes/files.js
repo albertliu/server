@@ -721,7 +721,7 @@ router.post('/uploadBase64img', function (req, res, next) {
   switch (upID) {
     case "student_photo":
       uploadFolder = "students/photos/";
-      fn = req.body.username;
+      fn = req.body.username + req.body.name;
       break;
     case "student_education":
       uploadFolder = "students/educations/";
