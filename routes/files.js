@@ -63,6 +63,9 @@ var storage = multer.diskStorage({
       case "student_jobCertificate":
         uploadFolder = "students/jobCertificates/";
         break;
+      case "student_promise":
+        uploadFolder = "students/promises/";
+        break;
       case "student_diploma":
         uploadFolder = "students/diplomas/";
         break;
@@ -135,6 +138,10 @@ var storage = multer.diskStorage({
         key = req.query.username;
         break;
       case "student_jobCertificate":   //IDcard image will name with the username and original type, and write the path to studentInfo(if need two faces, will deal with two files).
+        fn = req.query.username;   //mark:a/b, the IDcard have A/B two faces, will be saved as a different name.
+        key = req.query.username;
+        break;
+      case "student_promise":   //IDcard image will name with the username and original type, and write the path to studentInfo(if need two faces, will deal with two files).
         fn = req.query.username;   //mark:a/b, the IDcard have A/B two faces, will be saved as a different name.
         key = req.query.username;
         break;
@@ -721,7 +728,7 @@ router.post('/uploadBase64img', function (req, res, next) {
   switch (upID) {
     case "student_photo":
       uploadFolder = "students/photos/";
-      fn = req.body.username + req.body.name;
+      fn = req.body.username;
       break;
     case "student_education":
       uploadFolder = "students/educations/";
@@ -762,7 +769,7 @@ router.post('/uploadBase64img', function (req, res, next) {
       //response.count = 1;
       sqlstr = "setUploadSingleFileLink";
       params = { "upID": upID, "key": req.body.username, "file": fn, "multiple": 0, "registerID": currUser };
-      console.log("params:", params);
+      // console.log("params:", params);
       db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
           console.log(err);
