@@ -411,18 +411,8 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
     //console.log(sheet["A1"].v);
     while (sheet["A1"].v != "学号") {
-      deleteRow(sheet, 0); //删除第表头
+      deleteRow(sheet, 0); //删除表头
     }
-    /*
-    deleteRow(sheet,0); //删除第1行
-    deleteRow(sheet,0); //删除第2行
-    deleteRow(sheet,0); //删除第3行
-    deleteRow(sheet,0); //删除第4行
-    deleteRow(sheet,0); //删除第5行
-    deleteRow(sheet,0); //删除第6行
-    deleteRow(sheet,0); //删除第7行
-    */
-    //第8行是列标题
     var data1 = xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let un = "";
     let dt = "";
@@ -550,6 +540,47 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     });
 
     response.count = data1.length;
+    return res.send(response);
+  }
+
+  //deal xlsx 安监补考名单导入
+  if (upID == "apply_resit_list") {
+    //console.log("file:", file.path);
+    let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
+    let sheetNames = workbook.SheetNames; //获取表明
+    let sheet = workbook.Sheets[sheetNames[0]]; //通过表明得到表对象
+    //console.log(sheet["A1"].v);
+    while (sheet["A1"].v != "学号") {
+      deleteRow(sheet, 0); //删除表头
+    }
+    var data1 = xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
+    let un = "";
+    let dt = "";
+    let n = data1.length;
+    let m = 0;
+    sqlstr = "applyResit";
+    data1.forEach(val => {
+      if((/(^[1-9]\d*$)/.test(val["学号"]))){   // 学号为正整数的有效
+        //params = {"batchID":key, "username":val["证件号码"], "certID":val["认证项目"], "score":""+val["成绩"], "startDate":val["发证日期"], "term": val["期限"], "diplomaID":""+val["证书编号"], "memo":val["备注"], "host":host, "registerID":currUser};
+        un = val["证件号码"];
+        if (typeof (un) == "undefined") {
+          un = '';
+        }
+        m += 1;
+
+        params = { "batchID": key, "passNo": String(val["考核号"]), "username": un.replace(/\s+/g, ""), registerID:currUser };
+        //console.log("params:", params);
+        db.excuteProc(sqlstr, params, function (err, data) {
+          if (err) {
+            console.log(err);
+            let response = { "status": 9 };
+            return res.send(response);
+          }
+        });
+      }
+    });
+
+    response.count = m;
     return res.send(response);
   }
 
