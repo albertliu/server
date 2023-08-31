@@ -389,7 +389,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
       if (typeof (un) == "undefined") {
         un = '';
       }
-      params = { "batchID": key, "passNo": String(val["考生标识"]), "username": un, "name": String(val["姓名"]), "score": String(score) };
+      params = { "batchID": key, "passNo": String(val["考生标识"]), "username": un, "name": String(val["姓名"]), "score": String(score), "registerID": currUser };
       //console.log("params:", params);
       db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
@@ -584,46 +584,20 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     return res.send(response);
   }
 
-  //deal xlsx 预报名名单
-  if (upID == "ref_student_list") {
-    //console.log("file:", file.path);
-    //先删除以前的名单
-    sqlstr = "delRefStudent";
-    params = { "batchID": key };
-    db.excuteProc(sqlstr, params, function (err, data) {
-      if (err) {
-        console.log(err);
-        let response = { "status": 9 };
-        return res.send(response);
-      }
-    });
-
+  //deal xlsx 发票导入
+  if (upID == "invoice_list") {
     let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
     let sheetNames = workbook.SheetNames; //获取表名
     let sheet = workbook.Sheets[sheetNames[0]]; //通过表名得到表对象
-    if (sheet['A1'] != '序号') {
-      deleteRow(sheet, 0); //删除第一行(标题)
-    }
     var data1 = xlsx.utils.sheet_to_json(sheet); //通过工具将表对象的数据读出来并转成json
     let phone = "";
     let un = "";
     let ex = "";
     data1.forEach(val => {
-      sqlstr = "generateRefStudent";
-      phone = val["手机"];
-      un = val["身份证号码"];
-      ex = val["证书有效期"];
-
-      if (typeof (phone) == "undefined") {
-        phone = '';
-      }
-      if (typeof (un) == "undefined") {
-        un = '';
-      }
-      if (typeof (ex) == "undefined") {
-        ex = '';
-      }
-      params = { "batchID": key, "ID": String(val["序号"]), "dept1": val["公司"], "dept2": val["加油站名称"], "name": val["姓名"], "username": un, "education": val["文化程度"], "job": val["岗位"], "mobile": String(phone), "expireDate": String(ex), "memo": val["备注"], "invoice": val["开票信息"] };
+      sqlstr = "import_invoice_daily";
+      //发票代码	发票号码	购方税号	购方名称	开票日期	主要商品名称	报送状态	报送日志	合计金额	税率	合计税额	清单标志	打印标志	作废标志	发票状态	作废日期
+      // @kind,@invCode,@invID,@taxNo,@taxUnit,@invDate,@item,@amount,@cancel,@cancelDate,@operator,@memo,@registerID
+      params = { "kind": val["发票种类"], "invCode": val["发票代码"], "invID": val["发票号码"], "taxNo": val["购方税号"], "taxUnit": val["购方名称"], "invDate": val["开票日期"], "item": val["主要商品名称"], "amount": ((val["合计金额"]-0) + (val["合计税额"]-0)), "cancel": val["作废标志"], "cancelDate": val["作废日期"], "operator": val["开票人"], "memo": val["备注"], "registerID": currUser };
       //console.log("params:", params);
       db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {

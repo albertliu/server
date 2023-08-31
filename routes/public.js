@@ -288,6 +288,14 @@ router.get('/getRptList', function(req, res) {
       sqlstr = "rpt_dailyCourse";
       params = {dateStart:req.query.startDate,dateEnd:req.query.endDate};
       break;
+    case "dailyIncome":
+      sqlstr = "getDailyIncomeRpt";
+      params = {startDate:req.query.startDate,endDate:req.query.endDate};
+      break;
+    case "dailyEnter":
+      sqlstr = "getDailyEnterRpt";
+      params = {startDate:req.query.startDate,endDate:req.query.endDate};
+      break;
     default:
   }
   //console.log("params:", params);
@@ -319,6 +327,32 @@ router.get('/getRptList', function(req, res) {
         response = [];
       }
     }
+    //console.log(response);
+    return res.send(response);
+  });
+});
+
+//24. getRptList  generate a report, output a json data or an excel file.
+router.get('/getRptDetailList', function (req, res) {
+  switch (req.query.op) {
+    case "dailyIncome":
+      sqlstr = "getDailyIncomeRptDetail";
+      params = { startDate: req.query.startDate, endDate: req.query.endDate, kind: req.query.kind };
+      break;
+    case "dailyEnter":
+      sqlstr = "getDailyEnterRptDetail";
+      params = { startDate: req.query.startDate, endDate: req.query.endDate, kind: req.query.kind };
+      break;
+    default:
+  }
+  // console.log("params:", params);
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9 };
+      return res.send(response);
+    }
+    response = data.recordset;
     //console.log(response);
     return res.send(response);
   });
@@ -819,6 +853,22 @@ router.post('/refuse_diploma_order', function(req, res, next) {
     sqlstr = "refuse_diploma_order";
     params = {kind:req.body.kind, selList: req.body.selList, registerID: req.body.registerID };
     //console.log(params);
+    db.excuteProc(sqlstr, params, function (err, data) {
+        if (err) {
+            console.log(err);
+            let response = { "status": 9, msg:"系统错误。" };
+            return res.send(response);
+        }
+        let response = { "status": 0, "msg": "操作成功。" };
+        return res.send(response);
+    });
+});
+
+//4. 批量确认应收款。
+router.post('/check_nopay_invoice', function(req, res, next) {
+    sqlstr = "setPayReceive";
+    params = {selList: req.body.selList, registerID: req.body.registerID };
+    console.log(params);
     db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
             console.log(err);
