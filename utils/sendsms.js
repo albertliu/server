@@ -40,7 +40,7 @@ const ssms ={
           pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "'}";
         }
         if(temp=="msg_class"){ //开课通知
-          tc = "SMS_219616263";
+          tc = "SMS_463201166";
           pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "','address':'" + address + "'}";
         }
         if(temp=="msg_class_online"){ //开课通知_在线
