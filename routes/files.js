@@ -1353,7 +1353,7 @@ router.get('/generate_emergency_materials', function (req, res, next) {
     if(certID=="C16" || certID=="C17"){
       certID = "C16";
     }
-    if(certID=="C12" || certID=="C15" || certID=="C24" || certID=="C25" || certID=="C26"){
+    if(certID=="C12" || certID=="C15" || certID=="C24" || certID=="C25" || certID=="C26" || certID == "C27"){
       certID = "C12";
     }
     //申报材料
