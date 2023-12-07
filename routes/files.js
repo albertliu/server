@@ -66,6 +66,9 @@ var storage = multer.diskStorage({
       case "student_promise":
         uploadFolder = "students/promises/";
         break;
+      case "student_social":
+        uploadFolder = "students/socials/";
+        break;
       case "student_diploma":
         uploadFolder = "students/diplomas/";
         break;
@@ -142,6 +145,10 @@ var storage = multer.diskStorage({
         key = req.query.username;
         break;
       case "student_promise":   //IDcard image will name with the username and original type, and write the path to studentInfo(if need two faces, will deal with two files).
+        fn = req.query.username;   //mark:a/b, the IDcard have A/B two faces, will be saved as a different name.
+        key = req.query.username;
+        break;
+      case "student_social":   //IDcard image will name with the username and original type, and write the path to studentInfo(if need two faces, will deal with two files).
         fn = req.query.username;   //mark:a/b, the IDcard have A/B two faces, will be saved as a different name.
         key = req.query.username;
         break;
