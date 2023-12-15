@@ -7,6 +7,7 @@ var fs = require('fs');
 var date = require("silly-datetime");
 var images = require("images");
 const moment = require('moment');
+const shotimg = require("../utils/screenshot");
 
 var response, sqlstr, params;
 var uploadHome = './users/upload/';
@@ -1349,7 +1350,7 @@ router.get('/generate_fireman_zip', function (req, res, next) {
 });
 
 //22d. generate_emergency_materials
-//status: 0 成功  9 其他  msg, emergency item
+//status: 0 成功  9 其他  msg, emergency item  keyID: 2 归档资料  3 报名表
 router.get('/generate_emergency_materials', function (req, res, next) {
   let filename2 = "";
   let filename1 = "";
@@ -1371,9 +1372,10 @@ router.get('/generate_emergency_materials', function (req, res, next) {
 
     //报名表
     sqlstr = env + "/entryform_" + certID + ".asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + req.query.refID + "&keyID=3";
-    path = 'users/upload/students/firemanMaterials/' + req.query.refID + '_' + req.query.nodeID + '报名表.pdf';
+    path = 'users/upload/students/firemanMaterials/' + req.query.refID + '_' + req.query.nodeID + '报名表.jpg';
     filename2 = path.replace("users/", "/");
-    pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
+    // pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
+    shotimg.genImg(sqlstr, path, 50);
 
     //return publish file path
     sqlstr = "updateEnterMaterials";
@@ -1461,6 +1463,42 @@ router.get('/generate_material_zip', function (req, res, next) {
         response = [];
         return res.send(response);
       }
+    });
+  } else {
+    response = [];
+    return res.send(response);
+  }
+});
+
+//get_entryform_shot 获取报名表的图片buffer(base64)
+//status: 0 成功  9 其他  msg, filename
+router.get('/get_entryform_shot', async function (req, res, next) {
+  if (req.query.nodeID > 0) {
+    //publish diploma on A4 with pdf
+    let entryform = req.query.entryform;  //报名表样式
+
+    //报名表
+    sqlstr = env + "/entryform_" + entryform + ".asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + req.query.refID + "&keyID=4";
+    // console.log("str:", sqlstr);
+    // let img = await shotimg.genImg(sqlstr, "", 50);
+    // res.send(img);
+    let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '报名表.jpg';
+    let filename = path.replace("users/", "/");
+    shotimg.genImg(sqlstr, path, 50);
+
+    //return publish file path
+    sqlstr = "updateEnterMaterials";
+    //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
+    params = { enterID: req.query.nodeID, filename1: "", filename2: "", filename3: "", filename4: filename };
+    //generate diploma data
+    db.excuteProc(sqlstr, params, function (err, data) {
+      if (err) {
+        console.log(err);
+        response = [];
+        return res.send(response);
+      }
+      response = [filename];
+      return res.send(response);
     });
   } else {
     response = [];
