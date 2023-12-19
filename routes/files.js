@@ -1375,7 +1375,7 @@ router.get('/generate_emergency_materials', function (req, res, next) {
     path = 'users/upload/students/firemanMaterials/' + req.query.refID + '_' + req.query.nodeID + '报名表.jpg';
     filename2 = path.replace("users/", "/");
     // pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
-    shotimg.genImg(sqlstr, path, 50);
+    shotimg.genImg(sqlstr, path, 80);
 
     //return publish file path
     sqlstr = "updateEnterMaterials";

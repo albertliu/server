@@ -31,7 +31,8 @@ const shotImg = {
         // 设置浏览器视窗
         await page.setViewport({
           width: 720,
-          height: 1020
+          height: 1020,
+          deviceScaleFactor: 1
         })
         await page.goto(pdf_string, {
           waitUntil: 'networkidle2',  //networkidle0：页面加载后不存在 0 个以上的资源请求，这种状态持续至少 500 ms; networkidle2：页面加载后不存在 2 个以上的资源请求，这种状态持续至少 500 ms。
@@ -54,6 +55,10 @@ const shotImg = {
         await autoScroll(page);
         await page.screenshot({
           path: path,  //保存路径（带文件名），可以根据扩展名自动判断图片格式。如果路径为空，则返回buffer
+          type: 'jpeg',
+          quality: s,
+          fromSurface: false,
+          omitBackground: false,
           fullPage: true //支持页面滚动到最后。
         });
         await browser.close(); //关闭 
