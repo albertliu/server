@@ -301,6 +301,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     let mn = "";
     let p1 = "";
     let p2 = "";
+    let p3 = "";
     let r_null = 0;
     let r_err = 0;
     let r_exist = 0;
@@ -327,9 +328,13 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
       if (typeof (p2) == "undefined") {
         p2 = '';
       }
+      p3 = val["应复训日期"];
+      if (typeof (p3) == "undefined") {
+        p3 = '';
+      }
       job = val["工种/职务"] || val["工种"];
       sqlstr = "generateStudent";
-      params = { "username": p1.replace(/\s+/g, ""), "name": p2.replace(/\s+/g, ""), "dept1Name": val["单位"], "job": job, "mobile": "" + mn, "phone": "" + pn, "education": val["文化程度"], "memo": val["备注"], "classID": key, "oldNo": val["序号"], "registerID": currUser };
+      params = { "username": p1.replace(/\s+/g, ""), "name": p2.replace(/\s+/g, ""), "dept1Name": val["单位"], "currDiplomaDate": p3, "job": job, "mobile": "" + mn, "phone": "" + pn, "education": val["文化程度"], "memo": val["备注"], "classID": key, "oldNo": val["序号"], "registerID": currUser };
       //console.log("No.",val["序号"],job);
       db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
