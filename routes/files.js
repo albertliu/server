@@ -332,7 +332,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
       if (typeof (p3) == "undefined") {
         p3 = '';
       }
-      job = val["工种/职务"] || val["工种"];
+      job = val["岗位/职务"] || val["工种/职务"];
       sqlstr = "generateStudent";
       params = { "username": p1.replace(/\s+/g, ""), "name": p2.replace(/\s+/g, ""), "dept1Name": val["单位"], "currDiplomaDate": p3, "job": job, "mobile": "" + mn, "address": "" + pn, "education": val["文化程度"], "memo": val["备注"], "classID": key, "oldNo": val["序号"], "registerID": currUser };
       //console.log("No.",val["序号"],job);
