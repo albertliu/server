@@ -30,9 +30,8 @@ const shotImg = {
       try {
         // 设置浏览器视窗
         await page.setViewport({
-          width: 800,
-          height: 2500,
-          deviceScaleFactor: 1
+          width: 2160,
+          height: 1020
         })
         await page.goto(pdf_string, {
           waitUntil: 'networkidle2',  //networkidle0：页面加载后不存在 0 个以上的资源请求，这种状态持续至少 500 ms; networkidle2：页面加载后不存在 2 个以上的资源请求，这种状态持续至少 500 ms。
