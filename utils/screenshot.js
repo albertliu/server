@@ -30,7 +30,7 @@ const shotImg = {
       try {
         // 设置浏览器视窗
         await page.setViewport({
-          width: 720,
+          width: 800,
           height: 2500,
           deviceScaleFactor: 1
         })
