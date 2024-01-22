@@ -31,7 +31,7 @@ const shotImg = {
         // 设置浏览器视窗
         await page.setViewport({
           width: 720,
-          height: 1020,
+          height: 2500,
           deviceScaleFactor: 1
         })
         await page.goto(pdf_string, {

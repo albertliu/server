@@ -1489,7 +1489,7 @@ router.get('/get_entryform_shot', async function (req, res, next) {
     // res.send(img);
     let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '报名表.jpg';
     let filename = path.replace("users/", "/");
-    shotimg.genImg(sqlstr, path, 50);
+    shotimg.genImg(sqlstr, path, 80);
 
     //return publish file path
     sqlstr = "updateEnterMaterials";
