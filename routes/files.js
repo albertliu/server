@@ -103,6 +103,9 @@ var storage = multer.diskStorage({
       case "apply_score_list":
         uploadFolder = "students/apply_score_list/";
         break;
+      case "invoice_pdf":
+        uploadFolder = "students/invoices/";
+        break;
       default:
         uploadFolder = "others/";
     }
@@ -195,6 +198,10 @@ var storage = multer.diskStorage({
         fn = 'applyScorelist' + req.query.username;
         key = req.query.username;
         break;
+      case "invoice_pdf":   //invoice result doc
+        fn = req.query.username;   //
+        key = req.query.username;
+        break;
       default:
         fn = file.originalname;
         fn = fn.substr(0, fn.lastIndexOf(".")) + '-' + Date.now();
@@ -285,6 +292,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     }
     //console.log("response:", response);
     response.count = 1;
+    response.status = data.returnValue;
     if (req.query.commMark != "studentList") {
       return res.send(response);
     }
@@ -334,8 +342,8 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
       }
       job = val["岗位/职务"] || val["工种/职务"];
       sqlstr = "generateStudent";
-      params = { "username": p1.replace(/\s+/g, ""), "name": p2.replace(/\s+/g, ""), "dept1Name": val["单位"], "currDiplomaDate": p3, "job": job, "mobile": "" + mn, "address": "" + pn, "education": val["文化程度"], "memo": val["备注"], "classID": key, "oldNo": val["序号"], "registerID": currUser };
-      //console.log("No.",val["序号"],job);
+      params = { "username": p1.replace(/\s+/g, ""), "name": p2.replace(/\s+/g, ""), "dept1Name": val["单位"], "dept2Name": val["部门"] || "", "currDiplomaDate": p3, "job": job, "mobile": "" + mn, "address": "" + pn, "education": val["文化程度"], "memo": val["备注"], "classID": key, "oldNo": val["序号"], "registerID": currUser };
+      console.log("params.",params);
       db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
           console.log(err);
@@ -598,6 +606,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
   }
 
   //deal xlsx 发票导入
+  /*
   if (upID == "invoice_list") {
     let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
     let sheetNames = workbook.SheetNames; //获取表名
@@ -623,7 +632,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     response.count = data1.length;
     return res.send(response);
   }
-
+*/
   //deal xlsx  名单比较
   if (upID == "check_student_list") {
     //console.log("file:", file.path);
@@ -916,7 +925,6 @@ router.post('/generate_diploma_byClassID', function (req, res, next) {
             //************ */ card diploma style
             sqlstr = env + "/pdf_card.asp?kindID=" + (str.join(","));
           }
-          //console.log(str.join(","));
           let path = 'users/upload/students/diplomas/' + data1.recordset[i]["diplomaID"] + '.pdf';
           //console.log('path',path);
           pages.push(sqlstr);
