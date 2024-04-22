@@ -18,6 +18,7 @@ var publicRouter = require('./routes/public');
 var courseRouter = require('./routes/course');
 var filesRouter = require('./routes/files');
 var outfilesRouter = require('./routes/files');
+var nuonuoRouter = require('./routes/nuonuo');
 var bodyParser = require('body-parser');
 
 let redisClient = redis.createClient(redisConfig.sessionStore);
@@ -73,7 +74,7 @@ app.use(session({
 app.use(function(req, res, next) {
   //console.log("url:",req.get('origin'))
   if (!req.session.user) {
-      if (req.url.endsWith("/login") || req.url.endsWith("/logout") || req.url.endsWith("/change_passwd") || req.url.endsWith("/new_student") || req.url.startsWith("/public/") || req.url.startsWith("/outfiles/")) {
+      if (req.url.endsWith("/login") || req.url.endsWith("/logout") || req.url.endsWith("/change_passwd") || req.url.endsWith("/new_student") || req.url.startsWith("/public/") || req.url.startsWith("/outfiles/") || req.url.startsWith("/nuonuo/")) {
           console.log("url:",req.get('origin'));
           next(); //如果请求的地址是登录则通过，进行下一个请求
       } else {
@@ -92,6 +93,7 @@ app.use('/outfiles', outfilesRouter);
 app.use('/public', publicRouter);
 app.use('/course', courseRouter);
 app.use('/files', filesRouter);
+app.use('/nuonuo', nuonuoRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

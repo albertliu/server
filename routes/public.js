@@ -9,9 +9,11 @@ const pdf = require('pdf-poppler');
 //const jimp= require("jimp");
 const images= require("images");
 const { NetworkAuthenticationRequire } = require('http-errors');
+const shell = require('shelljs');
 var uploadHome = './users/upload/';
 var downloadHome = './users/public/';
 var homeUrl = process.env.NODE_ENV_HOME_URL;
+var pyUrl = path.resolve(__dirname, '..') + "/python";
 var response, sqlstr, params;
 
 /* GET home page. */
@@ -956,6 +958,83 @@ router.get('/get_feedback_class_list', function (req, res, next) {
     }
     response = data.recordset;
     return res.send(response);
+  });
+});
+
+//
+router.post('/applyEnter', function (req, res) {
+  // 配置初始化信息 selList:applyID
+  shell.exec('@echo off')
+  // shell.exec('chcp 65001')
+  let url = pyUrl + '/apply.py ' + req.body.selList + ' ' + req.query.reexamine + ' ' + req.query.host + ' ' + req.query.register + ' ' + req.query.classID + ' ' + req.query.courseName + ' ' + req.query.reex;
+  console.log('url code:', url);
+  shell.exec(url, function (code, stdout, stderr) {
+    console.log('Exit code:', code);
+    console.log('Program output:', stdout);    
+    let response = {};
+    try{
+      if(stderr){
+        console.log('Program stderr:', stderr);
+      }
+      // response = eval("(" + stdout + ")");  //字符串转为JSON
+      response = eval(`( ${stdout} )`);  //字符串转为JSON
+      console.log('Exit stdout:', response);
+    } catch(err){
+      console.log('shell err:', err);
+      response = {"count_s": 0, "count_e": 0, "err": 1, "errMsg": "访问异常，请稍后重试。"};
+    } finally {
+      return res.send(response);
+    }
+  });
+});
+
+//
+router.post('/diplomaCheck', function (req, res) {
+  // 配置初始化信息 selList: when kindID:0 applyID  1 enterID
+  shell.exec('@echo off')
+  // shell.exec('chcp 65001')
+  let url = pyUrl + '/diplomaCheck.py ' + req.body.selList + ' ' + req.body.kindID + ' ' + req.query.host + ' ' + req.query.register;
+  // console.log("url:", url)
+  shell.exec(url, function (code, stdout, stderr) {
+    // console.log('Exit code:', code);
+    // console.log('Program output:', stdout);    
+    let response = {};
+    try{
+      if(stderr){
+        console.log('Program stderr:', stderr);
+      }
+      response = eval("(" + stdout + ")");  //字符串转为JSON
+    } catch(err){
+      console.log('shell err:', err, "stdout:", stdout, "response:", response);
+      response = {"count_s": 0, "count_e": 0, "err": 1, "errMsg": "访问异常，请稍后重试。"};
+    } finally {
+      return res.send(response);
+    }
+  });
+});
+
+//
+router.post('/diplomaCheckSingle', function (req, res) {
+  // 配置初始化信息 selList: when kindID:0 applyID  1 enterID
+  shell.exec('@echo off')
+  // shell.exec('chcp 65001')
+  let url = pyUrl + '/diplomaCheck.py ' + req.body.username + ' 2 ' + req.body.name + ' ' + req.body.courseName;
+  // console.log("url:", url);
+  shell.exec(url, function (code, stdout, stderr) {
+    // console.log('Exit code:', code);
+    // console.log('Program output:', stdout);    
+    let response = {};
+    try{
+      if(stderr){
+        console.log('Program stderr:', stderr);
+      }
+      response = eval("(" + stdout + ")");  //字符串转为JSON
+    } catch(err){
+      // console.log('shell err:', err, "stdout:", stdout, "response:", response);
+      response = {"count_s": 0, "count_e": 0, "err": 1, "msg": ""};
+    } finally {
+      return res.send(response);
+    }
   });
 });
 

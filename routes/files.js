@@ -534,7 +534,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
       }
 
       //params = {"batchID":key, "passNo":String(val["操作证号码"]), "username":un, "name":String(val["姓名"]), "pass":up, "score1":score1, "score2":score2};
-      params = { "batchID": key, "passNo": pn.replace(/\s+/g, ""), "username": un.replace(/\s+/g, ""), "name": arr[3], "pass": up, "score1": score1, "score2": score2, "startDate": (req.query.para==""?changeDate(arr[6],"YYYY-MM-DD"):req.query.para), "registerID": currUser };
+      params = { "batchID": key, "ID": 0, "passNo": pn.replace(/\s+/g, ""), "username": un.replace(/\s+/g, ""), "name": arr[3], "pass": up, "score1": score1, "score2": score2, "startDate": (req.query.para==""?changeDate(arr[6],"YYYY-MM-DD"):req.query.para), "registerID": currUser };
       //console.log("params:", params);
 
       db.excuteProc(sqlstr, params, function (err, data) {
@@ -1408,6 +1408,49 @@ router.get('/generate_emergency_materials', function (req, res, next) {
     response = [];
     return res.send(response);
   }
+});
+
+//22d. generate_emergency_exam_materials_byclass
+//同时一个班级的归档/报名表 keyID: 2/3
+//status: 0 成功  9 其他  msg, emergency item
+router.post('/generate_emergency_exam_materials_byclass', function (req, res, next) {
+  let path = "";
+  let f = ['','','班级归档资料.pdf','报名表.jpg']
+  let keyID = req.query.keyID;
+
+  // sqlstr = "select ID,name,username,enterID,entryform from v_applyInfo where refID=@refID and signature>'' order by ID";   //获取指定申报下的有签名的名单
+  sqlstr = "generate_emergency_exam_materials_byclass";   //获取指定申报下的有签名的名单
+  params = { batchID: req.query.refID, keyID: keyID, selList: req.body.selList, fn: f[keyID], registerID: req.query.registerID };
+  // console.log(params);
+  db.excuteProc(sqlstr, params, async function (err, data) {
+    if (err) {
+      console.log(err);
+      response = [0];
+      return res.send(response);
+    }
+
+    if (data.recordset.length > 0) {
+      // console.log("len:", data.recordset.length);
+      let dat = data.recordset;
+      response = [dat.length];
+      for (var i in dat) {
+        //班级归档资料
+        sqlstr = env + "/entryform_" + dat[i]["entryform"] + ".asp?public=1&nodeID=" + dat[i]["enterID"] + "&refID=" + dat[i]["username"] + "&host=" + req.query.host + "&keyID=";
+        path = 'users/upload/students/firemanMaterials/' + dat[i]["ID"] + '_' + dat[i]["name"] + '_' + dat[i]["username"];
+        if(keyID==2){ //班级存档资料\考站资料生成pdf文件
+          await pdf.genPDF([sqlstr + keyID], [path + f[keyID]], '210mm', '290mm', '', false, 1, false);
+        }
+        if(keyID==3){ //申报资料生成jpg文件
+          await shotimg.genImg(sqlstr + keyID, path + f[keyID], 50);
+        }
+      }
+      // console.log("len:", response);
+      return res.send(response);
+    } else {
+      response = [0];
+      return res.send(response);
+    }
+  });
 });
 
 //22e. generate_material_zip
