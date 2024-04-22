@@ -753,6 +753,6 @@ if __name__ == '__main__':
         print(result)
     else:
         result["err"] = 1
-        result["errMsg"] = "No account found."
+        result["errMsg"] = "No account found."  # err
         print(result)
 
