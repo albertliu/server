@@ -551,9 +551,9 @@ def enter_by_list9(elist, classID, courseName, reex):
             wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//input[@type='file']")))
             p = img_path + row[14]  # 报名资料
             name_input = driver.find_elements(By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//input[@type='file']")[0]
-            time.sleep(5)
+            time.sleep(4)
             name_input.send_keys(p)
-            time.sleep(3)
+            time.sleep(2)
             # print(2)
             # 确定按钮
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确 认')]/..")))
