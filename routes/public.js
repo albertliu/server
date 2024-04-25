@@ -967,10 +967,37 @@ router.post('/applyEnter', function (req, res) {
   shell.exec('@echo off')
   // shell.exec('chcp 65001')
   let url = pyUrl + '/apply.py ' + req.body.selList + ' ' + req.query.reexamine + ' ' + req.query.host + ' ' + req.query.register + ' ' + req.query.classID + ' ' + req.query.courseName + ' ' + req.query.reex;
+  // console.log('url code:', url);
+  shell.exec(url, function (code, stdout, stderr) {
+    // console.log('Exit code:', code);
+    // console.log('Program output:', stdout);    
+    let response = {};
+    try{
+      if(stderr){
+        console.log('Program stderr:', stderr);
+      }
+      // response = eval("(" + stdout + ")");  //字符串转为JSON
+      response = eval(`( ${stdout} )`);  //字符串转为JSON
+      // console.log('Exit stdout:', response);
+    } catch(err){
+      console.log('shell err:', err);
+      response = {"count_s": 0, "count_e": 0, "err": 1, "errMsg": "访问异常，请稍后重试。"};
+    } finally {
+      return res.send(response);
+    }
+  });
+});
+
+//
+router.post('/enterPay', function (req, res) {
+  // 配置初始化信息 selList:applyID
+  shell.exec('@echo off')
+  // shell.exec('chcp 65001')
+  let url = pyUrl + '/NNOpenSDK.py ' + req.body.enterID + ' ' + req.body.amount + ' ' + req.body.item + ' ' + req.body.name + ' ' + req.body.sales;
   console.log('url code:', url);
   shell.exec(url, function (code, stdout, stderr) {
-    console.log('Exit code:', code);
-    console.log('Program output:', stdout);    
+    // console.log('Exit code:', code);
+    // console.log('Program output:', stdout);    
     let response = {};
     try{
       if(stderr){
@@ -981,7 +1008,7 @@ router.post('/applyEnter', function (req, res) {
       console.log('Exit stdout:', response);
     } catch(err){
       console.log('shell err:', err);
-      response = {"count_s": 0, "count_e": 0, "err": 1, "errMsg": "访问异常，请稍后重试。"};
+      response = {"code": "JH000", "describe": "支付接口访问异常，请稍后重试。"};
     } finally {
       return res.send(response);
     }

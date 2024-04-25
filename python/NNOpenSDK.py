@@ -5,6 +5,7 @@ import string
 import requests
 import base64
 import hmac
+import sys
 
 
 def get_sign(secret, appkey, senid, nonce, content, timestamp):
@@ -42,7 +43,7 @@ if __name__ == '__main__':
     accessToken = 'fbcb4ed89bd6888d0dc4780iank3srrs'
     taxNum = '52310106751466629W'
     api_method = 'nuonuo.polymerization.paymentToOrders'
-    body = '{"taxNo":"52310106751466629W", "customerOrderNo":"111", "amount":"0.01", "subject":"报名费", "billingType":"1", "sellerNote":"123", "payee":"张三", "autoType":"1", "returnUrl":"localhost:8082", "appKey":"40293382"}'
+    body = '{"taxNo":"52310106751466629W", "customerOrderNo":"' + sys.argv[1] + '", "amount":"' + sys.argv[2] + '", "subject":"' + sys.argv[3] + '", "payee":"' + sys.argv[4] + '", "sellerNote":"' + sys.argv[5] + '", "billingType":"1", "autoType":"1", "returnUrl":"localhost:8082", "appKey":"40293382"}'
 
     res = send_request(req_url, senid, appKey, appsecret, accessToken, taxNum, api_method, body)
     print(res)
