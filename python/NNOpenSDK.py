@@ -66,7 +66,7 @@ if __name__ == '__main__':
     appsecret = ''
     accessToken = ''
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
-    sql = "select regNo, nnAppyKey, nnSecret, nnToken from hostInfo where hostNo= '" + host + "'"  # 数据库查询语句
+    sql = "select isnull(regNo,''), isnull(nnAppyKey,''), isnull(nnSecret,''), isnull(nnToken,'') from hostInfo where hostNo= '" + host + "'"  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
     rs = cursor.fetchone()  # 获取第一行数据
     if rs is not None:
@@ -74,8 +74,9 @@ if __name__ == '__main__':
         appKey = rs[1]
         appsecret = rs[2]
         accessToken = rs[3]
-    kind = sys.argv[2]  # 0 pay  1 refund  2 invoice
+    kind = int(sys.argv[2])  # 0 pay  1 refund  2 invoice
     api_method = ['nuonuo.polymerization.paymentToOrders', "nuonuo.AggregatePay.refundquery", "nuonuo.polymerization.getInvoiceLinks"]
+    print('{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '", "amount":"' + sys.argv[4] + '", "subject":"' + sys.argv[5] + '", "payee":"' + sys.argv[6] + '", "sellerNote":"' + sys.argv[7] + '", "billingType":"1", "autoType":"1", "returnUrl":"", "appKey":"' + appKey + '"}')
     body = [
         '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '", "amount":"' + sys.argv[4] + '", "subject":"' + sys.argv[5] + '", "payee":"' + sys.argv[6] + '", "sellerNote":"' + sys.argv[7] + '", "billingType":"1", "autoType":"1", "returnUrl":"", "appKey":"' + appKey + '"}',
         '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '", "partRefundAmount":"' + sys.argv[4] + '", "refundReason":"' + sys.argv[5] + '", "userName":"' + sys.argv[6] + '", "appKey":"' + appKey + '"}',
