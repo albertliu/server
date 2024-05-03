@@ -76,7 +76,6 @@ if __name__ == '__main__':
         accessToken = rs[3]
     kind = int(sys.argv[2])  # 0 pay  1 refund  2 invoice
     api_method = ['nuonuo.polymerization.paymentToOrders', "nuonuo.AggregatePay.refundquery", "nuonuo.polymerization.getInvoiceLinks"]
-    print('{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '", "amount":"' + sys.argv[4] + '", "subject":"' + sys.argv[5] + '", "payee":"' + sys.argv[6] + '", "sellerNote":"' + sys.argv[7] + '", "billingType":"1", "autoType":"1", "returnUrl":"", "appKey":"' + appKey + '"}')
     body = [
         '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '", "amount":"' + sys.argv[4] + '", "subject":"' + sys.argv[5] + '", "payee":"' + sys.argv[6] + '", "sellerNote":"' + sys.argv[7] + '", "billingType":"1", "autoType":"1", "returnUrl":"", "appKey":"' + appKey + '"}',
         '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '", "partRefundAmount":"' + sys.argv[4] + '", "refundReason":"' + sys.argv[5] + '", "userName":"' + sys.argv[6] + '", "appKey":"' + appKey + '"}',

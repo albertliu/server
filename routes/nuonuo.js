@@ -45,12 +45,24 @@ router.post('/oderPaymentReturn', function(req, res, next) {
 
 //退款回调接口
 router.post('/oderRefundReturn', function(req, res, next) {
-  console.log("oderRefundReturn body:", req.body);
+  // console.log("oderRefundReturn body:", req.body);
   let hexData = req.body.param;
   let text = decrypt(hexData,key);
   console.log("text", text);
   let re = eval("(" + text + ")");
-  return res.send(text);
+  sqlstr = "setAutoPayInfo";
+  params = {kind:1, enterID:0, amount:re.refundAmount, payStatus:re.payStatus, payTime:re.refundTime, payType:"", customerTaxnum:"", orderNo:re.orderNo, outOrderNo:re.originOrderNo, subject:"", userId:"", memo:"", phone:""};
+  console.log("params:", params);
+  db.excuteProc(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      response = {"status":9};
+      return res.send(response);
+    }
+    response = {"status":0};
+    //console.log(response);
+    return res.send(response);
+  });
 });
 
 //发票回调接口
