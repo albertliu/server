@@ -83,4 +83,4 @@ if __name__ == '__main__':
         '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '"}'
     ]
     res = send_request(req_url, senid, appKey, appsecret, accessToken, taxNo, api_method[kind], body[kind])
-    print(res)
+    print(res.replace('\n', '').replace('\r', ''))
