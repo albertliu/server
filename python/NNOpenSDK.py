@@ -6,6 +6,19 @@ import requests
 import base64
 import hmac
 import sys
+import os
+import pymssql
+
+env_dist = os.environ
+
+conn = pymssql.connect(
+    server=env_dist.get('NODE_ENV_DB'),  # 本地服务器
+    port="14333",  # TCP端口
+    user="sqlrw",
+    password=env_dist.get('NODE_ENV_DB_PASSWD'),
+    database="elearning",
+    autocommit=True   # 自动提交
+    )
 
 
 def get_sign(secret, appkey, senid, nonce, content, timestamp):
@@ -35,15 +48,38 @@ def send_request(request_url, senid, appkey, app_secret, token, taxnum, method, 
     return r.text
 
 
+def execSQL(text: str):
+    """
+    执行SQL语句, 无返回结果
+    """
+    curs = conn.cursor()  # 使用cursor()方法获取操作游标
+    curs.execute(text)  # 执行sql语句
+    curs.close()
+
+
 if __name__ == '__main__':
     req_url = 'https://sdk.nuonuo.com/open/v1/services'
     senid = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(32))     # 32位随机码
-    appKey = '40293382'
-    appsecret = 'A475E209DF12449D'
-    accessToken = 'fbcb4ed89bd6888d0dc4780iank3srrs'
-    taxNum = '52310106751466629W'
-    api_method = 'nuonuo.polymerization.paymentToOrders'
-    body = '{"taxNo":"52310106751466629W", "customerOrderNo":"' + sys.argv[1] + '", "amount":"' + sys.argv[2] + '", "subject":"' + sys.argv[3] + '", "payee":"' + sys.argv[4] + '", "sellerNote":"' + sys.argv[5] + '", "billingType":"1", "autoType":"1", "returnUrl":"localhost:8082", "appKey":"40293382"}'
-
-    res = send_request(req_url, senid, appKey, appsecret, accessToken, taxNum, api_method, body)
+    host = sys.argv[1]
+    taxNo = "" 
+    appKey = ''
+    appsecret = ''
+    accessToken = ''
+    cursor = conn.cursor()  # 使用cursor()方法获取操作游标
+    sql = "select regNo, nnAppyKey, nnSecret, nnToken from hostInfo where hostNo= '" + host + "'"  # 数据库查询语句
+    cursor.execute(sql)  # 执行sql语句
+    rs = cursor.fetchone()  # 获取第一行数据
+    if rs is not None:
+        taxNo = rs[0]
+        appKey = rs[1]
+        appsecret = rs[2]
+        accessToken = rs[3]
+    kind = sys.argv[2]  # 0 pay  1 refund  2 invoice
+    api_method = ['nuonuo.polymerization.paymentToOrders', "nuonuo.AggregatePay.refundquery", "nuonuo.polymerization.getInvoiceLinks"]
+    body = [
+        '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '", "amount":"' + sys.argv[4] + '", "subject":"' + sys.argv[5] + '", "payee":"' + sys.argv[6] + '", "sellerNote":"' + sys.argv[7] + '", "billingType":"1", "autoType":"1", "returnUrl":"", "appKey":"' + appKey + '"}',
+        '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '", "partRefundAmount":"' + sys.argv[4] + '", "refundReason":"' + sys.argv[5] + '", "userName":"' + sys.argv[6] + '", "appKey":"' + appKey + '"}',
+        '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '"}'
+    ]
+    res = send_request(req_url, senid, appKey, appsecret, accessToken, taxNo, api_method[kind], body[kind])
     print(res)

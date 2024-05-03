@@ -993,7 +993,7 @@ router.post('/enterPay', function (req, res) {
   // 配置初始化信息 selList:applyID
   shell.exec('@echo off')
   // shell.exec('chcp 65001')
-  let url = pyUrl + '/NNOpenSDK.py ' + req.body.enterID + ' ' + req.body.amount + ' ' + req.body.item + ' ' + req.body.name + ' ' + req.body.sales;
+  let url = pyUrl + '/NNOpenSDK.py ' + req.body.host + ' ' + req.body.kind + ' ' + req.body.enterID + ' ' + req.body.amount + ' ' + req.body.item + ' ' + req.body.name + ' ' + req.body.sales;
   console.log('url code:', url);
   shell.exec(url, function (code, stdout, stderr) {
     // console.log('Exit code:', code);

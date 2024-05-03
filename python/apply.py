@@ -29,7 +29,6 @@ wait = WebDriverWait(driver, 5)
 # 创建连接字符串  （sqlserver默认端口为1433）
 img_path = env_dist.get('NODE_ENV_IMG')
 py_path = env_dist.get('NODE_ENV_PYTHON')
-password1 = env_dist.get('NODE_ENV_DB_PASSWD')
 conn = pymssql.connect(
     server=env_dist.get('NODE_ENV_DB'),  # 本地服务器
     port="14333",  # TCP端口
