@@ -23,7 +23,7 @@ function decrypt(word, keyStr){
 //支付回调接口
 router.post('/oderPaymentReturn', function(req, res, next) {
   // console.log("oderPaymentReturn body:", req.body);
-  const hexData = req.body.data.param;
+  const hexData = req.body.param;
   // console.log("hexData:", hexData);
   let text = decrypt(hexData,key);
   let re = eval("(" + text + ")");
@@ -47,7 +47,7 @@ router.post('/oderPaymentReturn', function(req, res, next) {
 //退款回调接口
 router.post('/oderRefundReturn', function(req, res, next) {
   console.log("oderRefundReturn body:", req.body);
-  let hexData = req.body.data;
+  let hexData = req.body.param;
   let encryptedHexStr  = crypto.enc.Hex.parse(hexData);
   let encryptedBase64Str  = crypto.enc.Base64.stringify(encryptedHexStr);
   let decryptedData  = crypto.AES.decrypt(encryptedBase64Str, key, {
@@ -62,7 +62,7 @@ router.post('/oderRefundReturn', function(req, res, next) {
 //发票回调接口
 router.post('/oderInvoiceReturn', function(req, res, next) {
   console.log("oderInvoiceReturn body:", req.body, "query:", req.query);
-  let hexData = req.body.data;
+  let hexData = req.body.param;
   let encryptedHexStr  = crypto.enc.Hex.parse(hexData);
   let encryptedBase64Str  = crypto.enc.Base64.stringify(encryptedHexStr);
   let decryptedData  = crypto.AES.decrypt(encryptedBase64Str, key, {
