@@ -28,7 +28,6 @@ router.post('/oderPaymentReturn', function(req, res, next) {
   let text = decrypt(hexData,key);
   let re = eval("(" + text + ")");
   // 返回解密结果
-  console.log("text:",re, re.amount);
   sqlstr = "setAutoPayInfo";
   params = {kind:0, enterID:re.customerOrderNo, amount:re.amount, payStatus:re.payStatus, payTime:re.payTime, payType:re.payType, customerTaxnum:re.customerTaxnum, orderNo:re.orderNo, outOrderNo:re.outOrderNo, subject:re.subject, userId:re.userId, memo:re.sellerNote, phone:""};
   //console.log("params:", params);
@@ -48,14 +47,9 @@ router.post('/oderPaymentReturn', function(req, res, next) {
 router.post('/oderRefundReturn', function(req, res, next) {
   console.log("oderRefundReturn body:", req.body);
   let hexData = req.body.param;
-  let encryptedHexStr  = crypto.enc.Hex.parse(hexData);
-  let encryptedBase64Str  = crypto.enc.Base64.stringify(encryptedHexStr);
-  let decryptedData  = crypto.AES.decrypt(encryptedBase64Str, key, {
-      mode: crypto.mode.ECB,
-      padding: crypto.pad.Pkcs7
-  });
-  let text = decryptedData.toString(crypto.enc.Utf8);
-  console.log(text);
+  let text = decrypt(hexData,key);
+  console.log("text", text);
+  let re = eval("(" + text + ")");
   return res.send(text);
 });
 
