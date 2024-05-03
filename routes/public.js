@@ -1004,7 +1004,7 @@ router.post('/enterPay', function (req, res) {
         console.log('Program stderr:', stderr);
       }
       // response = eval("(" + stdout + ")");  //字符串转为JSON
-      response = eval(`( ${stdout.replace(/\r\n/g,"")} )`);  //字符串转为JSON
+      response = eval(`( ${stdout} )`);  //字符串转为JSON
       console.log('Exit stdout:', response);
     } catch(err){
       console.log('shell err:', err);

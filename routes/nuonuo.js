@@ -32,7 +32,7 @@ router.post('/oderPaymentReturn', function(req, res, next) {
   sqlstr = "setAutoPayInfo";
   params = {kind:0, enterID:re.customerOrderNo, amount:re.amount, payStatus:re.payStatus, payTime:re.payTime, payType:re.payType, customerTaxnum:re.customerTaxnum, orderNo:re.orderNo, outOrderNo:re.outOrderNo, subject:re.subject, userId:re.userId, memo:re.sellerNote, phone:""};
   //console.log("params:", params);
-  db.excuteSQL(sqlstr, params, function(err, data){
+  db.excuteProc(sqlstr, params, function(err, data){
     if (err) {
       console.log(err);
       response = {"status":9};
