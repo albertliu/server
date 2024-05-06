@@ -74,12 +74,13 @@ if __name__ == '__main__':
         appKey = rs[1]
         appsecret = rs[2]
         accessToken = rs[3]
-    kind = int(sys.argv[2])  # 0 pay  1 refund  2 invoice
-    api_method = ['nuonuo.polymerization.paymentToOrders', "nuonuo.AggregatePay.refundquery", "nuonuo.polymerization.getInvoiceLinks"]
+    kind = int(sys.argv[2])  # 0 pay  1 refund  2 invoice  3 对账单
+    api_method = ['nuonuo.polymerization.paymentToOrders', "nuonuo.AggregatePay.refundquery", "nuonuo.polymerization.getInvoiceLinks", "nuonuo.AggregatePay.Statementacquisitionquery"]
     body = [
         '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '", "amount":"' + sys.argv[4] + '", "subject":"' + sys.argv[5] + '", "payee":"' + sys.argv[6] + '", "sellerNote":"' + sys.argv[7] + '", "billingType":"1", "autoType":"1", "returnUrl":"", "appKey":"' + appKey + '"}',
         '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '", "partRefundAmount":"' + sys.argv[4] + '", "refundReason":"' + sys.argv[5] + '", "userName":"' + sys.argv[6] + '", "appKey":"' + appKey + '"}',
-        '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '"}'
+        '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '"}',
+        '{"taxNo":"' + taxNo + '", "tradeDate":"' + sys.argv[3] + '"}'
     ]
     res = send_request(req_url, senid, appKey, appsecret, accessToken, taxNo, api_method[kind], body[kind])
     print(res)

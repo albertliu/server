@@ -134,8 +134,8 @@ def login_fr():
         return 1
 
 
-def enter_by_list0(elist):
-    # 根据指定名单（enterID list)去报名。初训
+def enter_by_list0(elist, kind):
+    # 根据指定名单（enterID list)去报名。初训  kind: "特种作业（默认）/安全干部"
     # 获取名单完整信息
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
     sql = "exec getApplyListByList '" + elist + "'"  # 数据库查询语句
@@ -148,6 +148,14 @@ def enter_by_list0(elist):
     else:
         driver.find_elements(By.XPATH, "//li[contains(text(),'初训报名')]")[0].click()  # 点击初训报名菜单
         time.sleep(1)
+    # 选择类型
+    if kind == "安全干部":
+        # 点击下拉框
+        name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'类型:')]/following-sibling::div//input[contains(@placeholder, '选择类型')]")[0].click()
+        time.sleep(1)
+        # 点击符合要求的项目
+        name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + kind + "')]")[0].click()
+
     rs = cursor.fetchall()
     # print(len(rs))
     for row in rs:
@@ -739,7 +747,7 @@ if __name__ == '__main__':
         if login_fr() == 0:
             # print("reexamine:", reexamine)
             if reexamine == '0':
-                enter_by_list0(sys.argv[1])
+                enter_by_list0(sys.argv[1], ('' if sys.argv[6].find('危险化学品') < 0 else '安全干部'))
             if reexamine == '1':
                 enter_by_list1(sys.argv[1])
             if reexamine == '8':    # 上传照片
