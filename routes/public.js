@@ -966,7 +966,7 @@ router.post('/applyEnter', function (req, res) {
   // 配置初始化信息 selList:applyID
   shell.exec('@echo off')
   // shell.exec('chcp 65001')
-  let url = pyUrl + '/apply.py ' + req.body.selList + ' ' + req.query.reexamine + ' ' + req.query.host + ' ' + req.query.register + ' ' + req.query.classID + ' ' + req.body.courseName + ' ' + req.query.reex;
+  let url = pyUrl + '/apply.py ' + req.body.selList + ' ' + req.query.reexamine + ' ' + req.query.host + ' ' + req.query.register + ' ' + req.query.classID + ' ' + req.query.courseName + ' ' + req.query.reex;
   // console.log('url code:', url);
   shell.exec(url, function (code, stdout, stderr) {
     // console.log('Exit code:', code);

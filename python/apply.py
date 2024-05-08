@@ -138,7 +138,7 @@ def enter_by_list0(elist, kind):
     # 根据指定名单（enterID list)去报名。初训  kind: "特种作业（默认）/安全干部"
     # 获取名单完整信息
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
-    sql = "exec getApplyListByList '" + elist + "'"  # 数据库查询语句
+    sql = "exec getApplyListByList '" + ','.join(elist) + "'"  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
 
     # 初训菜单
@@ -151,7 +151,8 @@ def enter_by_list0(elist, kind):
     # 选择类型
     if kind == "安全干部":
         # 点击下拉框
-        name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'类型:')]/following-sibling::div//input[contains(@placeholder, '选择类型')]")[0].click()
+        # name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'类型:')]/following-sibling::div//input[contains(@placeholder, '选择类型')]")[0].click()
+        name_input = driver.find_elements(By.XPATH, "//input[contains(@placeholder, '选择类型')]")[0].click()
         time.sleep(1)
         # 点击符合要求的项目
         name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + kind + "')]")[0].click()
@@ -199,6 +200,9 @@ def enter_by_list0(elist, kind):
             # 单位/街道地址
             name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'单位/街道地址')]/following-sibling::div//input")[0]
             clean_send(name_input, row[7])
+            # 清空邮编
+            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'邮编')]/following-sibling::div//input")[0]
+            clean_send(name_input, '')
             # 勾选承诺
             name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::p[@class='information']/label")[0].click()
             # 下一步按钮
@@ -219,12 +223,15 @@ def enter_by_list0(elist, kind):
             # 保存按钮
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//form[@class='el-form']/div[@class='button']//span[contains(text(),'保存')]/..")))
             name_input.click()
-            driver.implicitly_wait(2)
+            # driver.implicitly_wait(2)
+            name_input = wait.until(EC.invisibility_of_element_located((By.XPATH, "//form[@class='el-form']/div[@class='button']//span[contains(text(),'保存')]/..")))
+
             # 判断保存结果
             if driver.find_elements(By.XPATH, "//p[contains(text(),'该学员报名成功')]"):
                 result["count_s"] += 1
                 sql = "exec setApplyMemo " + str(row[13]) + ", '已报名', '报名成功'"
                 execSQL(sql)
+                d_list.remove(str(row[13]))     # 从列表中删除已成功数据
                 # 提交成功，确定按钮
                 name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
                 name_input.click()
@@ -232,9 +239,11 @@ def enter_by_list0(elist, kind):
             else:
                 result["count_e"] += 1
                 # 提交失败 保存错误信息
-                name_input = driver.find_elements(By.XPATH, "//div[@role='dialog']//div[@class='el-message-box__message']/p")[0]
+                # name_input = driver.find_elements(By.XPATH, "//div[@role='dialog']//div[@class='el-message-box__message']/p")[0]
+                name_input = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@role='dialog']//div[@class='el-message-box__message']/p")))
                 sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：" + name_input.text + "'"
                 execSQL(sql)
+                d_list.remove(str(row[13]))     # 从列表中删除失败数据
 
                 # 关闭按钮
                 name_input = driver.find_elements(By.XPATH, "//div[@role='dialog']//span[contains(text(),'关闭')]/..")
@@ -246,12 +255,13 @@ def enter_by_list0(elist, kind):
         except Exception as e:
             # result["err"] = 1
             # result["errMsg"] = "action failed"
+            print(e)
             pass
     # 关闭数据库
     cursor.close()
-    conn.close()
+    # conn.close()
     # print("window:", driver.window_handles)
-    driver.quit()
+    # driver.quit()
     return result
 
 
@@ -259,7 +269,7 @@ def enter_by_list1(elist):
     # 根据指定名单（enterID list)去报名。复训
     # 获取名单完整信息
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
-    sql = "exec getApplyListByList '" + elist + "'"  # 数据库查询语句
+    sql = "exec getApplyListByList '" + ','.join(elist) + "'"  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
 
     # 复训菜单
@@ -320,10 +330,16 @@ def enter_by_list1(elist):
                 name_input.click()
                 sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：" + s1 + "'"
                 execSQL(sql)
+                d_list.remove(str(row[13]))     # 从列表中删除失败数据
+                time.sleep(1)
+                continue
                 # 再次尝试更换新的操作证号码
                 # 操作证号码输入框
                 # diploma_input = driver.find_elements(By.XPATH, "//input[contains(@placeholder, '请输入操作证号码')]")[0]
-                continue
+                # clean_send(diploma_input, 'T' + row[3])
+                # # 第二次按查找按钮
+                # search_btn.click()
+                # time.sleep(1)
             # 第二页
             # 选择文化程度
             # 点击下拉框
@@ -364,6 +380,7 @@ def enter_by_list1(elist):
                 result["count_s"] += 1
                 sql = "exec setApplyMemo " + str(row[13]) + ", '已报名', '报名成功'"
                 execSQL(sql)
+                d_list.remove(str(row[13]))     # 从列表中删除已成功数据
                 # 提交成功，确定按钮
                 name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
                 name_input.click()
@@ -374,6 +391,7 @@ def enter_by_list1(elist):
                 name_input = driver.find_elements(By.XPATH, "//div[@role='dialog']//div[@class='el-message-box__message']/p")[0]
                 sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：" + name_input.text + "'"
                 execSQL(sql)
+                d_list.remove(str(row[13]))     # 从列表中删除失败数据
 
                 # 关闭按钮
                 name_input = driver.find_elements(By.XPATH, "//div[@role='dialog']//span[contains(text(),'关闭')]/..")
@@ -389,9 +407,9 @@ def enter_by_list1(elist):
 
     # 关闭数据库
     cursor.close()
-    conn.close()
+    # conn.close()
     # print("window:", driver.window_handles)
-    driver.quit()
+    # driver.quit()
     return result
 
 
@@ -399,7 +417,7 @@ def enter_by_list8(elist, classID, courseName, reex):
     # 根据指定开班编号及名单（enterID list)上传照片。
     # 获取名单完整信息
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
-    sql = "exec getApplyListByList '" + elist + "'"  # 数据库查询语句
+    sql = "exec getApplyListByList '" + ','.join(elist) + "'"  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
 
     # 开班管理菜单
@@ -478,6 +496,7 @@ def enter_by_list8(elist, classID, courseName, reex):
             result["count_s"] += 1
             sql = "exec setApplyPhotoUpload " + str(row[13])
             execSQL(sql)
+            d_list.remove(str(row[13]))     # 从列表中删除已成功数据
             time.sleep(1)
 
         except Exception as e:
@@ -488,9 +507,9 @@ def enter_by_list8(elist, classID, courseName, reex):
 
     # 关闭数据库
     cursor.close()
-    conn.close()
+    # conn.close()
     # print("window:", driver.window_handles)
-    driver.quit()
+    # driver.quit()
     return result
 
 
@@ -498,7 +517,7 @@ def enter_by_list9(elist, classID, courseName, reex):
     # 根据指定开班编号及名单（enterID list)上传报名表。
     # 获取名单完整信息
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
-    sql = "exec getApplyListByList '" + elist + "'"  # 数据库查询语句
+    sql = "exec getApplyListByList '" + ','.join(elist) + "'"  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
 
     # 开班管理菜单
@@ -558,9 +577,9 @@ def enter_by_list9(elist, classID, courseName, reex):
             wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//input[@type='file']")))
             p = img_path + row[14]  # 报名资料
             name_input = driver.find_elements(By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//input[@type='file']")[0]
-            time.sleep(4)
+            time.sleep(5)
             name_input.send_keys(p)
-            time.sleep(2)
+            time.sleep(3)
             # print(2)
             # 确定按钮
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确 认')]/..")))
@@ -572,6 +591,7 @@ def enter_by_list9(elist, classID, courseName, reex):
             result["count_s"] += 1
             sql = "exec setApplyUpload " + str(row[13])
             execSQL(sql)
+            d_list.remove(str(row[13]))     # 从列表中删除已成功数据
             time.sleep(1)
 
         except Exception as e:
@@ -582,9 +602,9 @@ def enter_by_list9(elist, classID, courseName, reex):
 
     # 关闭数据库
     cursor.close()
-    conn.close()
+    # conn.close()
     # print("window:", driver.window_handles)
-    driver.quit()
+    # driver.quit()
     return result
 
 
@@ -592,7 +612,7 @@ def enter_by_list10(elist, classID, courseName, reex):
     # 根据指定开班编号及名单（enterID list)查询成绩。
     # 获取名单完整信息
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
-    sql = "exec getApplyListByList '" + elist + "'"  # 数据库查询语句
+    sql = "exec getApplyListByList '" + ','.join(elist) + "'"  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
 
     # 考试管理菜单
@@ -647,10 +667,12 @@ def enter_by_list10(elist, classID, courseName, reex):
             # 保存结果
             result["count_s"] += 1
             # @batchID,@ID,@courseID,@certName,@passNo,@username,@name,@score1,@score2,@startDate,@reexam, @host,@registerID
+            # sql = "exec generateApplyScore 1, " + str(row[13]) + ", '', '', '" + diplomaID.replace(" ", "") + "', '', '', '" + score1 + "', '" + score2 + "', '" + examDate + "', '" + reexStr + "', '', 'system'"
             sql = "exec generateApplyScore1 " + str(row[13]) + ", '" + diplomaID.replace(" ", "") + "', '" + score1 + "', '" + score2 + "', '" + examDate + "', '" + register + "'"
             # print(sql)
             execSQL(sql)
-            time.sleep(1)
+            d_list.remove(str(row[13]))     # 从列表中删除已成功数据
+            # time.sleep(1)
 
         except Exception as e:
             print(e)
@@ -660,9 +682,9 @@ def enter_by_list10(elist, classID, courseName, reex):
 
     # 关闭数据库
     cursor.close()
-    conn.close()
+    # conn.close()
     # print("window:", driver.window_handles)
-    driver.quit()
+    # driver.quit()
     return result
 
 
@@ -723,18 +745,22 @@ def execSQL(text: str):
 
 if __name__ == '__main__':
     # 以下是测试代码
-    # username = "13651648767"
-    # password = "Pqf1823797198"
-    # register = "testFD"
-    # if login_fr() == 0:
-    #     enter_by_list0('9163')
-    # #    # enter_by_list9('7288,7300', '0809102412101', '低压电工作业', '初证')
-    # #    # enter_by_list10('3608,3607,3606', '0809102309148', '低压电工作业', '初证')
-    # print(result)
+    username = "13651648767"
+    password = "Pqf1823797198"
+    register = "testFD"
+    courseName = "危险化学品经营单位安全生产管理人员"  # 课程名称
+    kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
+    if login_fr() == 0:
+        enter_by_list0('9163', kind)
+    #    # enter_by_list9('7288,7300', '0809102412101', '低压电工作业', '初证')
+    #    # enter_by_list10('3608,3607,3606', '0809102309148', '低压电工作业', '初证')
+    print(result)
     # # 以上是测试代码
     reexamine = sys.argv[2]     # 0 初训 1 复训 9 报名表 10 成绩
     host = sys.argv[3]
     register = sys.argv[4]  # 填写人
+    courseName = sys.argv[6]  # 课程名称
+    kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
     sql = "select accountA, passwdA from hostInfo where hostNo= '" + host + "'"  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
@@ -747,7 +773,7 @@ if __name__ == '__main__':
         if login_fr() == 0:
             # print("reexamine:", reexamine)
             if reexamine == '0':
-                enter_by_list0(sys.argv[1], ('' if sys.argv[6].find('危险化学品') < 0 else '安全干部'))
+                enter_by_list0(sys.argv[1], kind)
             if reexamine == '1':
                 enter_by_list1(sys.argv[1])
             if reexamine == '8':    # 上传照片
