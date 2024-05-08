@@ -745,22 +745,36 @@ def execSQL(text: str):
 
 if __name__ == '__main__':
     # 以下是测试代码
-    username = "13651648767"
-    password = "Pqf1823797198"
-    register = "testFD"
-    courseName = "危险化学品经营单位安全生产管理人员"  # 课程名称
-    kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
-    if login_fr() == 0:
-        enter_by_list0('9163', kind)
-    #    # enter_by_list9('7288,7300', '0809102412101', '低压电工作业', '初证')
-    #    # enter_by_list10('3608,3607,3606', '0809102309148', '低压电工作业', '初证')
-    print(result)
-    # # 以上是测试代码
+    # username = "13817866150"
+    # password = "123456Asdf"
+    # register = "test"
+    # d_list = '7300'.split(',')    # 需要处理的数据列表
+    # # courseName = "危险化学品经营单位安全生产管理人员"  # 课程名称
+    # courseName = "低压电工作业"  # 课程名称
+    # kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
+    # if login_fr() == 0:
+    #     i = 0
+    #     while len(d_list) > 0:
+    #         enter_by_list0(d_list, kind)
+    #         # enter_by_list1(d_list)
+    #         # enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+    #         # enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+    #         # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+    #         i += 1
+    #         if i > 3:
+    #             break
+    #     conn.close()
+    #     driver.quit()
+    # 以上是测试代码
+    d_list = sys.argv[1].split(',')    # 需要处理的数据列表
     reexamine = sys.argv[2]     # 0 初训 1 复训 9 报名表 10 成绩
     host = sys.argv[3]
     register = sys.argv[4]  # 填写人
+    # classID = sys.argv[5]   # 开班编号
     courseName = sys.argv[6]  # 课程名称
     kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
+    # username = "13817866150" if host == "feng" else "15900646360"
+    # password = "123456Asdf" if host == "feng" else "123456Asdf"
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
     sql = "select accountA, passwdA from hostInfo where hostNo= '" + host + "'"  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
@@ -772,20 +786,26 @@ if __name__ == '__main__':
         # 登录
         if login_fr() == 0:
             # print("reexamine:", reexamine)
-            if reexamine == '0':
-                enter_by_list0(sys.argv[1], kind)
-            if reexamine == '1':
-                enter_by_list1(sys.argv[1])
-            if reexamine == '8':    # 上传照片
-                enter_by_list8(sys.argv[1], sys.argv[5], sys.argv[6], sys.argv[7])
-            if reexamine == '9':    # 上传资料
-                enter_by_list9(sys.argv[1], sys.argv[5], sys.argv[6], sys.argv[7])
-                # 5:classID, 6:courseName, 7:reex（初训,复训,初训补考,复训补考）
-            if reexamine == '10':   # 查询成绩
-                enter_by_list10(sys.argv[1], sys.argv[5], sys.argv[6], sys.argv[7])
+            i = 0
+            while len(d_list) > 0:
+                if reexamine == '0':
+                    enter_by_list0(d_list, kind)
+                if reexamine == '1':
+                    enter_by_list1(d_list)
+                if reexamine == '8':    # 上传照片
+                    # 5:classID, 6:courseName, 7:reex（初训,复训,初训补考,复训补考）
+                    enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+                if reexamine == '9':    # 上传资料
+                    enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+                if reexamine == '10':   # 查询成绩
+                    enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+                i += 1
+                if i > 3:
+                    break
+            conn.close()
+            driver.quit()
         print(result)
     else:
         result["err"] = 1
         result["errMsg"] = "No account found."  # err
         print(result)
-
