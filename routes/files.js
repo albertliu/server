@@ -282,7 +282,8 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
   if (currUser > "") {
     register = currUser;
   }
-  params = { "upID": upID, "key": key, "file": response.file, "multiple": 0, "registerID": register };
+  let size = (file.size/1024).toFixed(0);
+  params = { "upID": upID, "key": key, "file": response.file, fsize: size, "multiple": 0, "registerID": register };
   //console.log("params:", params);
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
@@ -711,8 +712,9 @@ router.post('/uploadMultiple', uploadMultiple.array('avatar', 1000), async funct
       for (var i in files) {
         let file = files[i];
         let fn = file.filename;
+        let size = (file.size/1024).toFixed(0);
         sqlstr = "setUploadSingleFileLink";
-        params = { "upID": upID, "key": fn.substr(0, fn.lastIndexOf(".")), "file": file.path.substr(file.path.indexOf("\\")), "multiple": batchID, "registerID": currUser };
+        params = { "upID": upID, "key": fn.substr(0, fn.lastIndexOf(".")), "file": file.path.substr(file.path.indexOf("\\")), fsize: size, "multiple": batchID, "registerID": currUser };
         //console.log("params:", params);
         const data = await db.excuteProcAsync(sqlstr, params);
 
@@ -787,6 +789,7 @@ router.post('/uploadBase64img', function (req, res, next) {
 
   var base64Data = imgData.replace(/^data:image\/\w+;base64,/, "");
   var dataBuffer = Buffer.from(base64Data, 'base64');
+  let size = (dataBuffer.length/1024).toFixed(0);
   fs.writeFile(fn, dataBuffer, function (err) {
     if (err) {
       res.send(err);
@@ -795,7 +798,7 @@ router.post('/uploadBase64img', function (req, res, next) {
       fn = fn.replace("./users", "");
       //response.count = 1;
       sqlstr = "setUploadSingleFileLink";
-      params = { "upID": upID, "key": req.body.username, "file": fn, "multiple": 0, "registerID": currUser };
+      params = { "upID": upID, "key": req.body.username, "file": fn, fsize: size, "multiple": 0, "registerID": currUser };
       // console.log("params:", params);
       db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
@@ -1068,7 +1071,7 @@ router.get('/generate_entryform_byProjectID', function (req, res, next) {
     //link the filename to the project
     sqlstr = "setUploadSingleFileLink";
     path2 = path2.substr(path2.indexOf("\/"));
-    params = { "upID": 'project_entryform', "key": projectID, "file": path2, "multiple": 0, "registerID": req.query.registerID };
+    params = { "upID": 'project_entryform', "key": projectID, "file": path2, fsize: 0, "multiple": 0, "registerID": req.query.registerID };
     //console.log("params:", params);
     db.excuteProc(sqlstr, params, function (err, data) {
       if (err) {
@@ -1122,7 +1125,7 @@ router.get('/generate_entryform', function (req, res, next) {
     //link the filename to the enter
     sqlstr = "setUploadSingleFileLink";
     path0 = path0.substr(path0.indexOf("\/"));
-    params = { "upID": 'enter_entryform', "key": enterID, "file": path0, "multiple": 0, "registerID": req.query.registerID };
+    params = { "upID": 'enter_entryform', "key": enterID, "file": path0, fsize: 0, "multiple": 0, "registerID": req.query.registerID };
     //console.log("params:", params);
     db.excuteProc(sqlstr, params, function (err, data) {
       if (err) {

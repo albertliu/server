@@ -214,7 +214,7 @@ def enter_by_list0(elist, kind):
             clean_send(name_input, row[7])
             # 清空邮编
             name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'邮编')]/following-sibling::div//input")[0]
-            clean_send(name_input, '')
+            clean_send(name_input, '000000')
             # 勾选承诺
             name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::p[@class='information']/label")[0].click()
             # 下一步按钮
