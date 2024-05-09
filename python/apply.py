@@ -202,6 +202,13 @@ def enter_by_list0(elist, kind):
                 # 职务
                 name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'职务')]/following-sibling::div//input")[0]
                 clean_send(name_input, row[6])
+                # 职称
+                # 点击下拉框
+                name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'职称')]/following-sibling::div//input")[0].click()
+                # time.sleep(1)
+                wait.until(EC.presence_of_element_located((By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'无')]")))
+                # 点击符合要求的选项
+                name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'无')]")[0].click()
             # 单位/街道地址
             name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'单位/街道地址')]/following-sibling::div//input")[0]
             clean_send(name_input, row[7])
@@ -778,8 +785,6 @@ if __name__ == '__main__':
     # classID = sys.argv[5]   # 开班编号
     courseName = sys.argv[6]  # 课程名称
     kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
-    print('kind:' + kind + courseName)
-    print(sys.argv)
     # username = "13817866150" if host == "feng" else "15900646360"
     # password = "123456Asdf" if host == "feng" else "123456Asdf"
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
