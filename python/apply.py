@@ -153,9 +153,10 @@ def enter_by_list0(elist, kind):
         # 点击下拉框
         # name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'类型:')]/following-sibling::div//input[contains(@placeholder, '选择类型')]")[0].click()
         name_input = driver.find_elements(By.XPATH, "//input[contains(@placeholder, '选择类型')]")[0].click()
-        time.sleep(1)
+        time.sleep(2)
         # 点击符合要求的项目
         name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + kind + "')]")[0].click()
+        time.sleep(1)
 
     rs = cursor.fetchall()
     # print(len(rs))
@@ -197,6 +198,9 @@ def enter_by_list0(elist, kind):
             # 单位/街道名称
             name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'单位/街道名称')]/following-sibling::div//input")[0]
             clean_send(name_input, row[5])
+            # 职务
+            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'职务')]/following-sibling::div//input")[0]
+            clean_send(name_input, row[6])
             # 单位/街道地址
             name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'单位/街道地址')]/following-sibling::div//input")[0]
             clean_send(name_input, row[7])
