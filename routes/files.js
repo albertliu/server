@@ -7,6 +7,7 @@ var fs = require('fs');
 var date = require("silly-datetime");
 var images = require("images");
 const moment = require('moment');
+const sharp = require('sharp'); //npm install sharp
 const shotimg = require("../utils/screenshot");
 
 var response, sqlstr, params;
@@ -745,7 +746,7 @@ router.post('/uploadMultiple', uploadMultiple.array('avatar', 1000), async funct
   }
 });
 
-router.post('/uploadBase64img', function (req, res, next) {
+router.post('/uploadBase64img', async function (req, res, next) {
   //console.log("req.query.upID:", req.query.upID);
   //接收前台POST过来的base64
   var imgData = req.body.imgData;
@@ -788,7 +789,12 @@ router.post('/uploadBase64img', function (req, res, next) {
   fn = uploadFolder + fn + (upID=="student_letter_signature"? ".png":".jpg");
 
   var base64Data = imgData.replace(/^data:image\/\w+;base64,/, "");
-  var dataBuffer = Buffer.from(base64Data, 'base64');
+  var dataBuffer = "";
+  if(req.body.compress == 1){
+    dataBuffer = await compressBase64(base64Data);
+  }else{
+    dataBuffer = Buffer.from(base64Data, 'base64');
+  }
   let size = (dataBuffer.length/1024).toFixed(0);
   fs.writeFile(fn, dataBuffer, function (err) {
     if (err) {
@@ -1659,6 +1665,18 @@ router.get('/compressImages', function (req, res, next) {
   });
 });
 
+//test
+router.get('/compressImage', function (req, res, next) {
+    let fn = req.query.fn;
+    var obj = images(fn).size();
+    let n = req.query.s || 2;   //缩小尺寸，默认一半
+    images(fn).size(obj.width/n,obj.height/n).save(fn, {
+        quality : req.query.q || 50                    //保存图片覆盖原文件,图片质量默认50
+    });
+    response = [i];
+    return res.send(response);
+});
+
 /*
 //status: 0 成功  9 其他  msg, filename
 router.get('/rpt_daily_unit_course', function(req, res, next) {
@@ -1775,5 +1793,16 @@ Date.prototype.Format = function(formatStr)
   
     return str;   
 }*/
+
+async function compressBase64(base64Data, size) {
+  // 压缩图片，宽度300pix
+  return sharp(new Buffer.from(base64Data, 'base64'))
+    .resize({ width: size || 300 })
+    .toBuffer()
+    .then(data => { 
+      return data;
+    })
+    .catch(err => { return ""; });
+}
 
 module.exports = router;
