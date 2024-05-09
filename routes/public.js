@@ -967,7 +967,7 @@ router.post('/applyEnter', function (req, res) {
   shell.exec('@echo off')
   // shell.exec('chcp 65001')
   let url = pyUrl + '/apply.py ' + req.body.selList + ' ' + req.query.reexamine + ' ' + req.query.host + ' ' + req.query.register + ' ' + req.query.classID + ' ' + req.query.courseName + ' ' + req.query.reex;
-  // console.log('url code:', url);
+  console.log('url code:', url);
   shell.exec(url, function (code, stdout, stderr) {
     // console.log('Exit code:', code);
     // console.log('Program output:', stdout);    
