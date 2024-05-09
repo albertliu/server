@@ -815,7 +815,7 @@ router.post('/uploadBase64img', async function (req, res, next) {
         //response.count = 1;
       });
 
-      res.send({ "status": 0 });
+      res.send({ "status": 0, "size": size });
     }
   });
 });
