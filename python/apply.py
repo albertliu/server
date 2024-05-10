@@ -607,7 +607,7 @@ def enter_by_list9(elist, classID, courseName, reex):
             time.sleep(1)
 
         except Exception as e:
-            print("exceptZ:", e)
+            # print("exceptZ:", e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
             pass
@@ -687,7 +687,7 @@ def enter_by_list10(elist, classID, courseName, reex):
             # time.sleep(1)
 
         except Exception as e:
-            print(e)
+            # print(e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
             pass
