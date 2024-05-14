@@ -176,7 +176,7 @@ router.post('/oderInvoiceReturn', function(req, res, next) {
     "buyername":"上海测试"
   };*/
   if(re && re.c_status && re.c_status==1){
-    let date = new Date(re.c_kprq);
+    let date = new Date(re.c_kprq * 1);
     const Y = date.getFullYear() + '-';
     const M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1) : date.getMonth()+1) + '-';
     const D = (date.getDate()<10 ? '0'+date.getDate() : date.getDate());
