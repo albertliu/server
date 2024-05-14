@@ -61,7 +61,8 @@ if __name__ == '__main__':
     req_url = 'https://sdk.nuonuo.com/open/v1/services'
     senid = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(32))     # 32位随机码
     host = sys.argv[1]
-    taxNo = "" 
+    # print(sys.argv)
+    taxNo = ""
     appKey = ''
     appsecret = ''
     accessToken = ''

@@ -20,12 +20,30 @@ function decrypt(word, keyStr){
   return decrypt.toString(crypto.enc.Utf8);
 }
 
+function encrypt(word, keyStr) {
+  if (typeof word === "object") {
+    try {
+      // eslint-disable-next-line no-param-reassign
+      word = JSON.stringify(word);
+    } catch (error) {
+      console.log("encrypt error:", error);
+    }
+  }
+  let keyHex = crypto.enc.Utf8.parse(keyStr); //
+  const dataHex = crypto.enc.Utf8.parse(word);
+  const encrypted = crypto.AES.encrypt(dataHex, keyHex, {
+    mode: crypto.mode.ECB,
+    padding: crypto.pad.Pkcs7
+  });
+  return encrypted.toString();
+}
+
 //支付回调接口
 router.post('/oderPaymentReturn', function(req, res, next) {
   // console.log("oderPaymentReturn body:", req.body);
   const hexData = req.body.param;
   // console.log("hexData:", hexData);
-  let text = decrypt(hexData,key);
+  let text = decrypt(hexData, key);
   let re = eval("(" + text + ")");
   // 返回解密结果
   sqlstr = "setAutoPayInfo";
@@ -37,8 +55,8 @@ router.post('/oderPaymentReturn', function(req, res, next) {
       response = {"status":9};
       return res.send(response);
     }
-    response = {"status":0};
-    //console.log(response);
+    response = encrypt({"code":"200","describe":"回传成功","result":null}, key);
+    console.log("oderPaymentReturn response:", response);
     return res.send(response);
   });
 });
@@ -59,7 +77,7 @@ router.post('/oderRefundReturn', function(req, res, next) {
       response = {"status":9};
       return res.send(response);
     }
-    response = {"status":0};
+    response = encrypt({"code":"200","describe":"回传成功","result":null}, key);
     //console.log(response);
     return res.send(response);
   });
@@ -77,7 +95,8 @@ router.post('/oderInvoiceReturn', function(req, res, next) {
   });
   let text = decryptedData.toString(crypto.enc.Utf8);
   console.log(text);
-  return res.send(text);
+  response = encrypt({"code":"200","describe":"回传成功","result":null}, key);
+  return res.send(response);
 });
 
 
