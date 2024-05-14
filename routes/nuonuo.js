@@ -176,8 +176,11 @@ router.post('/oderInvoiceReturn', function(req, res, next) {
     "buyername":"上海测试"
   };*/
   if(re && re.c_status && re.c_status==1){
-    let dt = new Date(new Date("1900-01-01").getTime() + (re.c_kprq - 2) * 3600 * 24 * 1000 - 3600 * 8 * 1000 + 60 * 1000);
-    dt = dt.Format("yyyy-MM-dd hh:mm");
+    let date = new Date(re.c_kprq);
+    const Y = date.getFullYear() + '-';
+    const M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1) : date.getMonth()+1) + '-';
+    const D = (date.getDate()<10 ? '0'+date.getDate() : date.getDate());
+    const dt = Y + M + D;
     params = {kind:2, enterID:0, amount:re.c_hjje, payStatus:re.c_status, payTime:dt, payType:re.c_invoice_line, customerTaxnum:re.taxnum, orderNo:re.c_fphm, outOrderNo:re.c_orderno, subject:re.invoiceItems[0].itemName, userId:re.buyername, memo:re.c_url, phone:re.phone};
     console.log("params:", params);
     db.excuteProc(sqlstr, params, function(err, data){
