@@ -339,13 +339,19 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
         p2 = '';
       }
       p3 = val["应复训日期"];
+      if (String(val["应复训日期"]).slice(0, 3) != "202") {
+        p3 = new Date(new Date("1900-01-01").getTime() + (val["应复训日期"] - 2) * 3600 * 24 * 1000 - 3600 * 8 * 1000 + 60 * 1000);
+        p3 = p3.Format("yyyy-MM-dd");
+      } else {
+        p3 = val["应复训日期"];
+      }
       if (typeof (p3) == "undefined") {
         p3 = '';
       }
       job = val["岗位/职务"] || val["工种/职务"];
       sqlstr = "generateStudent";
       params = { "username": p1.replace(/\s+/g, ""), "name": p2.replace(/\s+/g, ""), "dept1Name": val["单位"], "dept2Name": val["部门"] || "", "currDiplomaDate": p3, "job": job, "mobile": "" + mn, "address": "" + pn, "education": val["文化程度"], "memo": val["备注"], "classID": key, "oldNo": val["序号"], "registerID": currUser };
-      // console.log("params.",params);
+      console.log("params.",params);
       db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
           console.log(err);
