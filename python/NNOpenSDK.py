@@ -78,7 +78,7 @@ if __name__ == '__main__':
     kind = int(sys.argv[2])  # 0 pay  1 refund  2 invoice  3 对账单
     api_method = ['nuonuo.polymerization.paymentToOrders', "nuonuo.AggregatePay.refundquery", "nuonuo.polymerization.getInvoiceLinks", "nuonuo.AggregatePay.Statementacquisitionquery"]
     body = [
-        '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '", "amount":"' + sys.argv[4] + '", "subject":"' + sys.argv[5] + '", "payee":"' + sys.argv[6] + '", "sellerNote":"' + sys.argv[7] + '", "billingType":"1", "autoType":"1", "returnUrl":"", "appKey":"' + appKey + '"}',
+        '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '", "amount":"' + sys.argv[4] + '", "subject":"' + sys.argv[5] + '", "payee":"' + sys.argv[6] + '", "sellerNote":"' + sys.argv[7] + '", "billingType":"1", "autoType":"1", "returnUrl":"http://znxf.shznxfxx.cn:3000", "appKey":"' + appKey + '"}',
         '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '", "partRefundAmount":"' + sys.argv[4] + '", "refundReason":"' + sys.argv[5] + '", "userName":"' + sys.argv[6] + '", "appKey":"' + appKey + '"}',
         '{"taxNo":"' + taxNo + '", "customerOrderNo":"' + sys.argv[3] + '"}',
         '{"taxNo":"' + taxNo + '", "tradeDate":"' + sys.argv[3] + '"}'

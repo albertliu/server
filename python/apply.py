@@ -331,38 +331,52 @@ def enter_by_list1(elist):
             except Exception:
                 i = 0
                 pass
+
             # 判断是否有错误弹窗
+            f = 0
+            s1 = ""
             if driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p[contains(text(),'该证件只能在')]"):
-                result["count_e"] += 1
                 # 提交失败 保存错误信息
+                f = 1
                 msg_input = driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p[contains(text(),'该证件只能在')]")[0]
                 s1 = msg_input.text
                 # 确定按钮
                 name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
                 name_input.click()
-                sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：" + s1 + "'"
-                execSQL(sql)
-                d_list.remove(str(row[13]))     # 从列表中删除失败数据
-                time.sleep(1)
-                continue
+                driver.implicitly_wait(2)
                 # 再次尝试更换新的操作证号码
                 # 操作证号码输入框
-                # diploma_input = driver.find_elements(By.XPATH, "//input[contains(@placeholder, '请输入操作证号码')]")[0]
-                # clean_send(diploma_input, 'T' + row[3])
-                # # 第二次按查找按钮
-                # search_btn.click()
-                # time.sleep(1)
-            # 第二页
+                clean_send(diploma_input, 'T' + row[3])
+                # 第二次按查找按钮
+                search_btn.click()
+                driver.implicitly_wait(2)
+                # 判断是否有错误弹窗
+                if driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p[contains(text(),'该证件只能在')]"):
+                    # 提交失败 保存错误信息
+                    msg_input = driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p[contains(text(),'该证件只能在')]")[0]
+                    s1 = msg_input.text
+                    if s1 > "":     # 新的信息，否则为原来的控件残留
+                        # 确定按钮
+                        name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
+                        name_input.click()
+                    else:
+                        f = 0
+                else:
+                    f = 0
+                if f == 1:
+                    result["count_e"] += 1
+                    sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：" + s1 + "'"
+                    execSQL(sql)
+                    d_list.remove(str(row[13]))     # 从列表中删除失败数据
+                    time.sleep(1)
+                    continue
             # 选择文化程度
             # 点击下拉框
-            name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//form[@class='el-form']//label[contains(text(),'文化程度')]/following-sibling::div//input")))
-            name_input.click()
-            # 点击符合要求的学历选项（与给定值前两位相符的）
-            # name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + row[2][:2] + "')]")[0].click()
+            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'文化程度')]/following-sibling::div//input")[0].click()
             # time.sleep(1)
             wait.until(EC.presence_of_element_located((By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + row[2][:2] + "')]")))
-            name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + row[2][:2] + "')]")))
-            name_input.click()
+            # 点击符合要求的学历选项（与给定值前两位相符的）
+            name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + row[2][:2] + "')]")[0].click()
             # 联系手机
             name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'个人信息登记情况')]/following-sibling::div//label[contains(text(),'联系手机')]/following-sibling::div//input")[0]
             clean_send(name_input, row[4])

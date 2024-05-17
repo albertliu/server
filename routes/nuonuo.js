@@ -69,7 +69,7 @@ router.post('/oderRefundReturn', function(req, res, next) {
   console.log("text", text);
   let re = eval("(" + text + ")");
   sqlstr = "setAutoPayInfo";
-  params = {kind:1, enterID:0, amount:re.refundAmount, payStatus:re.payStatus, payTime:re.refundTime, payType:"", customerTaxnum:"", orderNo:re.orderNo, outOrderNo:re.originOrderNo, subject:"", userId:"", memo:"", phone:""};
+  params = {kind:1, enterID:0, amount:re.refundAmount, payStatus:re.payStatus, payTime:re.refundTime, payType:"", customerTaxnum:"", orderNo:re.originOrderNo, outOrderNo:re.orderNo, subject:"", userId:"", memo:"", phone:""};
   console.log("params:", params);
   db.excuteProc(sqlstr, params, function(err, data){
     if (err) {
@@ -181,7 +181,7 @@ router.post('/oderInvoiceReturn', function(req, res, next) {
     const M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1) : date.getMonth()+1) + '-';
     const D = (date.getDate()<10 ? '0'+date.getDate() : date.getDate());
     const dt = Y + M + D;
-    params = {kind:2, enterID:0, amount:re.c_hjje, payStatus:re.c_status, payTime:dt, payType:re.c_invoice_line, customerTaxnum:re.taxnum, orderNo:re.c_fphm, outOrderNo:re.c_orderno, subject:re.invoiceItems[0].itemName, userId:re.buyername, memo:re.c_url, phone:re.phone};
+    params = {kind:2, enterID:0, amount:re.c_hjje, payStatus:re.c_status, payTime:dt, payType:re.c_invoice_line, customerTaxnum:re.taxnum, orderNo:re.c_orderno, outOrderNo:re.c_fphm, subject:re.invoiceItems[0].itemName, userId:re.buyername, memo:re.c_url, phone:re.phone};
     console.log("params:", params);
     db.excuteProc(sqlstr, params, function(err, data){
       if (err) {
