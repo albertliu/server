@@ -339,7 +339,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
         p2 = '';
       }
       p3 = val["应复训日期"];
-      if (String(val["应复训日期"]).slice(0, 3) != "202") {
+      if (String(val["应复训日期"]).slice(0, 2) != "20") {
         p3 = new Date(new Date("1900-01-01").getTime() + (val["应复训日期"] - 2) * 3600 * 24 * 1000 - 3600 * 8 * 1000 + 60 * 1000);
         p3 = p3.Format("yyyy-MM-dd");
       } else {
