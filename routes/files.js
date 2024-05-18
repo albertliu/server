@@ -339,61 +339,61 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
         p2 = '';
       }
       p3 = val["应复训日期"];
-      if (String(val["应复训日期"]).slice(0, 2) != "20") {
-        p3 = new Date(new Date("1900-01-01").getTime() + (val["应复训日期"] - 2) * 3600 * 24 * 1000 - 3600 * 8 * 1000 + 60 * 1000);
-        p3 = p3.Format("yyyy-MM-dd");
-      } else {
-        p3 = val["应复训日期"];
-      }
       if (typeof (p3) == "undefined") {
         p3 = '';
       }
+      if (p3 > "" && String(val["应复训日期"]).slice(0, 2) != "20") {
+        p3 = new Date(new Date("1900-01-01").getTime() + (val["应复训日期"] - 2) * 3600 * 24 * 1000 - 3600 * 8 * 1000 + 60 * 1000);
+        p3 = p3.Format("yyyy-MM-dd");
+      }
       job = val["岗位/职务"] || val["工种/职务"];
-      sqlstr = "generateStudent";
-      params = { "username": p1.replace(/\s+/g, ""), "name": p2.replace(/\s+/g, ""), "dept1Name": val["单位"], "dept2Name": val["部门"] || "", "currDiplomaDate": p3, "job": job, "mobile": "" + mn, "address": "" + pn, "education": val["文化程度"], "memo": val["备注"], "classID": key, "oldNo": val["序号"], "registerID": currUser };
-      // console.log("params.",params);
-      db.excuteProc(sqlstr, params, function (err, data) {
-        if (err) {
-          console.log(err);
-          let response = { "status": 9 };
-          return res.send(response);
-        }
-        if (data.recordset[0]["err"] == 1) {
-          r_err += data.recordset[0]["err"];
-          r_err_msg += data.recordset[0]["name"] + " " + data.recordset[0]["username"] + "  ";
-        }
-        if (data.recordset[0]["exist"] == 1) {
-          r_exist += data.recordset[0]["exist"];
-          r_exist_msg += data.recordset[0]["name"] + "  ";
-        }
-        if (data.recordset[0]["existOther"] == 1) {
-          r_existOther += data.recordset[0]["existOther"];
-          r_existOther_msg += data.recordset[0]["name"] + "(" + data.recordset[0]["msg"] + ")  ";
-        }
-        if (data.recordset[0]["errNull"] == 1) {
-          r_null += 1;
-        }
-        //
-        idx += 1;
-        if (idx == data1.length) {
-          sqlstr = "autoSetClassSNo";   //adjuest student No in the class
-          params = { "classID": key };
-          //console.log("params:", params);
-          db.excuteProc(sqlstr, params, function (err, data2) {
-            if (err) {
-              console.log(err);
-              let response = { "status": 9 };
-              return res.send(response);
-            }
-          });
-          response.count = data1.length - r_err - r_exist - r_existOther - r_null;
-          response.err_msg = r_err_msg > "" ? "身份证号码错误，未导入：" + r_err_msg + "\n" : "";
-          r_exist_msg = r_exist_msg > "" ? "学员已在本班级，未导入：" + r_exist_msg + "\n" : "";
-          response.exist_msg = r_existOther_msg > "" ? r_exist_msg + "学员已在其他班级，未导入：" + r_existOther_msg : r_exist_msg;
-          //console.log("res1:",response,"r_err_msg:",r_err_msg);
-          return res.send(response);
-        }
-      });
+      // if(p1>""){
+        sqlstr = "generateStudent";
+        params = { "username": p1.replace(/\s+/g, ""), "name": p2.replace(/\s+/g, ""), "dept1Name": val["单位"], "dept2Name": val["部门"] || "", "currDiplomaDate": p3, "job": job, "mobile": "" + mn, "address": "" + pn, "education": val["文化程度"], "memo": val["备注"], "classID": key, "oldNo": val["序号"], "registerID": currUser };
+        // console.log("params.",params);
+        db.excuteProc(sqlstr, params, function (err, data) {
+          if (err) {
+            console.log(err);
+            let response = { "status": 9 };
+            return res.send(response);
+          }
+          if (data.recordset[0]["err"] == 1) {
+            r_err += data.recordset[0]["err"];
+            r_err_msg += data.recordset[0]["name"] + " " + data.recordset[0]["username"] + "  ";
+          }
+          if (data.recordset[0]["exist"] == 1) {
+            r_exist += data.recordset[0]["exist"];
+            r_exist_msg += data.recordset[0]["name"] + "  ";
+          }
+          if (data.recordset[0]["existOther"] == 1) {
+            r_existOther += data.recordset[0]["existOther"];
+            r_existOther_msg += data.recordset[0]["name"] + "(" + data.recordset[0]["msg"] + ")  ";
+          }
+          if (data.recordset[0]["errNull"] == 1) {
+            r_null += 1;
+          }
+          //
+          idx += 1;
+          if (idx == data1.length) {
+            sqlstr = "autoSetClassSNo";   //adjuest student No in the class
+            params = { "classID": key };
+            //console.log("params:", params);
+            db.excuteProc(sqlstr, params, function (err, data2) {
+              if (err) {
+                console.log(err);
+                let response = { "status": 9 };
+                return res.send(response);
+              }
+            });
+            response.count = data1.length - r_err - r_exist - r_existOther - r_null;
+            response.err_msg = r_err_msg > "" ? "身份证号码错误，未导入：" + r_err_msg + "\n" : "";
+            r_exist_msg = r_exist_msg > "" ? "学员已在本班级，未导入：" + r_exist_msg + "\n" : "";
+            response.exist_msg = r_existOther_msg > "" ? r_exist_msg + "学员已在其他班级，未导入：" + r_existOther_msg : r_exist_msg;
+            //console.log("res1:",response,"r_err_msg:",r_err_msg);
+            return res.send(response);
+          }
+        });        
+      // }
     });
   }
 

@@ -140,6 +140,7 @@ def enter_by_list0(elist, kind):
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
     sql = "exec getApplyListByList '" + ','.join(elist) + "'"  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
+    oldname = ""
 
     # 初训菜单
     if len(driver.find_elements(By.XPATH, "//li[contains(text(),'初训报名')]")) == 0:
@@ -153,10 +154,9 @@ def enter_by_list0(elist, kind):
         # 点击下拉框
         # name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'类型:')]/following-sibling::div//input[contains(@placeholder, '选择类型')]")[0].click()
         name_input = driver.find_elements(By.XPATH, "//input[contains(@placeholder, '选择类型')]")[0].click()
-        time.sleep(2)
+        time.sleep(1)
         # 点击符合要求的项目
         name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + kind + "')]")[0].click()
-        time.sleep(1)
 
     rs = cursor.fetchall()
     # print(len(rs))
@@ -182,9 +182,15 @@ def enter_by_list0(elist, kind):
             # 姓名输入
             # name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'姓名')]/following-sibling::div//input")  # 姓名输入框
             name_input = wait.until(EC.presence_of_element_located((By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'姓名')]/following-sibling::div//input")))  # 姓名输入框
+            s1 = ""
             if name_input.is_enabled():
                 # 如果是可用的就填入姓名（以前没有报过名）
                 name_input.send_keys(row[0])
+            else:
+                # 如果以前有姓名资料，比较是否与当前系统一致
+                tt = name_input.get_attribute('value')
+                if tt != row[4]:
+                    s1 = '<p style="color:red;"> 姓名与原登记不符：' + tt + '</p>'
             # 选择文化程度
             # 点击下拉框
             name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'文化程度')]/following-sibling::div//input")[0].click()
@@ -241,7 +247,7 @@ def enter_by_list0(elist, kind):
             # 判断保存结果
             if driver.find_elements(By.XPATH, "//p[contains(text(),'该学员报名成功')]"):
                 result["count_s"] += 1
-                sql = "exec setApplyMemo " + str(row[13]) + ", '已报名', '报名成功'"
+                sql = "exec setApplyMemo " + str(row[13]) + ", '已报名', '报名成功'" + s1
                 execSQL(sql)
                 d_list.remove(str(row[13]))     # 从列表中删除已成功数据
                 # 提交成功，确定按钮
@@ -267,7 +273,7 @@ def enter_by_list0(elist, kind):
         except Exception as e:
             # result["err"] = 1
             # result["errMsg"] = "action failed"
-            print(e)
+            # print(e)
             pass
     # 关闭数据库
     cursor.close()
@@ -370,6 +376,20 @@ def enter_by_list1(elist):
                     d_list.remove(str(row[13]))     # 从列表中删除失败数据
                     time.sleep(1)
                     continue
+                # diploma_input = driver.find_elements(By.XPATH, "//input[contains(@placeholder, '请输入操作证号码')]")[0]
+                # clean_send(diploma_input, 'T' + row[3])
+                # # 第二次按查找按钮
+                # search_btn.click()
+                # time.sleep(1)
+            # 第二页
+            # 姓名check
+            # name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'姓名')]/following-sibling::div//input")  # 姓名输入框
+            name_input = wait.until(EC.presence_of_element_located((By.XPATH, "//form[@class='el-form']//label[contains(text(),'姓名')]/following-sibling::div//input")))  # 姓名输入框
+            s1 = ""
+            # 以前有姓名资料，比较是否与当前系统一致
+            tt = name_input.get_attribute('value')
+            if tt != row[4]:
+                s1 = '<p style="color:red;"> 姓名与原登记不符：' + tt + '</p>'
             # 选择文化程度
             # 点击下拉框
             name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'文化程度')]/following-sibling::div//input")[0].click()
@@ -404,7 +424,7 @@ def enter_by_list1(elist):
             # 判断保存结果
             if driver.find_elements(By.XPATH, "//p[contains(text(),'该学员报名成功')]"):
                 result["count_s"] += 1
-                sql = "exec setApplyMemo " + str(row[13]) + ", '已报名', '报名成功'"
+                sql = "exec setApplyMemo " + str(row[13]) + ", '已报名', '报名成功'" + s1
                 execSQL(sql)
                 d_list.remove(str(row[13]))     # 从列表中删除已成功数据
                 # 提交成功，确定按钮
