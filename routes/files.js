@@ -1597,8 +1597,8 @@ router.get('/generate_excel', function (req, res, next) {
       title = { "className": req.query.className, "date": req.query.date, "adviser": req.query.adviser, "teacher": req.query.teacher };
     }
     if (req.query.tag == "class_schedule") {
-      sqlstr = "select * from v_classSchedule where classID=@classID";
-      params = { classID: req.query.classID };
+      sqlstr = "select * from v_classSchedule where classID=@classID and mark=@mark";
+      params = { classID: req.query.classID, mark: req.query.keyID };
       title = eval('(' + req.query.pobj + ')');
     }
     db.excuteSQL(sqlstr, params, function (err, data) {
