@@ -10,6 +10,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver import ActionChains
 import pymssql
+from datetime import date
 # wd = webdriver.Chrome()
 # wd.implicitly_wait(3)
 # wd.get('ks.51safe.com.cn/aksManage/login')
@@ -189,7 +190,7 @@ def enter_by_list0(elist, kind):
             else:
                 # 如果以前有姓名资料，比较是否与当前系统一致
                 tt = name_input.get_attribute('value')
-                if tt != row[4]:
+                if tt != row[0]:
                     s1 = '<p style="color:red;"> 姓名与原登记不符：' + tt + '</p>'
             # 选择文化程度
             # 点击下拉框
@@ -346,29 +347,34 @@ def enter_by_list1(elist):
                 f = 1
                 msg_input = driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p[contains(text(),'该证件只能在')]")[0]
                 s1 = msg_input.text
+                s2 = s1.replace('该证件只能在', '')[0:10]
+                today = date.today().strftime("%Y-%m-%d")
                 # 确定按钮
                 name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
                 name_input.click()
                 driver.implicitly_wait(2)
-                # 再次尝试更换新的操作证号码
-                # 操作证号码输入框
-                clean_send(diploma_input, 'T' + row[3])
-                # 第二次按查找按钮
-                search_btn.click()
-                driver.implicitly_wait(2)
-                # 判断是否有错误弹窗
-                if driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p[contains(text(),'该证件只能在')]"):
-                    # 提交失败 保存错误信息
-                    msg_input = driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p[contains(text(),'该证件只能在')]")[0]
-                    s1 = msg_input.text
-                    if s1 > "":     # 新的信息，否则为原来的控件残留
-                        # 确定按钮
-                        name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
-                        name_input.click()
+                if s2 < today:  # 如果显示的日期小于今天，说明需要更换操作证号再试一次
+                    # 再次尝试更换新的操作证号码
+                    # 操作证号码输入框
+                    clean_send(diploma_input, 'T' + row[3])
+                    # 第二次按查找按钮
+                    search_btn.click()
+                    driver.implicitly_wait(2)
+                    # 判断是否有错误弹窗
+                    if driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p[contains(text(),'该证件只能在')]"):
+                        # 提交失败 保存错误信息
+                        msg_input = driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p[contains(text(),'该证件只能在')]")[0]
+                        s1 = msg_input.text
+                        if s1 > "":     # 新的信息，否则为原来的控件残留
+                            # 确定按钮
+                            name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
+                            name_input.click()
+                        else:
+                            f = 0
                     else:
                         f = 0
                 else:
-                    f = 0
+                    f = 1
                 if f == 1:
                     result["count_e"] += 1
                     sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：" + s1 + "'"
@@ -376,11 +382,6 @@ def enter_by_list1(elist):
                     d_list.remove(str(row[13]))     # 从列表中删除失败数据
                     time.sleep(1)
                     continue
-                # diploma_input = driver.find_elements(By.XPATH, "//input[contains(@placeholder, '请输入操作证号码')]")[0]
-                # clean_send(diploma_input, 'T' + row[3])
-                # # 第二次按查找按钮
-                # search_btn.click()
-                # time.sleep(1)
             # 第二页
             # 姓名check
             # name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'姓名')]/following-sibling::div//input")  # 姓名输入框
@@ -791,8 +792,8 @@ def execSQL(text: str):
 
 if __name__ == '__main__':
     # 以下是测试代码
-    # username = "13817866150"
-    # password = "123456Asdf"
+    # username = "13651648767"
+    # password = "Pqf1823797198"
     # register = "test"
     # d_list = '7300'.split(',')    # 需要处理的数据列表
     # # courseName = "危险化学品经营单位安全生产管理人员"  # 课程名称
