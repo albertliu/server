@@ -389,7 +389,7 @@ def enter_by_list1(elist):
             s1 = ""
             # 以前有姓名资料，比较是否与当前系统一致
             tt = name_input.get_attribute('value')
-            if tt != row[4]:
+            if tt != row[0]:
                 s1 = '<p style="color:red;"> 姓名与原登记不符：' + tt + '</p>'
             # 选择文化程度
             # 点击下拉框
