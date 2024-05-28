@@ -518,9 +518,13 @@ def enter_by_list8(elist, classID, courseName, reex):
             if row[10] == "":   # 照片文件
                 result["count_e"] += 1
                 continue
-            wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/img")))
-            # search_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div[contains(@title, '点击上传考核申请材料')]/div")[0]
-            search_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/img")))
+            if driver.find_elements(By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/img"):
+                # wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/img")))
+                # search_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div[contains(@title, '点击上传考核申请材料')]/div")[0]
+                search_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/img")))
+            else:
+                if driver.find_elements(By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/div[contains(text(), '无照片')]"):
+                    search_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/div[contains(text(), '无照片')]")))
             search_btn.click()
             # search_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//img")[0]
             # search_btn.click()
