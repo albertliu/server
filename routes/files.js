@@ -1601,6 +1601,12 @@ router.get('/generate_excel', function (req, res, next) {
       params = { classID: req.query.classID, mark: req.query.keyID };
       title = eval('(' + req.query.pobj + ')');
     }
+    if (req.query.tag == "standard_schedule") {
+      sqlstr = "select * from v_schedule where courseID=@courseID";
+      params = { courseID: req.query.classID };
+      title = eval('(' + req.query.pobj + ')');
+    }
+    // console.log('the params:', params);
     db.excuteSQL(sqlstr, params, function (err, data) {
       if (err) {
         console.log(err);
