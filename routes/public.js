@@ -1076,6 +1076,38 @@ router.post('/diplomaCheckSingle', function (req, res) {
   });
 });
 
+//4. 某学校批量将学员退回到提交的合作单位
+router.get('/getScheduleCheckInList', function (req, res, next) {
+  let ec = 0;
+  sqlstr = "getScheduleCheckInList";
+  params = { refID:req.query.refID };
+  //console.log(params);
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      return res.send({ "status": 9, "msg": "操作失败。" });
+    }
+    let response = data.recordset;
+    return res.send(response);
+  });
+});
+
+//4. 某学校批量将学员退回到提交的合作单位
+router.get('/getScheduleNoCheckInList', function (req, res, next) {
+  let ec = 0;
+  sqlstr = "getScheduleNoCheckInList";
+  params = { refID:req.query.refID };
+  //console.log(params);
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      return res.send({ "status": 9, "msg": "操作失败。" });
+    }
+    let response = data.recordset;
+    return res.send(response);
+  });
+});
+
 //getEnterRpt
 router.post('/getEnterRpt', function(req, res) {
     sqlstr = "getEnterRpt";
