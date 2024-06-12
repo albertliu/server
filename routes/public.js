@@ -1021,8 +1021,6 @@ router.post('/enterPay', function (req, res) {
         return res.send(response);
       }
     });
-    response = data.recordset;
-    return res.send(response);
   });
 });
 
