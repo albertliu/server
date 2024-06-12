@@ -15,6 +15,7 @@ var uploadHome = './users/upload/';
 var pdf = require("../utils/pdf");
 var docx = require("../utils/docx");
 let xlsxx = require('../utils/xlsx');
+const face = require("../utils/face");
 let xlsx = require('xlsx');
 //let xlsx_free = require('../utils/xlsx_free');
 var zip = require("../utils/zip");
@@ -291,6 +292,9 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
       console.log(err);
       let response = { "status": 9 };
       return res.send(response);
+    }
+    if(upID=="student_photo"){
+      face.addFace(key);  // 照片上传到照片库
     }
     //console.log("response:", response);
     response.count = 1;
@@ -818,7 +822,9 @@ router.post('/uploadBase64img', async function (req, res, next) {
           let response = { "status": 9 };
           return res.send(response);
         }
-        //response.count = 1;
+        if(upID=="student_photo"){
+          face.addFace(req.body.username);  // 照片上传到照片库
+        }
       });
 
       res.send({ "status": 0, "size": size });
@@ -890,7 +896,7 @@ router.post('/generate_diploma_byClassID', function (req, res, next) {
   sqlstr = "updateGenerateDiplomaInfo";
   //@ID int,@classID varchar(50), @selList varchar(4000),@printed int,@printDate varchar(50),@delivery int,@deliveryDate varchar(50),@host nvarchar(50),@memo nvarchar(500),@registerID varchar(50)
   params = { ID: req.query.ID, certID: req.query.certID, selList: req.body.selList, startDate: req.query.startDate, class_startDate: req.query.class_startDate, class_endDate: req.query.class_endDate, printed: 0, printDate: '', delivery: 0, deliveryDate: '', styleID: req.query.card, host: '', memo: req.query.memo, registerID: req.query.registerID };
-  //console.log(params);
+  console.log(req.query);
   //generate diploma data
   let response = [];
   db.excuteProc(sqlstr, params, function (err, data) {
@@ -913,7 +919,7 @@ router.post('/generate_diploma_byClassID', function (req, res, next) {
           return res.send(response);
         }
         let arr = new Array();
-        let certID = '';
+        let certID = 'C1';
         let pW1 = '180mm';
         let pH1 = '265mm';
         let pW2 = '210mm';
@@ -928,12 +934,16 @@ router.post('/generate_diploma_byClassID', function (req, res, next) {
           pH1 = '180mm';
           pW2 = '178mm';
           pH2 = '123mm';
-          certID = "C1";
+          if(certID == "C20" || certID == "C20A" || certID == "C21"){
+            certID = "C20";
+            pW1 = '190mm';
+            pH1 = '135mm';
+          }
         }
 
         //generate diploma paper with pdf
         for (var i in data1.recordset) {
-          let str = [data1.recordset[i]["diplomaID"], data1.recordset[i]["name"], data1.recordset[i]["username"], data1.recordset[i]["certID"], data1.recordset[i]["certName"], data1.recordset[i]["hostName"], data1.recordset[i]["job"], data1.recordset[i]["startDate"], data1.recordset[i]["endDate"], data1.recordset[i]["title"], data1.recordset[i]["photo_filename"], data1.recordset[i]["term"], data1.recordset[i]["sexName"], data1.recordset[i]["diplomaNo"], data1.recordset[i]["educationName"], data1.recordset[i]["class_startDate"], data1.recordset[i]["class_endDate"]];
+          let str = [data1.recordset[i]["diplomaID"], data1.recordset[i]["name"], data1.recordset[i]["username"], data1.recordset[i]["certID"], data1.recordset[i]["certName"], data1.recordset[i]["hostName"], data1.recordset[i]["job"], data1.recordset[i]["startDate"], data1.recordset[i]["endDate"], data1.recordset[i]["title"], data1.recordset[i]["photo_filename"], data1.recordset[i]["term"], data1.recordset[i]["sexName"], data1.recordset[i]["diplomaNo"], data1.recordset[i]["educationName"], data1.recordset[i]["class_startDate"], data1.recordset[i]["class_endDate"], data1.recordset[i]["birthday"], data1.recordset[i]["ID"]];
           if (req.query.card == 0) {
             sqlstr = env + "/pdf_" + certID + ".asp?kindID=" + (str.join(","));
           } else {

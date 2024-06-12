@@ -990,28 +990,39 @@ router.post('/applyEnter', function (req, res) {
 
 //
 router.post('/enterPay', function (req, res) {
-  // 配置初始化信息 selList:applyID
+  // 自动支付接口：kindID: 0 pay  1 refund  2 invoice  3 对账单
   shell.exec('@echo off')
-  // shell.exec('chcp 65001')
-  let url = pyUrl + '/NNOpenSDK.py ' + req.body.host + ' ' + req.body.kind + ' ' + req.body.enterID + ' ' + req.body.amount + ' ' + req.body.item + ' ' + req.body.name + ' ' + req.body.sales;
-  console.log('url code:', url);
-  shell.exec(url, function (code, stdout, stderr) {
-    // console.log('Exit code:', code);
-    // console.log('Program output:', stdout);    
-    let response = {};
-    try{
-      if(stderr){
-        console.log('Program stderr:', stderr);
-      }
-      // response = eval("(" + stdout + ")");  //字符串转为JSON
-      response = eval(`( ${stdout} )`);  //字符串转为JSON
-      console.log('Exit stdout:', response);
-    } catch(err){
-      console.log('shell err:', err);
-      response = {"code": "JH000", "describe": "支付接口访问异常，请稍后重试。"};
-    } finally {
+  sqlstr = "getEnterPayInfo";
+  params = { enterID: req.body.enterID };
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9 };
       return res.send(response);
     }
+    const re = data.recordset[0];
+    let url = pyUrl + '/NNOpenSDK.py ' + re["host"] + ' ' + req.body.kindID + ' ' + req.body.enterID + ' ' + re["amount"] + ' ' + re["item"] + ' ' + re["name"] + ' ' + 'system.';
+    console.log('url code:', url);
+    shell.exec(url, function (code, stdout, stderr) {
+      // console.log('Exit code:', code);
+      // console.log('Program output:', stdout);    
+      let response = {};
+      try{
+        if(stderr){
+          console.log('Program stderr:', stderr);
+        }
+        // response = eval("(" + stdout + ")");  //字符串转为JSON
+        response = eval(`( ${stdout} )`);  //字符串转为JSON
+        console.log('Exit stdout:', response);
+      } catch(err){
+        console.log('shell err:', err);
+        response = {"code": "JH000", "describe": "支付接口访问异常，请稍后重试。"};
+      } finally {
+        return res.send(response);
+      }
+    });
+    response = data.recordset;
+    return res.send(response);
   });
 });
 

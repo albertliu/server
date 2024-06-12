@@ -8,6 +8,9 @@ var bodyParser = require('body-parser');
 const redisStore = require('connect-redis')(session);
 const cors = require('cors');
 const redis = require('redis');
+const compression = require('compression');
+const schedule = require('node-schedule');
+const face = require("./utils/face");
 require('events').EventEmitter.defaultMaxListeners = 0;
 
 var redisConfig = require("./utils/redisdb");

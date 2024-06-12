@@ -542,7 +542,7 @@ router.post('/update_student', function (req, res, next) {
 //10. save_video_currentTime  return: 0 成功  9 其他
 router.post('/update_video_currentTime', function (req, res, next) {
   sqlstr = "update_video_currentTime";
-  params = { ID: req.body.ID, currentTime: req.body.currentTime };
+  params = { ID: req.body.ID, currentTime: req.body.currentTime, shoted: req.body.shoted };
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
