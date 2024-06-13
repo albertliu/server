@@ -21,6 +21,7 @@ var publicRouter = require('./routes/public');
 var courseRouter = require('./routes/course');
 var filesRouter = require('./routes/files');
 var outfilesRouter = require('./routes/files');
+var alisRouter = require('./routes/alis');
 var nuonuoRouter = require('./routes/nuonuo');
 var bodyParser = require('body-parser');
 
@@ -78,7 +79,7 @@ app.use(session({
 app.use(function(req, res, next) {
   //console.log("url:",req.get('origin'))
   if (!req.session.user) {
-      if (req.url.endsWith("/login") || req.url.endsWith("/logout") || req.url.endsWith("/change_passwd") || req.url.endsWith("/new_student") || req.url.startsWith("/public/") || req.url.startsWith("/outfiles/") || req.url.startsWith("/nuonuo/")) {
+      if (req.url.endsWith("/login") || req.url.endsWith("/logout") || req.url.endsWith("/change_passwd") || req.url.endsWith("/new_student") || req.url.startsWith("/public/") || req.url.startsWith("/outfiles/") || req.url.startsWith("/nuonuo/") || req.url.startsWith("/alis/")) {
           console.log("url:",req.get('origin'));
           next(); //如果请求的地址是登录则通过，进行下一个请求
       } else {
@@ -98,6 +99,7 @@ app.use('/public', publicRouter);
 app.use('/course', courseRouter);
 app.use('/files', filesRouter);
 app.use('/nuonuo', nuonuoRouter);
+app.use('/alis', alisRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -114,6 +116,22 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   console.log("error",err.message)
   res.render('error');
+});
+
+// *  *  *  *  *  *
+// ┬  ┬  ┬  ┬  ┬  ┬
+// │  │  │  │  │  |
+// │  │  │  │  │  └ 星期几，取值：0 - 7，其中 0 和 7 都表示是周日
+// │  │  │  │  └─── 月份，取值：1 - 12
+// │  │  │  └────── 日期，取值：1 - 31
+// │  │  └───────── 时，取值：0 - 23
+// │  └──────────── 分，取值：0 - 59
+// └─────────────── 秒，取值：0 - 59（可选）
+// 当前时间的秒值为 10 时执行任务，如：2018-7-8 13:25:10
+let job = schedule.scheduleJob('55 55 23 * * *', async () => {
+  let x = await face.addFullFace();
+  let y = await face.delFreezFace();
+  console.log("addFullFace log:", new Date());
 });
 
 module.exports = app;
