@@ -141,32 +141,32 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
               // 获取单个字段(Confidence置信度，取值范围0~100。供参考的三个阈值是61，69和75，分别对应千分之一，万分之一和十万分之一误识率)
               confidence = compareFaceResponse.body.data.confidence;
               compareResult = (confidence >= 60 ? 1 : 2);
-              // console.log('compareFaceResponse', compareFaceResponse.body);
+              // console.log('compareFaceResponse', compareFaceResponse.body.data);
+              
+              // 写数据库
+              sqlstr = "uploadFaceDetectOSS";
+              params = { refID: req.body.refID, kindID: req.body.kindID, file1: ossFileName, file2: photo, status: compareResult, confidence: confidence };
+              // console.log("params1:", params, ossFileName);
+              db.excuteProc(sqlstr, params, function (err, data) {
+                if (err) {
+                  console.log(err);
+                  response = {status:0};
+                  return res.send(response);
+                }
+                return res.send({status: compareResult});
+              });
             }, function(error) {
               // 获取整体报错信息
               // console.log(error);
               // 获取单个字段
               // console.log(error.data.Code);
             })
-          
-          // 写数据库
-          sqlstr = "uploadFaceDetectOSS";
-          params = { refID: req.body.refID, kindID: req.body.kindID, file1: ossFileName, file2: photo, status: compareResult, confidence: confidence };
-          // console.log("params:", params, ossFileName);
-          await db.excuteProc(sqlstr, params, function (err, data) {
-            if (err) {
-              console.log(err);
-              response = {status:0};
-              return res.send(response);
-            }
-            return res.send({status: compareResult});
-          });
         })
       }else{
         // 写数据库
         sqlstr = "uploadFaceDetectOSS";
         params = { refID: req.body.refID, kindID: req.body.kindID, file1: ossFileName, file2: '', status: 0, confidence: 0 };
-        // console.log("params:", params, ossFileName);
+        // console.log("params2:", params, ossFileName);
         await db.excuteProc(sqlstr, params, function (err, data) {
           if (err) {
             console.log(err);
