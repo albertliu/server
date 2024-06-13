@@ -125,8 +125,8 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
             // 创建AccessKey ID和AccessKey Secret，请参考https://help.aliyun.com/document_detail/175144.html。
             // 如果您用的是RAM用户AccessKey，还需要为RAM用户授予权限AliyunVIAPIFullAccess，请参考https://help.aliyun.com/document_detail/145025.html。
             // 从环境变量读取配置的AccessKey ID和AccessKey Secret。运行示例前必须先配置环境变量。 
-            accessKeyId: process.env.JF_ACCESS_KEY,   
-            accessKeySecret: process.env.JF_ACCESS_SECRET
+            accessKeyId: process.env.T0_ACCESS_KEY,   
+            accessKeySecret: process.env.T0_ACCESS_SECRET
           });
           config.endpoint = `facebody.cn-shanghai.aliyuncs.com`;
           const client = new FacebodyClient.default(config);
