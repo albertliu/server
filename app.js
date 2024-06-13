@@ -38,8 +38,8 @@ for(var v of hosts){
     orig.push('http://' + v + 'shznxfxx.cn' + x);
     orig.push('http://' + v + 'localhost' + x);
     orig.push('http://www.shznxfxx.cn' + x);
-    orig.push('https://www.shznxfxx.cn' + x);
   }
+  orig.push('https://shznxfxx.cn');
 }
 //console.log("origin:",orig);
 var corsOptions = {
