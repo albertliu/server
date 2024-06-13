@@ -267,7 +267,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
   //console.log("req.query.upID:", req.query.upID);
   var file = req.file;
   response = { "status": 0, msg: "", "file": "", "count": 0, "err_msg": "", "exist_msg": "" }
-  if (req.file.length === 0 || file == undefined) {  //判断一下文件是否存在，也可以在前端代码中进行判断。
+  if (!file || file == undefined || file.length === 0) {  //判断一下文件是否存在，也可以在前端代码中进行判断。
     res.render({ "status": 0, msg: "上传文件不能为空！" });
     return;
   }
