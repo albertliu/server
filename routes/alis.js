@@ -79,6 +79,8 @@ router.post('/searchFace', async function (req, res, next) {
 // 上传base64文件到OSS, 比对两个照片
 // base64Data: 带有data:image/jpeg;base64,前缀的完整数据
 router.post('/uploadFaceDetectOSS', async function (req, res, next) {
+  let compareResult = 0;
+  const msgRe = ["请先上传证件照片","比对成功","比对失败","系统错误，请稍后再试"];
   try {
     if(!req.body.base64Data){
       return res.send({status:0});
@@ -95,7 +97,6 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
     let base64Data = req.body.base64Data.split(',')[1];
     let photo = "";
     let photoPath = "";
-    let compareResult = 0;
     sqlstr = "getPhotoByUsername";
     params = { username: req.body.username };
     // console.log("params:", params, ossFileName);
@@ -153,7 +154,7 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
                   response = {status:0};
                   return res.send(response);
                 }
-                return res.send({status: compareResult});
+                return res.send({status: compareResult, msg: msgRe[compareResult]});
               });
             }, function(error) {
               // 获取整体报错信息
@@ -170,16 +171,16 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
         await db.excuteProc(sqlstr, params, function (err, data) {
           if (err) {
             console.log(err);
-            response = {status:0};
+            response = {status:4, msg: msgRe[4]};
             return res.send(response);
           }
-          return res.send({status:0});
+          return res.send({status: compareResult, msg: msgRe[compareResult]});
         });
       }
     });
   } catch (err) {
       console.error('Upload failed: ', err);
-      return res.send([0]);
+      return res.send({status:4, msg: msgRe[4]});
   }
 });
 
