@@ -208,7 +208,7 @@ router.get('/getClassCheckin', function(req, res) {
       return res.send(response);
     }
     response = data.recordset;
-    //console.log(response);
+    console.log(response);
     return res.send(response);
   });
 });
