@@ -195,6 +195,24 @@ router.get('/getNeed2knowByEnterID', function(req, res) {
   });
 });
 
+//23c. getClassCheckin  线下考勤表
+router.get('/getClassCheckin', function(req, res) {
+  //sqlstr = "SELECT username,name,sexName,b.title,b.startDate,b.startTime,b.notes,b.address FROM v_studentCourseList a, v_generatePasscardInfo b where a.passcardID=b.ID and b.ID=@refID";
+  sqlstr = "getClassCheckinList";
+  params = {classID:req.query.refID};
+  //console.log("params:", params);
+  db.excuteProc(sqlstr, params, function(err, data){
+    if (err) {
+      console.log(err);
+      let response = {};
+      return res.send(response);
+    }
+    response = data.recordset;
+    //console.log(response);
+    return res.send(response);
+  });
+});
+
 //23d. getStudentMaterials
 router.get('/getStudentMaterials', function(req, res) {
   sqlstr = "select * from studentMaterials where username=@username " + (req.query.IDcard==1?"and kindID in (1,2)":"") + " order by kindID";
