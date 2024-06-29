@@ -993,7 +993,7 @@ router.post('/enterPay', function (req, res) {
   // 自动支付接口：kindID: 0 pay  1 refund  2 invoice  3 对账单
   shell.exec('@echo off')
   sqlstr = "getEnterPayInfo";
-  params = { enterID: req.body.enterID };
+  params = { enterID: req.body.enterID, kindID: req.body.kindID };
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
@@ -1001,7 +1001,7 @@ router.post('/enterPay', function (req, res) {
       return res.send(response);
     }
     const re = data.recordset[0];
-    let url = pyUrl + '/NNOpenSDK.py ' + re["host"] + ' ' + req.body.kindID + ' ' + req.body.enterID + ' ' + re["amount"] + ' ' + re["item"] + ' ' + re["name"] + ' ' + 'system.';
+    let url = pyUrl + '/NNOpenSDK.py ' + re["host"] + ' ' + req.body.kindID + ' ' + re["enterOrder"] + ' ' + re["amount"] + ' ' + re["item"] + ' ' + re["name"] + ' ' + 'system.';
     console.log('url code:', url);
     shell.exec(url, function (code, stdout, stderr) {
       // console.log('Exit code:', code);

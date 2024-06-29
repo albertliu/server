@@ -76,6 +76,15 @@ router.post('/searchFace', async function (req, res, next) {
   }
 });
 
+function streamToString (stream) {
+  const chunks = [];
+  return new Promise((resolve, reject) => {
+    stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    stream.on('error', (err) => reject(err));
+    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+  })
+}
+
 // 上传base64文件到OSS, 比对两个照片
 // base64Data: 带有data:image/jpeg;base64,前缀的完整数据
 router.post('/uploadFaceDetectOSS', async function (req, res, next) {
@@ -83,17 +92,21 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
   const msgRe = ["请先上传证件照片","比对成功","比对失败","系统错误，请稍后再试"];
   try {
     if(!req.body.base64Data){
-      return res.send({status:0});
+      return res.send({status:4, msg: msgRe[4]});
     }
+    // const base64DataFromRequest = Buffer.from(req.body).toString('base64');
+    // console.log("req.body.base64Data:", req.body.base64Data.length);
     //压缩图片
     let buff = await compressBase64(req.body.base64Data);
+    // console.log("buff:", buff.toString('base64'));
     //保存文件命名
     let ossFileName = req.body.refID + "-" + (new Date().getTime()) + ".jpg"; // 自动生成文件名：refID为studentVideoList.ID
     // 上传到OSS
     oss_client.put(ossFileName, buff);
-
+    // console.log("1:", ossFileName);
     //获取头像
     // 转换拍摄图片
+    // let base64Data = req.body.base64Data.split(',')[1];
     let base64Data = buff.toString('base64');
     let photo = "";
     let photoPath = "";
@@ -112,7 +125,7 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
         // 文件不存在
         photo = "";
       }
-
+      // console.log("2:", photo);
       if(photo > ""){
         // 获取头像后，进行人脸比对
         // 将图片转为base64
@@ -120,6 +133,7 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
         await fs.readFile(photoPath, async function (err, data) {
           if (err) throw err;
           photoData = data.toString('base64');
+          // console.log("3:", base64Data.substring(0,100), base64Data.substring(base64Data.length - 100));
 
           // 比较两个人脸
           let config = new OpenapiClient.Config({
@@ -137,11 +151,13 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
           });
           let runtime = new TeaUtil.RuntimeOptions({ });
           let confidence = 0.00;
+          // console.log("4:", confidence);
           await client.compareFaceWithOptions(compareFaceRequest, runtime)
             .then(function(compareFaceResponse) {
               // 获取单个字段(Confidence置信度，取值范围0~100。供参考的三个阈值是61，69和75，分别对应千分之一，万分之一和十万分之一误识率)
               confidence = compareFaceResponse.body.data.confidence;
               compareResult = (confidence >= 60 ? 1 : 2);
+              // console.log("5:", compareResult);
               // console.log('compareFaceResponse', compareFaceResponse.body.data);
               
               // 写数据库
@@ -158,7 +174,7 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
               });
             }, function(error) {
               // 获取整体报错信息
-              // console.log(error);
+              console.log("compareFaceWithOptions error:", error);
               // 获取单个字段
               // console.log(error.data.Code);
             })

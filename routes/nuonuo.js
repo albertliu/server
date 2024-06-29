@@ -47,7 +47,7 @@ router.post('/oderPaymentReturn', function(req, res, next) {
   let re = eval("(" + text + ")");
   // 返回解密结果
   sqlstr = "setAutoPayInfo";
-  params = {kind:0, enterID:re.customerOrderNo, amount:re.amount, payStatus:re.payStatus, payTime:re.payTime, payType:re.payType, customerTaxnum:re.customerTaxnum, orderNo:re.orderNo, outOrderNo:re.outOrderNo, subject:re.subject, userId:re.userId, memo:re.sellerNote, phone:""};
+  params = {kind:0, enterOrder:re.customerOrderNo, amount:re.amount, payStatus:re.payStatus, payTime:re.payTime, payType:re.payType, customerTaxnum:re.customerTaxnum, orderNo:re.orderNo, outOrderNo:re.outOrderNo, subject:re.subject, userId:re.userId, memo:re.sellerNote, phone:""};
   //console.log("params:", params);
   db.excuteProc(sqlstr, params, function(err, data){
     if (err) {
@@ -69,7 +69,7 @@ router.post('/oderRefundReturn', function(req, res, next) {
   // console.log("text", text);
   let re = eval("(" + text + ")");
   sqlstr = "setAutoPayInfo";
-  params = {kind:1, enterID:0, amount:re.refundAmount, payStatus:re.payStatus, payTime:re.refundTime, payType:"", customerTaxnum:"", orderNo:re.originOrderNo, outOrderNo:re.orderNo, subject:"", userId:"", memo:"", phone:""};
+  params = {kind:1, enterOrder:'', amount:re.refundAmount, payStatus:re.payStatus, payTime:re.refundTime, payType:"", customerTaxnum:"", orderNo:re.originOrderNo, outOrderNo:re.orderNo, subject:"", userId:"", memo:"", phone:""};
   // console.log("params:", params);
   db.excuteProc(sqlstr, params, function(err, data){
     if (err) {
@@ -95,7 +95,7 @@ router.post('/oderInvoiceReturn', function(req, res, next) {
     const M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1) : date.getMonth()+1) + '-';
     const D = (date.getDate()<10 ? '0'+date.getDate() : date.getDate());
     const dt = Y + M + D;
-    params = {kind:2, enterID:0, amount:re.c_hjje, payStatus:re.c_status, payTime:dt, payType:re.c_invoice_line, customerTaxnum:re.taxnum, orderNo:re.c_orderno, outOrderNo:re.c_fphm, subject:re.invoiceItems[0].itemName, userId:re.buyername, memo:re.c_url, phone:re.phone};
+    params = {kind:2, enterOrder:'', amount:re.c_hjje, payStatus:re.c_status, payTime:dt, payType:re.c_invoice_line, customerTaxnum:re.taxnum, orderNo:re.c_orderno, outOrderNo:re.c_fphm, subject:re.invoiceItems[0].itemName, userId:re.buyername, memo:re.c_url, phone:re.phone};
     // console.log("params:", params);
     db.excuteProc(sqlstr, params, function(err, data){
       if (err) {
