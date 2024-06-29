@@ -94,7 +94,7 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
 
     //获取头像
     // 转换拍摄图片
-    let base64Data = req.body.base64Data.split(',')[1];
+    let base64Data = buff.toString('base64');
     let photo = "";
     let photoPath = "";
     sqlstr = "getPhotoByUsername";
