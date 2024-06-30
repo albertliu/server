@@ -197,7 +197,6 @@ router.get('/getNeed2knowByEnterID', function(req, res) {
 
 //23c. getClassCheckin  线下考勤表
 router.get('/getClassCheckin', function(req, res) {
-  //sqlstr = "SELECT username,name,sexName,b.title,b.startDate,b.startTime,b.notes,b.address FROM v_studentCourseList a, v_generatePasscardInfo b where a.passcardID=b.ID and b.ID=@refID";
   sqlstr = "getClassCheckinList";
   params = {classID:req.query.refID};
   //console.log("params:", params);
@@ -1096,8 +1095,8 @@ router.post('/diplomaCheckSingle', function (req, res) {
 router.get('/getScheduleCheckInList', function (req, res, next) {
   let ec = 0;
   sqlstr = "getScheduleCheckInList";
-  params = { refID:req.query.refID };
-  //console.log(params);
+  params = { selList:req.query.selList };
+  // console.log(params);
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
@@ -1112,8 +1111,8 @@ router.get('/getScheduleCheckInList', function (req, res, next) {
 router.get('/getScheduleNoCheckInList', function (req, res, next) {
   let ec = 0;
   sqlstr = "getScheduleNoCheckInList";
-  params = { refID:req.query.refID };
-  //console.log(params);
+  params = { selList:req.query.selList };
+  // console.log(params);
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
