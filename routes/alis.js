@@ -58,7 +58,7 @@ router.post('/searchFace', async function (req, res, next) {
     sqlstr = "setFaceCheckin";
     //保存文件命名
     let ossFileName = search.entityId + "-" + (new Date().getTime()) + ".jpg"; // 自动生成文件名
-    params = { username: search.entityId, confidence: search.confidence, file1:ossFileName, refID:req.body.selList };
+    params = { username: search.entityId, confidence: search.confidence, file1:ossFileName, selList:req.body.selList };
     // console.log("params:", params);
     const data = await db.excuteProcAsync(sqlstr, params);
     const re = data.recordset[0];
