@@ -632,7 +632,7 @@ router.post('/add_student_certificate', function (req, res, next) {
       return res.send(response);
     } else {
       sqlstr = "addStudentCert";
-      params = { certID: req.body.certID, mark: req.body.mark, username: req.body.username, reexamine: req.body.reexamine, currDiplomaID:req.body.currDiplomaID, currDiplomaDate:req.body.currDiplomaDate };
+      params = { certID: req.body.certID, mark: req.body.mark, username: req.body.username, reexamine: req.body.reexamine, fromID:req.body.fromID, currDiplomaID:req.body.currDiplomaID, currDiplomaDate:req.body.currDiplomaDate };
       //console.log(params);
       db.excuteProc(sqlstr, params, function (err, data1) {
         if (err) {

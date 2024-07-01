@@ -206,9 +206,9 @@ const face = {
           return searchFaceResponse.body.data.matchList[0].faceItems[0];
         }, function(error) {
           // 获取整体报错信息
-          console.log(error);
+          // console.log(error);
           // 获取单个字段
-          console.log(error.data.Code);
+          console.log("searchFace Error:", error.data.Code);
           return "";
         })
   },
