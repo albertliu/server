@@ -1127,14 +1127,14 @@ router.get('/getScheduleNoCheckInList', function (req, res, next) {
 router.get('/getTrainingProofInfo', function (req, res, next) {
   sqlstr = "getTrainingProofInfo";
   params = { enterID:req.query.enterID };
-  console.log(params);
+  // console.log(params);
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
       return res.send({ "status": 9, "msg": "操作失败。" });
     }
     let response = data.recordset[0];
-    console.log(response);
+    // console.log(response);
     return res.send(response);
   });
 });
