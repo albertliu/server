@@ -1642,9 +1642,60 @@ router.get('/generate_excel', function (req, res, next) {
   }
 });
 
-router.get('/form', function (req, res, next) {
-  var form = fs.readFileSync('./form.html', { encoding: 'utf8' });
-  res.send(form);
+// 从指定目录读取文件，写入题库表
+router.post('/readQustionOther', function (req, res, next) {
+  let path = 'users/upload/questions/others';
+  //console.log(path);
+  fs.readdir(path, function (err, files) {
+    //err 为错误 , files 文件名列表包含文件夹与文件
+    if (err) {
+      console.log('error:\n' + err);
+      return;
+    }
+    let i = 0;
+    //console.log(1);
+    files.forEach(function (file) {
+      let q = fs.readFileSync(path + '/' + file, { encoding: 'utf8' });
+      // console.log("file:",file);
+      let arr = JSON.parse(q.replace(/\r\n/g,""));
+      if(arr.length>0){
+        // console.log("question1:",arr[1]);
+        for(const x of arr){
+          let answer = "";
+          let items = ["","","","","",""];
+          let items_id = ["","","","","",""];
+          let questionName = x.content.replace("<p>","").replace("</p>","");
+          let type = x.type;
+          let kindID = type + 1;
+          let memo = x.analysis.replace("<p>","").replace("</p>","");
+          let answers = x.correct_answer;
+          for(const a of answers){
+            answer += (req.query.mark=="lx"?a:a[0]) + ",";   //练习["xxx","xxx"] 试卷[["xxx"],["xxx"]]
+          }
+          answer = answer.substring(0, answer.length-1);
+          let k = 0;
+          if(x.option){
+            for(const option of x.option){
+              items[k] = option.content.replace("<p>","").replace("</p>","");
+              items_id[k] = option.id;
+              k += 1;
+            }
+          }
+          sqlstr = "addNewQuestionOther";
+          params = {mark:(req.query.mark=="lx"?file.replace(".txt",""):req.query.mark), knowPointID:'', kindID:kindID, questionName:questionName, answer:answer, memo:memo, A:items[0], B:items[1], C:items[2], D:items[3], E:items[4], F:items[5], id_A:items_id[0], id_B:items_id[1], id_C:items_id[2], id_D:items_id[3], id_E:items_id[4], id_F:items_id[5] };
+          // console.log(params);
+          db.excuteProc(sqlstr, params, function (err, data) {
+              if (err) {
+                  console.log(err);
+              }
+          });
+          i += 1;
+        }
+      }
+    });
+    response = [i];
+    return res.send(response);
+  });
 });
 
 //test
