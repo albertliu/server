@@ -44,8 +44,14 @@ router.post('/oderPaymentReturn', function(req, res, next) {
   const hexData = req.body.param;
   // console.log("hexData:", hexData);
   let text = decrypt(hexData, key);
-  let re = eval("(" + text + ")");
   // 返回解密结果
+  let re = eval("(" + text + ")");
+  // 记录返回结果
+  sqlstr = "setAutoPayReturn";
+  params = {kind:"oderPaymentReturn", memo:text};
+  //console.log("params:", params);
+  db.excuteProc(sqlstr, params, function(err, data){
+  });
   sqlstr = "setAutoPayInfo";
   params = {kind:0, enterOrder:re.customerOrderNo, amount:re.amount, payStatus:re.payStatus, payTime:re.payTime, payType:re.payType, customerTaxnum:re.customerTaxnum, orderNo:re.orderNo, outOrderNo:re.outOrderNo, subject:re.subject, userId:re.userId, memo:re.sellerNote, phone:""};
   //console.log("params:", params);
@@ -68,6 +74,11 @@ router.post('/oderRefundReturn', function(req, res, next) {
   let text = decrypt(hexData,key);
   // console.log("text", text);
   let re = eval("(" + text + ")");
+  // 记录返回结果
+  sqlstr = "setAutoPayReturn";
+  params = {kind:"oderRefundReturn", memo:text};
+  db.excuteProc(sqlstr, params, function(err, data){
+  });
   sqlstr = "setAutoPayInfo";
   params = {kind:1, enterOrder:'', amount:re.refundAmount, payStatus:re.payStatus, payTime:re.refundTime, payType:"", customerTaxnum:"", orderNo:re.originOrderNo, outOrderNo:re.orderNo, subject:"", userId:"", memo:"", phone:""};
   // console.log("params:", params);
@@ -87,7 +98,11 @@ router.post('/oderRefundReturn', function(req, res, next) {
 router.post('/oderInvoiceReturn', function(req, res, next) {
   let text = req.body.content;
   let re = eval("(" + text + ")");
-  // console.log("oderInvoiceReturn text", text, re);
+  // 记录返回结果
+  sqlstr = "setAutoPayReturn";
+  params = {kind:"oderInvoiceReturn", memo:text};
+  db.excuteProc(sqlstr, params, function(err, data){
+  });
   sqlstr = "setAutoPayInfo";
   if(re && re.c_status && re.c_status==1){
     let date = new Date(re.c_kprq * 1);
