@@ -27,6 +27,10 @@ const ssms ={
           tc = "SMS_218725732";
           pa = "{'name':'" + name + "','item':'" + item + "','address':'" + address + "'}";
         }
+        if(temp=="msg_diploma"){
+          tc = "SMS_468905275";
+          pa = "{'name':'" + name + "','item':'" + item + "','address':'" + address + "'}";
+        }
         if(temp=="msg_exam"){ //考试通知
           tc = "SMS_218286580";
           pa = "{'name':'" + name + "','item':'" + item + "','date':'" + dt + "','address':'" + address + "'}";

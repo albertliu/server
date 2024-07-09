@@ -279,6 +279,14 @@ router.get('/getFiremanEnterInfo', function(req, res) {
 //24. getRptList  generate a report, output a json data or an excel file.
 router.get('/getRptList', function(req, res) {
   switch(req.query.op){
+    case "income":
+      sqlstr = "getIncomeRpt";
+      params = { host: req.query.host, mark: req.query.mark1, startDate: req.query.startDate, endDate: req.query.endDate, sales: req.query.sales, courseID: req.query.courseID };
+      break;
+    case "sales":
+      sqlstr = "getSalesRpt";
+      params = { host: req.query.host, startDate: req.query.startDate, endDate: req.query.endDate, sales: req.query.sales };
+      break;
     case "student":
       sqlstr = "p_rptStudentRegister";
       //@host varchar(50),@startDate varchar(50),@endDate varchar(50),@kindID varchar(20),@groupHost int,@groupDept1 int,@groupKindID int,@groupDate
@@ -354,6 +362,10 @@ router.get('/getRptList', function(req, res) {
 //24. getRptList  generate a report, output a json data or an excel file.
 router.get('/getRptDetailList', function (req, res) {
   switch (req.query.op) {
+    case "sales":
+      sqlstr = "getSalesRptDetail";
+      params = { host: req.query.host, startDate: req.query.startDate, endDate: req.query.endDate, sales: req.query.sales, kind: req.query.kind };
+      break;
     case "dailyIncome":
       sqlstr = "getDailyIncomeRptDetail";
       params = { startDate: req.query.startDate, endDate: req.query.endDate, kind: req.query.kind };
@@ -755,7 +767,7 @@ router.post('/send_message_diploma_apply', function(req, res, next) {
             let re = data.recordset;
             for (var i in re){
                 if(re[i]["mobile"].length == 11){
-                    sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], '', "msg_score");
+                    sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], '', "msg_diploma");
                     sqlstr = "writeSSMSlog";
                     params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "领证通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.query.registerID };
                     //console.log(params);
