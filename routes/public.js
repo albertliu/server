@@ -279,6 +279,10 @@ router.get('/getFiremanEnterInfo', function(req, res) {
 //24. getRptList  generate a report, output a json data or an excel file.
 router.get('/getRptList', function(req, res) {
   switch(req.query.op){
+    case "trainning":
+      sqlstr = "getIncomeRpt";
+      params = { host: req.query.host, mark: req.query.mark1, startDate: req.query.startDate, endDate: req.query.endDate, sales: req.query.sales, courseID: req.query.courseID };
+      break;
     case "income":
       sqlstr = "getIncomeRpt";
       params = { host: req.query.host, mark: req.query.mark1, startDate: req.query.startDate, endDate: req.query.endDate, sales: req.query.sales, courseID: req.query.courseID };
