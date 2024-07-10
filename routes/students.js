@@ -441,7 +441,7 @@ router.post('/login', function (req, res, next) {
     }
 
     let response = { "status": data.recordset[0]["e"], "msg": data.recordset[0]["msg"], "username": req.body.username, "hostName": data.recordset[0]["hostName"], "newCourse": data.recordset[0]["newCourse"] };
-    var user = { "username": req.body.username, "name": data.recordset[0]["name"], "host": cid, "ip": ip, "domain": req.subdomains, "auditor":0, "teacher": "" }
+    var user = { "username": req.body.username, "name": data.recordset[0]["name"], "host": cid, "ip": ip, "domain": req.subdomains, "auditor":0, "teacher": "", "fromID": req.body.fromID || "" }
     if (data.recordset[0]["e"] == 0) {
       req.session.user = user;
     }
@@ -618,6 +618,8 @@ router.post('/submit_student_exam', function (req, res, next) {
 //14. add_student_certificate  return: 0 成功  1 已有相同课程不能重复添加  9 其他
 router.post('/add_student_certificate', function (req, res, next) {
   let msg = "";
+  // let _host = req.body.host || req.session.user.host;
+  let _fromID = req.body.fromID || req.session.user.fromID;
   sqlstr = "select status, msg from dbo.getStudentMaterialsOmit(@username,@certID,@mark,0)";
   params = { certID: req.body.certID, mark: req.body.mark, username: req.body.username };
   db.excuteSQL(sqlstr, params, function (err, data) {
@@ -632,7 +634,7 @@ router.post('/add_student_certificate', function (req, res, next) {
       return res.send(response);
     } else {
       sqlstr = "addStudentCert";
-      params = { certID: req.body.certID, mark: req.body.mark, username: req.body.username, reexamine: req.body.reexamine, fromID:req.body.fromID, currDiplomaID:req.body.currDiplomaID, currDiplomaDate:req.body.currDiplomaDate };
+      params = { certID: req.body.certID, mark: req.body.mark, username: req.body.username, reexamine: req.body.reexamine, fromID:_fromID, currDiplomaID:req.body.currDiplomaID, currDiplomaDate:req.body.currDiplomaDate };
       //console.log(params);
       db.excuteProc(sqlstr, params, function (err, data1) {
         if (err) {
