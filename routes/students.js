@@ -263,7 +263,7 @@ router.get('/getStudentQuestionList', function (req, res, next) {
   //sqlstr = "exec writeStudentLoginLog @username, @host, @cid";
   sqlstr = "addQuestions4StudentExam";
   db.excuteProc(sqlstr, params, function (e, re) {
-    sqlstr = "select * from v_studentQuestionList where refID=" + req.query.paperID + " order by kindID";
+    sqlstr = "select * from v_studentQuestionList where refID=" + req.query.paperID + " order by kindID, questionID";
     params = {};
     //console.log("params:", params);
     db.excuteSQL(sqlstr, params, function (err, data) {
@@ -629,8 +629,7 @@ router.post('/add_student_certificate', function (req, res, next) {
       return res.send(response);
     }
     if (data.recordset[0]["status"] > 0) {
-      msg = data.recordset[0]["msg"];
-      let response = { "status": data.recordset[0]["status"], "msg": msg };
+      let response = { "status": data.recordset[0]["status"], "msg": data.recordset[0]["msg"] };
       return res.send(response);
     } else {
       sqlstr = "addStudentCert";
@@ -645,7 +644,7 @@ router.post('/add_student_certificate', function (req, res, next) {
         if (data1.returnValue == 1) {
           msg = "不能重复添加课程。"
         }
-        let response = { "status": data1.returnValue, "msg": msg };
+        let response = { "status": data1.recordset[0]["status"], "msg": data1.recordset[0]["msg"] };
         return res.send(response);
       });
     }
