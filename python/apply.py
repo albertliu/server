@@ -351,7 +351,7 @@ def enter_by_list1(elist):
                 name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
                 name_input.click()
                 driver.implicitly_wait(2)
-                if s1.find("该证件只能在"):
+                if s1.find("该证件只能在") > -1:
                     s2 = s1.replace('该证件只能在', '')[0:10]
                     today = date.today().strftime("%Y-%m-%d")
                     if s2 < today:  # 如果显示的日期小于今天，说明需要更换操作证号再试一次
