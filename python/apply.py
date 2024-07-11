@@ -342,41 +342,39 @@ def enter_by_list1(elist):
             # 判断是否有错误弹窗
             f = 0
             s1 = ""
-            if driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p"):
+            if driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p[contains(text(),'该证件只能在')]"):
                 # 提交失败 保存错误信息
                 f = 1
-                msg_input = driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p")[0]
+                msg_input = driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p[contains(text(),'该证件只能在')]")[0]
                 s1 = msg_input.text
+                s2 = s1.replace('该证件只能在', '')[0:10]
+                today = date.today().strftime("%Y-%m-%d")
                 # 确定按钮
                 name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
                 name_input.click()
                 driver.implicitly_wait(2)
-                if s1.find("该证件只能在") > -1:
-                    s2 = s1.replace('该证件只能在', '')[0:10]
-                    today = date.today().strftime("%Y-%m-%d")
-                    if s2 < today:  # 如果显示的日期小于今天，说明需要更换操作证号再试一次
-                        # 再次尝试更换新的操作证号码
-                        # 操作证号码输入框
-                        clean_send(diploma_input, 'T' + row[3])
-                        # 第二次按查找按钮
-                        search_btn.click()
-                        driver.implicitly_wait(2)
-                        # 判断是否有错误弹窗
-                        if driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p"):
-                            # 提交失败 保存错误信息
-                            msg_input = driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p")[0]
-                            s1 = msg_input.text
+                if s2 < today:  # 如果显示的日期小于今天，说明需要更换操作证号再试一次
+                    # 再次尝试更换新的操作证号码
+                    # 操作证号码输入框
+                    clean_send(diploma_input, 'T' + row[3])
+                    # 第二次按查找按钮
+                    search_btn.click()
+                    driver.implicitly_wait(2)
+                    # 判断是否有错误弹窗
+                    if driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p[contains(text(),'该证件只能在')]"):
+                        # 提交失败 保存错误信息
+                        msg_input = driver.find_elements(By.XPATH, "//div[@class='el-message-box__message']/p[contains(text(),'该证件只能在')]")[0]
+                        s1 = msg_input.text
+                        if s1 > "":     # 新的信息，否则为原来的控件残留
                             # 确定按钮
                             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
                             name_input.click()
-                            if s1 == "":     # 原来的控件残留
-                                f = 0
                         else:
                             f = 0
                     else:
-                        f = 1
+                        f = 0
                 else:
-                    f = 0   # 除了‘该证件只能在’的弹窗，其他视为意外错误，继续处理。
+                    f = 1
                 if f == 1:
                     result["count_e"] += 1
                     sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：" + s1 + "'"
