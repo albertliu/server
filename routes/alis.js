@@ -89,7 +89,7 @@ function streamToString (stream) {
 // base64Data: 带有data:image/jpeg;base64,前缀的完整数据
 router.post('/uploadFaceDetectOSS', async function (req, res, next) {
   let compareResult = 0;
-  const msgRe = ["请先上传证件照片","比对成功","比对失败","系统错误，请稍后再试"];
+  const msgRe = ["请先上传证件照片","比对成功","比对失败，请平视摄像头。","网络错误，请稍后再试","照片读取失败，请重试","数据处理失败，请重试"];
   try {
     if(!req.body.base64Data){
       return res.send({status:4, msg: msgRe[4]});
@@ -167,16 +167,18 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
               db.excuteProc(sqlstr, params, function (err, data) {
                 if (err) {
                   console.log(err);
-                  response = {status:0};
+                  response = {status:5, msg: msgRe[5]};
                   return res.send(response);
+                }else{
+                  return res.send({status: compareResult, msg: msgRe[compareResult]});
                 }
-                return res.send({status: compareResult, msg: msgRe[compareResult]});
               });
             }, function(error) {
               // 获取整体报错信息
               console.log("compareFaceWithOptions error:", error);
               // 获取单个字段
               // console.log(error.data.Code);
+              return res.send({status: 3, msg: msgRe[3]});
             })
         })
       }else{
@@ -187,16 +189,17 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
         await db.excuteProc(sqlstr, params, function (err, data) {
           if (err) {
             console.log(err);
-            response = {status:4, msg: msgRe[4]};
+            response = {status:5, msg: msgRe[5]};
             return res.send(response);
+          }else{
+            return res.send({status: compareResult, msg: msgRe[compareResult]});
           }
-          return res.send({status: compareResult, msg: msgRe[compareResult]});
         });
       }
     });
   } catch (err) {
       console.error('Upload failed: ', err);
-      return res.send({status:4, msg: msgRe[4]});
+      return res.send({status:3, msg: msgRe[3]});
   }
 });
 

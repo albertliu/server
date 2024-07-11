@@ -641,9 +641,6 @@ router.post('/add_student_certificate', function (req, res, next) {
           let response = { "status": 9, "msg": msg };
           return res.send(response);
         }
-        if (data1.returnValue == 1) {
-          msg = "不能重复添加课程。"
-        }
         let response = { "status": data1.recordset[0]["status"], "msg": data1.recordset[0]["msg"] };
         return res.send(response);
       });
