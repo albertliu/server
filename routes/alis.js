@@ -15,15 +15,15 @@ const OSS = require('ali-oss');
 const env = process.env.NODE_ENV_BACKEND_ET;
 
 var response, sqlstr, params;
-const accessKeyId = process.env.T0_ACCESS_KEY;
-const accessKeySecret = process.env.T0_ACCESS_SECRET;
+const accessKey_Id = process.env.T0_ACCESS_KEY;
+const accessKey_Secret = process.env.T0_ACCESS_SECRET;
 
 const oss_client = new OSS({
   // yourregion填写Bucket所在地域。以华东1（杭州）为例，Region填写为oss-cn-hangzhou。
   region: 'oss-cn-shanghai',
   // 从环境变量中获取访问凭证。运行本代码示例之前，请确保已设置环境变量OSS_ACCESS_KEY_ID和OSS_ACCESS_KEY_SECRET。
-  accessKeyId: process.env.accessKeyId,
-  accessKeySecret: process.env.accessKeySecret,
+  accessKeyId: accessKey_Id,
+  accessKeySecret: accessKey_Secret,
   // yourbucketname填写存储空间名称。
   bucket: 'images-t0'
 });
@@ -149,8 +149,8 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
             // 创建AccessKey ID和AccessKey Secret，请参考https://help.aliyun.com/document_detail/175144.html。
             // 如果您用的是RAM用户AccessKey，还需要为RAM用户授予权限AliyunVIAPIFullAccess，请参考https://help.aliyun.com/document_detail/145025.html。
             // 从环境变量读取配置的AccessKey ID和AccessKey Secret。运行示例前必须先配置环境变量。 
-            accessKeyId: accessKeyId,   
-            accessKeySecret: accessKeySecret
+            accessKeyId: accessKey_Id,   
+            accessKeySecret: accessKey_Secret
           });
           config.endpoint = `facebody.cn-shanghai.aliyuncs.com`;
           const client = new FacebodyClient.default(config);
