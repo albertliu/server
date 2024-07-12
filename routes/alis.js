@@ -15,13 +15,15 @@ const OSS = require('ali-oss');
 const env = process.env.NODE_ENV_BACKEND_ET;
 
 var response, sqlstr, params;
+const accessKeyId = process.env.T0_ACCESS_KEY;
+const accessKeySecret = process.env.T0_ACCESS_SECRET;
 
 const oss_client = new OSS({
   // yourregion填写Bucket所在地域。以华东1（杭州）为例，Region填写为oss-cn-hangzhou。
   region: 'oss-cn-shanghai',
   // 从环境变量中获取访问凭证。运行本代码示例之前，请确保已设置环境变量OSS_ACCESS_KEY_ID和OSS_ACCESS_KEY_SECRET。
-  accessKeyId: process.env.T0_ACCESS_KEY,
-  accessKeySecret: process.env.T0_ACCESS_SECRET,
+  accessKeyId: process.env.accessKeyId,
+  accessKeySecret: process.env.accessKeySecret,
   // yourbucketname填写存储空间名称。
   bucket: 'images-t0'
 });
@@ -90,9 +92,11 @@ function streamToString (stream) {
 router.post('/uploadFaceDetectOSS', async function (req, res, next) {
   let compareResult = 0;
   const msgRe = ["请先上传证件照片","比对成功","比对失败，请平视摄像头。","网络错误，请稍后再试","照片读取失败，请重试","数据处理失败，请重试"];
+  let errCode = ":EC";
   try {
+    errCode += "1";
     if(!req.body.base64Data){
-      return res.send({status:4, msg: msgRe[4]});
+      return res.send({status:4, msg: msgRe[4] + errCode});
     }
     // const base64DataFromRequest = Buffer.from(req.body).toString('base64');
     // console.log("req.body.base64Data:", req.body.base64Data.length);
@@ -102,12 +106,15 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
     //保存文件命名
     let ossFileName = req.body.refID + "-" + (new Date().getTime()) + ".jpg"; // 自动生成文件名：refID为studentVideoList.ID
     // 上传到OSS
+    errCode += "A";
     oss_client.put(ossFileName, buff);
+    errCode += "2";
     // console.log("1:", ossFileName);
     //获取头像
     // 转换拍摄图片
     // let base64Data = req.body.base64Data.split(',')[1];
     let base64Data = buff.toString('base64');
+    errCode += "B";
     let photo = "";
     let photoPath = "";
     sqlstr = "getPhotoByUsername";
@@ -116,6 +123,7 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
     await db.excuteProc(sqlstr, params, async function (err, data) {
       if (err) {
         console.log(err);
+        errCode += "3";
       }
       photo = data.recordset[0]["filename"];
       photoPath = './users' + photo;
@@ -130,18 +138,19 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
         // 获取头像后，进行人脸比对
         // 将图片转为base64
         let photoData = "";
+        errCode += "C";
         await fs.readFile(photoPath, async function (err, data) {
           if (err) throw err;
           photoData = data.toString('base64');
           // console.log("3:", base64Data.substring(0,100), base64Data.substring(base64Data.length - 100));
-
+          errCode += "4";
           // 比较两个人脸
           let config = new OpenapiClient.Config({
             // 创建AccessKey ID和AccessKey Secret，请参考https://help.aliyun.com/document_detail/175144.html。
             // 如果您用的是RAM用户AccessKey，还需要为RAM用户授予权限AliyunVIAPIFullAccess，请参考https://help.aliyun.com/document_detail/145025.html。
             // 从环境变量读取配置的AccessKey ID和AccessKey Secret。运行示例前必须先配置环境变量。 
-            accessKeyId: process.env.T0_ACCESS_KEY,   
-            accessKeySecret: process.env.T0_ACCESS_SECRET
+            accessKeyId: accessKeyId,   
+            accessKeySecret: accessKeySecret
           });
           config.endpoint = `facebody.cn-shanghai.aliyuncs.com`;
           const client = new FacebodyClient.default(config);
@@ -152,9 +161,11 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
           let runtime = new TeaUtil.RuntimeOptions({ });
           let confidence = 0.00;
           // console.log("4:", confidence);
+          errCode += "D";
           await client.compareFaceWithOptions(compareFaceRequest, runtime)
             .then(function(compareFaceResponse) {
               // 获取单个字段(Confidence置信度，取值范围0~100。供参考的三个阈值是61，69和75，分别对应千分之一，万分之一和十万分之一误识率)
+              errCode += "0";
               confidence = compareFaceResponse.body.data.confidence;
               compareResult = (confidence >= 50 ? 1 : 2);
               // console.log("5:", compareResult);
@@ -165,43 +176,49 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
               params = { refID: req.body.refID, kindID: req.body.kindID, file1: ossFileName, file2: photo, status: compareResult, confidence: confidence };
               // console.log("params1:", params, ossFileName);
               db.excuteProc(sqlstr, params, function (err, data) {
+                errCode += "E";
                 if (err) {
                   console.log(err);
-                  response = {status:5, msg: msgRe[5]};
+                  response = {status:5, msg: msgRe[5] + errCode};
                   return res.send(response);
                 }else{
-                  return res.send({status: compareResult, msg: msgRe[compareResult]});
+                  return res.send({status: compareResult, msg: msgRe[compareResult] + errCode});
                 }
               });
             }, function(error) {
               // 获取整体报错信息
               console.log("compareFaceWithOptions error:", error);
+              errCode += "5:" + error.data.Code;
               // 获取单个字段
               // console.log(error.data.Code);
-              return res.send({status: 3, msg: msgRe[3]});
+              return res.send({status: 3, msg: msgRe[3] + errCode});
             })
         })
       }else{
         // 写数据库
         sqlstr = "uploadFaceDetectOSS";
         params = { refID: req.body.refID, kindID: req.body.kindID, file1: ossFileName, file2: '', status: 0, confidence: 0 };
+        errCode += "F";
         // console.log("params2:", params, ossFileName);
         await db.excuteProc(sqlstr, params, function (err, data) {
+          errCode += "6";
           if (err) {
             console.log(err);
-            response = {status:5, msg: msgRe[5]};
+            response = {status:5, msg: msgRe[5] + errCode};
             return res.send(response);
           }else{
-            return res.send({status: compareResult, msg: msgRe[compareResult]});
+            return res.send({status: compareResult, msg: msgRe[compareResult] + errCode});
           }
         });
       }
     });
   } catch (err) {
       console.error('Upload failed: ', err);
-      return res.send({status:3, msg: msgRe[3]});
+      errCode += "G";
+      return res.send({status:3, msg: msgRe[3] + errCode});
   }
 });
+
 
 //22a. get_OSS_file
 //status: 0 成功  9 其他  msg, filename
