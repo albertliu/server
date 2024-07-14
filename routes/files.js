@@ -201,7 +201,7 @@ var storage = multer.diskStorage({
         key = req.query.username;
         break;
       case "invoice_pdf":   //invoice result doc
-        fn = req.query.username;   //
+        fn = req.query.username + '-' + Date.now();   //
         key = req.query.username;
         break;
       default:

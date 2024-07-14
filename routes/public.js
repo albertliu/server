@@ -224,35 +224,6 @@ router.get('/getStudentMaterials', function(req, res) {
       return res.send(response);
     }
     response = data.recordset;
-    /*if(data.recordset.length>0){
-      console.log("count:",data.recordset.length);
-      let re = data.recordset;
-      for (var i in re){
-        
-        if(re[i]["filename"].indexOf(".jpg")>=0 || re[i]["filename"].indexOf(".jpeg")>=0){
-          console.log("filename:","./users" + re[i]["filename"],i);
-          jimp.read("./users" + re[i]["filename"], function (err, image) {
-            //If there is an error in reading the image, 
-            //we will print the error in our terminal
-            if (err) {
-              console.log(err)
-            } 
-            //Otherwise we convert the image into PNG format 
-            //and save it inside images folder using write() method.
-            else {
-              console.log("filename1:","./users" + re[i]["filename"].replace(".jpg",".png").replace(".jpeg",".png"),i);
-              image.write("./users" + re[i]["filename"].replace(".jpg",".png").replace(".jpeg",".png"));
-              console.log("00",i);
-            }
-          });
-        }
-        console.log("filename:","./users" + re[i]["filename"],i);
-        images("./users" + re[i]["filename"])
-        .save("./users" + re[i]["filename"], { //Save the image to a file,whih quality 50
-        quality : 50 //保存图片到文件,图片质量为50
-        });
-      }
-    }*/
     //console.log(response);
     return res.send(response);
   });
@@ -871,6 +842,23 @@ router.post('/send_message_submit_attention_close', function(req, res, next) {
     let ec = 0;
     sqlstr = "closeAttections";
     params = {batchID:req.body.batchID, kind:req.body.kind, kindID:req.body.kindID, selList: req.body.selList, registerID: req.body.registerID };
+    //console.log(params);
+    db.excuteProc(sqlstr, params, function (err, data) {
+        if (err) {
+            console.log(err);
+            let response = { "status": 9, msg:"系统错误。" };
+            return res.send(response);
+        }
+        let response = { "status": 0, "msg": "操作成功。" };
+        return res.send(response);
+    });
+});
+
+//4. 批量确认应收款已到账。
+router.post('/checkReceiveList', function(req, res, next) {
+    let ec = 0;
+    sqlstr = "checkReceiveList";
+    params = {selList: req.body.selList, registerID: req.body.registerID };
     //console.log(params);
     db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
