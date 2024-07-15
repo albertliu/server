@@ -258,6 +258,10 @@ router.get('/getRptList', function(req, res) {
       sqlstr = "getSalesRpt";
       params = { host: req.query.host, startDate: req.query.startDate, endDate: req.query.endDate, sales: req.query.sales };
       break;
+    case "payInvoice":
+      sqlstr = "getPayInvoiceRpt";
+      params = { host: req.query.host, startDate: req.query.startDate, endDate: req.query.endDate };
+      break;
     case "student":
       sqlstr = "p_rptStudentRegister";
       //@host varchar(50),@startDate varchar(50),@endDate varchar(50),@kindID varchar(20),@groupHost int,@groupDept1 int,@groupKindID int,@groupDate
