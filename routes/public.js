@@ -260,7 +260,7 @@ router.get('/getRptList', function(req, res) {
       break;
     case "payInvoice":
       sqlstr = "getPayInvoiceRpt";
-      params = { host: req.query.host, startDate: req.query.startDate, endDate: req.query.endDate, autoPay: req.query.autoPay, autoInvoice: req.query.atuoInvoice };
+      params = { host: req.query.host, startDate: req.query.startDate, endDate: req.query.endDate, autoPay: req.query.autoPay, autoInvoice: req.query.autoInvoice };
       break;
     case "student":
       sqlstr = "p_rptStudentRegister";
@@ -300,7 +300,7 @@ router.get('/getRptList', function(req, res) {
       break;
     default:
   }
-  //console.log("params:", params);
+  // console.log("params:", params);
   db.excuteProc(sqlstr, params, function(err, data){
     if (err) {
       console.log(err);
