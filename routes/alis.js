@@ -42,7 +42,13 @@ router.post('/delFace', async function (req, res, next) {
 
 /* 删除人脸数据. */
 router.post('/test', async function (req, res, next) {
-  response = {status: 0};
+  params = {kind:0, enterOrder:"re.customerOrderNo", amount:"re.amount", payStatus:"re.payStatus", phone:""};
+  sqlstr = "setAutoPayReturn";
+  let params1 = {kind:"oderPaymentReturn", memo:"text", memo1:JSON.stringify(params)};
+  console.log("params:", params1);
+  db.excuteProc(sqlstr, params1, function(err, data){
+  });
+  response = {status: 0, msg: req.body.username };
   console.log("test:",response);
   return res.send(response);
 });
