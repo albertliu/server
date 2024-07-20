@@ -173,7 +173,7 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
               // 获取单个字段(Confidence置信度，取值范围0~100。供参考的三个阈值是61，69和75，分别对应千分之一，万分之一和十万分之一误识率)
               errCode += "0";
               confidence = compareFaceResponse.body.data.confidence;
-              compareResult = (confidence >= 50 ? 1 : 2);
+              compareResult = (confidence >= 40 ? 1 : 2);
               // console.log("5:", compareResult);
               // console.log('compareFaceResponse', compareFaceResponse.body.data);
               
