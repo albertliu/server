@@ -1147,6 +1147,23 @@ router.get('/getTrainingProofInfo', function (req, res, next) {
   });
 });
 
+//11a. getInvoiceList 获取某个学员的发票列表
+router.get('/getInvoiceList', function (req, res, next) {
+  //firstly check the paper has its questions, if has not, create them now.
+  params = { username: req.query.username };
+  sqlstr = "getStudentInvoiceList";
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9 };
+      return res.send(response);
+    }
+    response = data.recordset || {};
+    // console.log("response:", response);
+    return res.send(response);
+  });
+});
+
 //getEnterRpt
 router.post('/getEnterRpt', function(req, res) {
     sqlstr = "getEnterRpt";

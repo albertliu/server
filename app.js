@@ -29,6 +29,9 @@ let redisClient = redis.createClient(redisConfig.sessionStore);
 
 var app = express();
 
+let checkMsg = '长时间未登录，已退出。';
+let backStatus = 401;
+
 var hosts = ['','znxf.','spc.','shm.','yuc.','lix.','jia.','jiah.','tai.','wen.','ding.','zich.'];
 //var hosts = ['','znxf.','spc.','shm.'];
 var ports = ['',':3000',':3003',':8082'];
@@ -71,6 +74,14 @@ app.use(session({
   rolling:true,
   saveUninitialized : false,
   cookie : redisConfig.cookie,
+  genid: req => {
+  //我这里是进行一个登录接口的判断,就是获取前端传递过来的账号密码,然后我把用户作为sessionid随机数编号存起来
+      // if (req.url == "/Api/accountLogin") {
+      if (req.url.endsWith("/login")) {
+          // let nickName = JSON.parse(req.body.data);
+          return `${req.body.username}/${parseInt(Math.random() * 1000)}`
+      }
+  },
   //store : new redisStore(redisConfig.sessionStore)
   store : new redisStore({client: redisClient})
 }));
@@ -78,13 +89,24 @@ app.use(session({
 //验证用户session
 app.use(function(req, res, next) {
   //console.log("url:",req.get('origin'))
+  if (req.url.endsWith("/login")){
+    redisClient.keys(`sess:${req.body.username}/*`, (err, reply) => {
+      // console.log("redes模糊查询", reply);
+     // 如果存在就清除第一个登录的sessionId
+      if (!err && reply.length > 0) {
+          redisClient.del(reply[0]);
+          checkMsg = '已在其他设备登录，自动退出。';
+          backStatus = 501;
+      }
+    });
+  }
   if (!req.session.user) {
       if (req.url.endsWith("/login") || req.url.endsWith("/logout") || req.url.endsWith("/change_passwd") || req.url.endsWith("/new_student") || req.url.startsWith("/public/") || req.url.startsWith("/outfiles/") || req.url.startsWith("/nuonuo/") || req.url.startsWith("/alis/")) {
-          console.log("url:",req.get('origin'));
+          // console.log("url:",req.get('origin'));
           next(); //如果请求的地址是登录则通过，进行下一个请求
       } else {
           //console.log("sessionExpire url：",req.url,req.session.user);
-          res.send({"username": ""});
+          res.send(backStatus);
       }
   } else {
       next();//如果已经登录，则可以进入
