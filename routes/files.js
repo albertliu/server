@@ -1172,24 +1172,26 @@ router.get('/generate_entryform_sign', function (req, res, next) {
   let path = "";
   if (req.query.nodeID > 0) {
     //publish diploma on A4 with pdf
-    let entryform = req.query.entryform;  //报名表样式
-    //班级归档资料
-    sqlstr = env + "/entryform_" + entryform + ".asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + req.query.refID + "&keyID=4";
-    path = 'users/upload/students/firemanMaterials/' + req.query.refID + '_' + req.query.nodeID + '_4.pdf';
-    filename1 = path.replace("users/", "/");
-    console.log("params:", sqlstr);
-    pdf.genPDF([sqlstr], [path], '210mm', '290mm', '', false, 1, false);
-    //return publish file path
     sqlstr = "updateEnterMaterials";
     //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
+    path = 'users/upload/students/firemanMaterials/' + req.query.nodeID + '_4.pdf';
+    filename1 = path.replace("users/", "/");
     params = { enterID: req.query.nodeID, filename1: "", filename2: "", filename3: "", filename4: filename1 };
     //generate diploma data
+    // console.log("params:", params);
     db.excuteProc(sqlstr, params, function (err, data) {
       if (err) {
         console.log(err);
         response = [];
         return res.send(response);
       }
+      // console.log("data:", data.recordset[0]);
+      let entryform = data.recordset[0]["entryForm"];  //报名表样式
+      let username = data.recordset[0]["username"];  //报名表样式
+      //班级归档资料
+      sqlstr = env + "/entryform_" + entryform + ".asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + username + "&keyID=4";
+      pdf.genPDF([sqlstr], [path], '210mm', '290mm', '', false, 1, false);
+      //return publish file path
       response = [filename1];
       return res.send(response);
     });
