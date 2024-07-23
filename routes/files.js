@@ -19,6 +19,7 @@ const face = require("../utils/face");
 let xlsx = require('xlsx');
 //let xlsx_free = require('../utils/xlsx_free');
 var zip = require("../utils/zip");
+const comFunc = require("../utils/commFunction");
 const { array } = require('pizzip/js/support');
 var upID = "", key = "", mark = "", currUser = "", host = "", today = date.format(new Date(), 'YYYY-MM-DD');
 var env = process.env.NODE_ENV_BACKEND;
@@ -1168,37 +1169,39 @@ router.get('/generate_entryform', function (req, res, next) {
 //生成报名表, 带协议书 keyID: 4
 //status: 0 成功  9 其他  msg, emergency item
 router.get('/generate_entryform_sign', function (req, res, next) {
-  let filename1 = "";
-  let path = "";
-  if (req.query.nodeID > 0) {
-    //publish diploma on A4 with pdf
-    sqlstr = "updateEnterMaterials";
-    //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
-    path = 'users/upload/students/firemanMaterials/' + req.query.nodeID + '_4.pdf';
-    filename1 = path.replace("users/", "/");
-    params = { enterID: req.query.nodeID, filename1: "", filename2: "", filename3: "", filename4: filename1 };
-    //generate diploma data
-    // console.log("params:", params);
-    db.excuteProc(sqlstr, params, function (err, data) {
-      if (err) {
-        console.log(err);
-        response = [];
-        return res.send(response);
-      }
-      // console.log("data:", data.recordset[0]);
-      let entryform = data.recordset[0]["entryForm"];  //报名表样式
-      let username = data.recordset[0]["username"];  //报名表样式
-      //班级归档资料
-      sqlstr = env + "/entryform_" + entryform + ".asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + username + "&keyID=4";
-      pdf.genPDF([sqlstr], [path], '210mm', '290mm', '', false, 1, false);
-      //return publish file path
-      response = [filename1];
-      return res.send(response);
-    });
-  } else {
-    response = [];
-    return res.send(response);
-  }
+  comFunc.generate_entryform_sign(req.query.nodeID);
+  return res.send([]);
+  // if (req.query.nodeID > 0) {
+  //   let filename1 = "";
+  //   let path = "";
+  //   //publish diploma on A4 with pdf
+  //   sqlstr = "updateEnterMaterials";
+  //   //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
+  //   path = 'users/upload/students/firemanMaterials/' + req.query.nodeID + '_4.pdf';
+  //   filename1 = path.replace("users/", "/");
+  //   params = { enterID: req.query.nodeID, filename1: "", filename2: "", filename3: "", filename4: filename1 };
+  //   //generate diploma data
+  //   // console.log("params:", params);
+  //   db.excuteProc(sqlstr, params, function (err, data) {
+  //     if (err) {
+  //       console.log(err);
+  //       response = [];
+  //       return res.send(response);
+  //     }
+  //     // console.log("data:", data.recordset[0]);
+  //     let entryform = data.recordset[0]["entryForm"];  //报名表样式
+  //     let username = data.recordset[0]["username"];  //报名表样式
+  //     //班级归档资料
+  //     sqlstr = env + "/entryform_" + entryform + ".asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + username + "&keyID=4";
+  //     pdf.genPDF([sqlstr], [path], '210mm', '290mm', '', false, 1, false);
+  //     //return publish file path
+  //     response = [filename1];
+  //     return res.send(response);
+  //   });
+  // } else {
+  //   response = [];
+  //   return res.send(response);
+  // }
 });
 
 //22. generate_diploma_byCertID

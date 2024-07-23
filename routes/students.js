@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var db = require("../utils/mssqldb");
+const comFunc = require("../utils/commFunction");
 var response, sqlstr, params;
 
 /* GET students listing. */
@@ -641,6 +642,8 @@ router.post('/add_student_certificate', function (req, res, next) {
           let response = { "status": 9, "msg": msg };
           return res.send(response);
         }
+        //生成签名资料
+        comFunc.generate_entryform_sign(data1.recordset[0]["enterID"]);
         let response = { "status": data1.recordset[0]["status"], "msg": data1.recordset[0]["msg"] };
         return res.send(response);
       });
