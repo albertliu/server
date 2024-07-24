@@ -377,6 +377,8 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
           if (data.recordset[0]["errNull"] == 1) {
             r_null += 1;
           }
+          //生成签名资料
+          comFunc.generate_entryform_sign(data.recordset[0]["enterID"]);
           //
           idx += 1;
           if (idx == data1.length) {
