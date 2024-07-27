@@ -80,7 +80,7 @@ router.post('/searchFace', async function (req, res, next) {
     // res.end({status:re.status, msg:re.msg});
     return res.send({status:re.status, msg:re.msg, name:re.name});
   }else{
-    return res.send({status:9, msg:"不能识别"});
+    return res.send({status:9, name:"抱歉", msg:"无法识别"});
   }
 });
 
