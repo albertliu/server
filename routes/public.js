@@ -1101,32 +1101,32 @@ router.post('/diplomaCheckSingle', function (req, res) {
 
 //4. 某学校批量将学员退回到提交的合作单位
 router.get('/getScheduleCheckInList', function (req, res, next) {
-  let ec = 0;
   sqlstr = "getScheduleCheckInList";
   params = { selList:req.query.selList };
-  // console.log(params);
+  // console.log('getScheduleCheckInList',params);
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
       return res.send({ "status": 9, "msg": "操作失败。" });
     }
-    let response = data.recordset;
+    let response = data.recordset || [];
+  // console.log("responsed1:", response);
     return res.send(response);
   });
 });
 
 //4. 某学校批量将学员退回到提交的合作单位
 router.get('/getScheduleNoCheckInList', function (req, res, next) {
-  let ec = 0;
   sqlstr = "getScheduleNoCheckInList";
   params = { selList:req.query.selList };
-  // console.log(params);
+  // console.log('getScheduleNoCheckInList',params);
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
       return res.send({ "status": 9, "msg": "操作失败。" });
     }
-    let response = data.recordset;
+    let response = data.recordset || [];
+  // console.log("responsed2:", response);
     return res.send(response);
   });
 });
