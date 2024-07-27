@@ -78,7 +78,7 @@ router.post('/searchFace', async function (req, res, next) {
     }
     // console.log("response", re.msg);
     // res.end({status:re.status, msg:re.msg});
-    return res.send({status:re.status, msg:re.msg});
+    return res.send({status:re.status, msg:re.msg, name:re.name});
   }else{
     return res.send({status:9, msg:"不能识别"});
   }
