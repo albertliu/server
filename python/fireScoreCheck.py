@@ -109,7 +109,7 @@ def enter_by_list0(elist, kindID, refID):
                         driver.find_elements(By.XPATH, "//img[@class='code']")[0].click()
                         continue  # 如果验证码校验失败，则重新获取验证码
                 except Exception as e:
-                    print(e)
+                    # print(e)
                     c = 1
                     break
 
@@ -118,11 +118,17 @@ def enter_by_list0(elist, kindID, refID):
             if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩单')]") or driver.find_elements(By.XPATH, "//div[contains(text(),'成绩合格电子凭证')]"):
                 score1 = ""
                 score2 = ""
+                score2a = ""
                 examDate = ""
                 if driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td"):
                     score1 = driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td")[0].get_attribute('innerText')
                 if driver.find_elements(By.XPATH, "//td[contains(text(), '技能成绩')]/following-sibling::td/span"):
-                    score2 = driver.find_elements(By.XPATH, "//td[contains(text(), '技能成绩')]/following-sibling::td/span")[0].get_attribute('innerText')
+                    score2a = driver.find_elements(By.XPATH, "//td[contains(text(), '技能成绩')]/following-sibling::td/span")[0].get_attribute('innerText')
+                    ln = score2a.find('(')
+                    if ln > -1:
+                        score2 = score2a[:ln]
+                    else:
+                        score2 = score2a
                 if driver.find_elements(By.XPATH, "//td[contains(text(), '理论考试时间')]/following-sibling::td"):
                     examDate = driver.find_elements(By.XPATH, "//td[contains(text(), '理论考试时间')]/following-sibling::td")[0].get_attribute('innerText')
                 elif driver.find_elements(By.XPATH, "//td[contains(text(), '评定时间')]/following-sibling::td"):
@@ -213,7 +219,7 @@ def execSQL(text: str):
 if __name__ == '__main__':
     # 以下是测试代码
     # register = "test"
-    enter_by_list0('310106197704300414,130281199411220016', 2, 210)
+    # enter_by_list0('320321197402284830,130281199411220016', 2, 210)
     # 以上是测试代码
-    # enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 applyID  1 enterID  2 username  argv[3]:classInfo.ID
+    enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 applyID  1 enterID  2 username  argv[3]:classInfo.ID
     print(result)
