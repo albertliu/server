@@ -89,12 +89,16 @@ def enter_by_list0(elist, kindID, refID):
                 time.sleep(1)
 
                 driver.find_elements(By.XPATH, "//button/span[contains(text(), '查询')]/..")[0].click()  # 点击【查询】
-                time.sleep(1)
+                time.sleep(2)
 
                 # 验证码获取失败，再重新获取
                 # 我的网页的情况是当在登录页面时，url里带有login，如果登录成功，则没有login字符串，所以这里采用这样条件来判断是否登录成功
                 # if "queryResults" in driver.current_url:  # 根据自己的实际网页情况，编写不同的判断条件
                 try:
+                    if driver.find_elements(By.XPATH, "//p[contains(text(),'验证码错误')]"):
+                        # 刷新验证码
+                        driver.find_elements(By.XPATH, "//img[@class='code']")[0].click()
+                        continue  # 如果验证码校验失败，则重新获取验证码
                     # if wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'成绩单')]"))):
                     if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩单')]"):
                         break   # 登录成功，则跳出循环，不再获取验证码
@@ -104,10 +108,6 @@ def enter_by_list0(elist, kindID, refID):
                     if driver.find_elements(By.XPATH, "//p[contains(text(),'查无成绩')]"):
                         c = 1
                         break   # 登录成功，则跳出循环，不再获取验证码
-                    if driver.find_elements(By.XPATH, "//div[@class='el-notification__content']/p[contains(text(),'验证码错误')]"):
-                        # 刷新验证码
-                        driver.find_elements(By.XPATH, "//img[@class='code']")[0].click()
-                        continue  # 如果验证码校验失败，则重新获取验证码
                 except Exception as e:
                     # print(e)
                     c = 1
@@ -219,7 +219,7 @@ def execSQL(text: str):
 if __name__ == '__main__':
     # 以下是测试代码
     # register = "test"
-    # enter_by_list0('320321197402284830,130281199411220016', 2, 210)
+    # enter_by_list0('320321197402284830,130281199411220016,341222198001217434', 2, 210)
     # 以上是测试代码
     enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 applyID  1 enterID  2 username  argv[3]:classInfo.ID
     print(result)
