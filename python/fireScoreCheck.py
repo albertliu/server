@@ -98,6 +98,8 @@ def enter_by_list0(elist, kindID, refID):
                     # if wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'成绩单')]"))):
                     if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩单')]"):
                         break   # 登录成功，则跳出循环，不再获取验证码
+                    if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩合格电子凭证')]"):
+                        break   # 登录成功，则跳出循环，不再获取验证码
                     # if wait.until(EC.presence_of_element_located((By.XPATH, "//p[contains(text(),'查无成绩')]"))):
                     if driver.find_elements(By.XPATH, "//p[contains(text(),'查无成绩')]"):
                         c = 1
@@ -113,7 +115,7 @@ def enter_by_list0(elist, kindID, refID):
 
             if c == 1:
                 continue
-            if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩单')]"):
+            if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩单')]") or driver.find_elements(By.XPATH, "//div[contains(text(),'成绩合格电子凭证')]"):
                 score1 = ""
                 score2 = ""
                 examDate = ""
@@ -211,7 +213,7 @@ def execSQL(text: str):
 if __name__ == '__main__':
     # 以下是测试代码
     # register = "test"
-    # enter_by_list0('310115198805041918,130281199411220016', 2, 210)
+    enter_by_list0('310106197704300414,130281199411220016', 2, 210)
     # 以上是测试代码
-    enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 applyID  1 enterID  2 username  argv[3]:classInfo.ID
+    # enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 applyID  1 enterID  2 username  argv[3]:classInfo.ID
     print(result)
