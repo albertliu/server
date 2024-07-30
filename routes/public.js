@@ -1099,6 +1099,32 @@ router.post('/diplomaCheckSingle', function (req, res) {
   });
 });
 
+//
+router.post('/fireScoreCheck', function (req, res) {
+  // 配置初始化信息 selList: when kindID:0 applyID  1 enterID  2 username
+  shell.exec('@echo off')
+  // shell.exec('chcp 65001')
+  let url = pyUrl + '/fireScoreCheck.py ' + req.body.selList + ' ' + req.body.kindID + ' ' + req.body.refID + ' ' + req.query.host + ' ' + req.query.register;
+  // console.log("url:", url)
+  shell.exec(url, function (code, stdout, stderr) {
+    // console.log('Exit code:', code);
+    // console.log('Program output:', stdout);    
+    let response = {};
+    try{
+      if(stderr){
+        console.log('Program stderr:', stderr);
+      }
+      response = eval("(" + stdout + ")");  //字符串转为JSON
+    } catch(err){
+      console.log('shell err:', err, "stdout:", stdout, "response:", response);
+      response = {"count_s": 0, "count_e": 0, "err": 1, "errMsg": "访问异常，请稍后重试。"};
+    } finally {
+      return res.send(response);
+    }
+  });
+});
+
+
 //4. 某学校批量将学员退回到提交的合作单位
 router.get('/getScheduleCheckInList', function (req, res, next) {
   sqlstr = "getScheduleCheckInList";
