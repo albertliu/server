@@ -98,6 +98,7 @@ def enter_by_list0(elist, kindID, refID):
                     if driver.find_elements(By.XPATH, "//p[contains(text(),'验证码错误')]"):
                         # 刷新验证码
                         driver.find_elements(By.XPATH, "//img[@class='code']")[0].click()
+                        time.sleep(1)
                         continue  # 如果验证码校验失败，则重新获取验证码
                     # if wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'成绩单')]"))):
                     if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩单')]"):
