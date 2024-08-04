@@ -243,7 +243,7 @@ router.get('/getStudentCourseware', function (req, res, next) {
 
 //11. getStudentExamInfo
 router.get('/getStudentExamInfo', function (req, res, next) {
-  sqlstr = "select *,dbo.getOnlineExamStatus(paperID) as startExamMsg, [dbo].[getMockAllow](enterID) as allowMockMsg from v_studentExamList where paperID=" + req.query.paperID;
+  sqlstr = "select *,dbo.getOnlineExamStatus(paperID) as startExamMsg, [dbo].[getMockAllow](iif(kind=0,refID,0)) as allowMockMsg from v_studentExamList where paperID=" + req.query.paperID;
   params = {};
   //console.log("params:", params);
   db.excuteSQL(sqlstr, params, function (err, data) {
