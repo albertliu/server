@@ -23,7 +23,7 @@ router.get('/getCompanyByHost', function (req, res, next) {
   if (cid == "") {
     cid = "spc";
   }
-  sqlstr = "select hostNo,hostName,logo from v_hostInfo where hostNo='" + cid + "'";
+  sqlstr = "select hostNo, title as hostName,logo from v_hostInfo where hostNo='" + cid + "'";
   params = {};
   db.excuteSQL(sqlstr, params, function (err, data) {
     if (err) {

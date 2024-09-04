@@ -25,7 +25,7 @@ router.get('/', function(req, res, next) {
 
 //1a. getCompanyByHost
 router.get('/getCompanyByHost', function(req, res, next) {
-  sqlstr = "select hostNo, hostName, logo, b.deptID, b.deptName from hostInfo a, deptInfo b where a.hostNo=b.host and b.pID=0 and a.hostNo=@host";
+  sqlstr = "select hostNo, iif(hostNo='spc','危化安全培训系统',a.title) as hostName, logo, b.deptID, b.deptName from hostInfo a, deptInfo b where a.hostNo=b.host and b.pID=0 and a.hostNo=@host";
   let host = req.get('origin').split("//")[1].split(".")[0];
   if(host>""){
     params = {host:host};
