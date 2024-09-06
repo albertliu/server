@@ -6,6 +6,7 @@ import base64
 import cv2
 import os
 import sys
+import tempfile
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver import ActionChains
@@ -19,6 +20,11 @@ from datetime import date
 # 13651648767/P200516@
 # from selenium.webdriver.chrome.service import Service
 # pip install -i https://mirrors.aliyun.com/pypi/simple/ opencv_python  # this is cv2's package
+# 如果临时文件目录不存在，则创建该目录
+new_temp_path = tempfile.gettempdir()
+print(new_temp_path)
+os.makedirs(new_temp_path + "\\2", exist_ok=True)  # 确保目录存在
+
 env_dist = os.environ
 options = webdriver.ChromeOptions()
 options.add_argument('ignore-certificate-errors')

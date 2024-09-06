@@ -121,26 +121,27 @@ def enter_by_list0(elist, kindID, refID):
                 score2 = ""
                 score2a = ""
                 examDate = ""
-                if driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td"):
-                    score1 = driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td")[0].get_attribute('innerText')
-                if driver.find_elements(By.XPATH, "//td[contains(text(), '技能成绩')]/following-sibling::td/span"):
-                    score2a = driver.find_elements(By.XPATH, "//td[contains(text(), '技能成绩')]/following-sibling::td/span")[0].get_attribute('innerText')
-                    ln = score2a.find('(')
-                    if ln > -1:
-                        score2 = score2a[:ln]
-                    else:
-                        score2 = score2a
-                if driver.find_elements(By.XPATH, "//td[contains(text(), '理论考试时间')]/following-sibling::td"):
-                    examDate = driver.find_elements(By.XPATH, "//td[contains(text(), '理论考试时间')]/following-sibling::td")[0].get_attribute('innerText')
-                elif driver.find_elements(By.XPATH, "//td[contains(text(), '评定时间')]/following-sibling::td"):
-                    examDate = driver.find_elements(By.XPATH, "//td[contains(text(), '评定时间')]/following-sibling::td")[0].get_attribute('innerText')
-                # 保存结果
-                result["count_s"] += 1
-                # @enterID int, @date varchar(50), @registerID varchar(50)  删除字符串首尾的空格
-                sql = "exec setFireScoreCheck " + str(row[4]) + ",'" + score1 + "','" + score2 + "', '" + examDate.strip() + "', 'system'"
-                # print(sql)
-                execSQL(sql)
-                time.sleep(1)
+                if (row[5] == "C21" and driver.find_elements(By.XPATH, "//td[contains(text(), '四级/中级工')]")) or ((row[5] == "C20" or row[5] == "C20A") and driver.find_elements(By.XPATH, "//td[contains(text(), '五级/初级工')]")):
+                    if driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td"):
+                        score1 = driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td")[0].get_attribute('innerText')
+                    if driver.find_elements(By.XPATH, "//td[contains(text(), '技能成绩')]/following-sibling::td/span"):
+                        score2a = driver.find_elements(By.XPATH, "//td[contains(text(), '技能成绩')]/following-sibling::td/span")[0].get_attribute('innerText')
+                        ln = score2a.find('(')
+                        if ln > -1:
+                            score2 = score2a[:ln]
+                        else:
+                            score2 = score2a
+                    if driver.find_elements(By.XPATH, "//td[contains(text(), '理论考试时间')]/following-sibling::td"):
+                        examDate = driver.find_elements(By.XPATH, "//td[contains(text(), '理论考试时间')]/following-sibling::td")[0].get_attribute('innerText')
+                    elif driver.find_elements(By.XPATH, "//td[contains(text(), '评定时间')]/following-sibling::td"):
+                        examDate = driver.find_elements(By.XPATH, "//td[contains(text(), '评定时间')]/following-sibling::td")[0].get_attribute('innerText')
+                    # 保存结果
+                    result["count_s"] += 1
+                    # @enterID int, @date varchar(50), @registerID varchar(50)  删除字符串首尾的空格
+                    sql = "exec setFireScoreCheck " + str(row[4]) + ",'" + score1 + "','" + score2 + "', '" + examDate.strip() + "', 'system'"
+                    # print(sql)
+                    execSQL(sql)
+                    time.sleep(1)
             else:
                 pass
 
