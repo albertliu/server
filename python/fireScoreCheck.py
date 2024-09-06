@@ -121,7 +121,7 @@ def enter_by_list0(elist, kindID, refID):
                 score2 = ""
                 score2a = ""
                 examDate = ""
-                if (row[5] == "C21" and driver.find_elements(By.XPATH, "//td[contains(text(), '四级/中级工')]")) or ((row[5] == "C20" or row[5] == "C20A") and driver.find_elements(By.XPATH, "//td[contains(text(), '五级/初级工')]")):
+                if ((row[5] == "C20" or row[5] == "C20A") and driver.find_elements(By.XPATH, "//td[contains(text(), '四级/中级工')]")) or (row[5] == "C21" and driver.find_elements(By.XPATH, "//td[contains(text(), '五级/初级工')]")):
                     if driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td"):
                         score1 = driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td")[0].get_attribute('innerText')
                     if driver.find_elements(By.XPATH, "//td[contains(text(), '技能成绩')]/following-sibling::td/span"):
