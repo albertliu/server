@@ -1383,6 +1383,7 @@ router.get('/generate_fireman_zip', function (req, res, next) {
     filename = path.replace("users/", "/");
     let p = [];
     let t = [];
+    let f = [];
     sqlstr = "select * from v_firemanEnterInfo where enterID=@enterID";   //获取指定招生批次下的已确认名单
     params = { enterID: req.query.enterID };
     db.excuteSQL(sqlstr, params, function (err, data1) {
@@ -1404,12 +1405,15 @@ router.get('/generate_fireman_zip', function (req, res, next) {
         p.push("users" + data1.recordset[0]["materials1"]);
       }
       t.push("");
+      f.push("");
       p.push('users/upload/projects/ref/消防行业职业技能鉴定考生报名指导手册.docx');
       t.push("");
+      f.push("");
       p.push('users/upload/projects/ref/消防行业职业技能鉴定考生报名过程演示.mp4');
       t.push("");
+      f.push("");
       //zip.doZIP([path,path1,'users/upload/projects/ref/消防行业职业技能鉴定考生报名指导手册.docx','users/upload/projects/ref/消防行业职业技能鉴定考生报名过程演示.mp4'],path2);
-      zip.doZIP(p, path, t);
+      zip.doZIP(p, path, t, f);
     });
     //console.log('the path:',path);
     //return publish file path
@@ -1567,13 +1571,14 @@ router.get('/generate_material_zip', function (req, res, next) {
       if(data1.recordset.length > 0){
         let p = [];
         let t = [];
+        let f = [];
         for (var i in data1.recordset) {
           p.push("users" + data1.recordset[i]["file1"]);
           t.push("");
+          f.push("");
         }
         //console.log("p", p);
-        zip.doZIP(p, path, t);
-        p = [];
+        zip.doZIP(p, path, t, f);
 
         sqlstr = "updateMaterialZip";
         params = { refID: req.query.refID, kind:req.query.kind, type:req.query.type, zip: filename };
