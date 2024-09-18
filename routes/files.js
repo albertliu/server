@@ -1634,7 +1634,7 @@ router.get('/generate_student_material_zip', function (req, res, next) {
             j += 1;
             SNo = data1.recordset[i]["SNo"];
           }
-          t.push(j + data1.recordset[i]["name"] + "_" + data1.recordset[i]["item"]);
+          t.push(j + data1.recordset[i]["name"] + "_" + data1.recordset[i]["ID"] + data1.recordset[i]["item"]);
         }
         // console.log("t", t);
         zip.doZIP(p, path, t);
