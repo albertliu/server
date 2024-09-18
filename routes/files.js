@@ -1626,6 +1626,7 @@ router.get('/generate_student_material_zip', function (req, res, next) {
       if(data1.recordset.length > 0){
         let p = [];
         let t = [];
+        let f = [];
         let SNo = "";
         let j = 0;
         for (var i in data1.recordset) {
@@ -1634,10 +1635,11 @@ router.get('/generate_student_material_zip', function (req, res, next) {
             j += 1;
             SNo = data1.recordset[i]["SNo"];
           }
-          t.push(j + data1.recordset[i]["name"] + "_" + data1.recordset[i]["ID"] + data1.recordset[i]["item"]);
+          t.push(data1.recordset[i]["name"] + "_" + data1.recordset[i]["ID"] + data1.recordset[i]["item"]);
+          f.push(j);
         }
         // console.log("t", t);
-        zip.doZIP(p, path, t);
+        zip.doZIP(p, path, t, f);
         sqlstr = "updateMaterialZip";
         params = { refID: req.query.refID, kind:req.query.kind, type:req.query.type, zip: filename };
         //console.log(params);
