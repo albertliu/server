@@ -636,12 +636,12 @@ def enter_by_list9(elist, classID, courseName, reex):
             name_input = driver.find_elements(By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//input[@type='file']")[0]
             time.sleep(5)
             name_input.send_keys(p)
-            time.sleep(3)
+            time.sleep(5)
             # print(2)
             # 确定按钮
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确 认')]/..")))
             name_input.click()
-            time.sleep(1)
+            time.sleep(3)
             # print(3)
 
             # 保存结果

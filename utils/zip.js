@@ -31,14 +31,21 @@ function readDir(obj, nowPath) {
 }
 
 //开始压缩文件:fList=["upload/photos/12.png","upload/photos/13.png"], target="temp/111.zip"
+//newTrail: 修改文件名，在原文件名后面添加字符_newTrail
 const zip ={
     //data: json格式 {name1:"value1", name2:"value2"}
     //fileSource: 带路径的word模板文件名，占位符{name1}，将由data中的变量值替换
-    async doZIP(fList,target) {
+    async doZIP(fList,target,newTrail) {
         //添加文件到目标
         const zips = new JSZIP();
         for (var i in fList){
-            zips.file(path.basename(fList[i]), fs.readFileSync(fList[i]));
+            let fn = fList[i];
+            let fn1 = fn;
+            const ext = path.extname(fn);
+            if(newTrail[i]>''){
+                fn1 = fn.replace(ext,'') + '_' + newTrail[i] + ext;
+            }
+            zips.file(path.basename(fn1), fs.readFileSync(fn));
         }
         zips.generateAsync({//设置压缩格式，开始打包
             type: "nodebuffer",//nodejs用

@@ -1381,7 +1381,8 @@ router.get('/generate_fireman_zip', function (req, res, next) {
   if (req.query.enterID > 0) {
     let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '.zip';
     filename = path.replace("users/", "/");
-    var p = [];
+    let p = [];
+    let t = [];
     sqlstr = "select * from v_firemanEnterInfo where enterID=@enterID";   //获取指定招生批次下的已确认名单
     params = { enterID: req.query.enterID };
     db.excuteSQL(sqlstr, params, function (err, data1) {
@@ -1402,10 +1403,13 @@ router.get('/generate_fireman_zip', function (req, res, next) {
       if (data1.recordset[0]["materials1"] > "") {
         p.push("users" + data1.recordset[0]["materials1"]);
       }
+      t.push("");
       p.push('users/upload/projects/ref/消防行业职业技能鉴定考生报名指导手册.docx');
+      t.push("");
       p.push('users/upload/projects/ref/消防行业职业技能鉴定考生报名过程演示.mp4');
+      t.push("");
       //zip.doZIP([path,path1,'users/upload/projects/ref/消防行业职业技能鉴定考生报名指导手册.docx','users/upload/projects/ref/消防行业职业技能鉴定考生报名过程演示.mp4'],path2);
-      zip.doZIP(p, path);
+      zip.doZIP(p, path, t);
     });
     //console.log('the path:',path);
     //return publish file path
@@ -1562,11 +1566,13 @@ router.get('/generate_material_zip', function (req, res, next) {
 
       if(data1.recordset.length > 0){
         let p = [];
+        let t = [];
         for (var i in data1.recordset) {
           p.push("users" + data1.recordset[i]["file1"]);
+          t.push("");
         }
         //console.log("p", p);
-        zip.doZIP(p, path);
+        zip.doZIP(p, path, t);
         p = [];
 
         sqlstr = "updateMaterialZip";
@@ -1589,6 +1595,60 @@ router.get('/generate_material_zip', function (req, res, next) {
     });
   } else {
     response = [];
+    return res.send(response);
+  }
+});
+
+//22e. generate_student_material_zip
+//kind: class - classID; apply - apply.ID
+//获取班级里每个学员的所有材料，并打包。文件名重命名：身份证号码_类型（120109xxxx_照片.jpg）
+//status: 0 成功  9 其他  msg, filename
+router.get('/generate_student_material_zip', function (req, res, next) {
+  let filename = "";
+  response = [];
+  if (req.query.refID > "") {
+    let path = 'users/upload/students/temp/student_material_' + req.query.kind + '_' + req.query.refID + '.zip';
+    filename = path.replace("users/", "/");
+    
+    if(req.query.kind=="class"){
+      sqlstr = "select a.SNo,a.username,d.name,c.filename,b.ID,b.item from studentCourseList a, dictionaryDoc b, studentMaterials c, studentInfo d where a.username=c.username and b.ID=c.kindID and a.username=d.username and a.classID=@ID and b.kind='material' order by a.SNo, b.ID";
+    }else{
+      sqlstr = "select a.SNo,a.username,d.name,c.filename,b.ID,b.item from studentCourseList a, dictionaryDoc b, studentMaterials c, studentInfo d, applyInfo e where a.ID=e.enterID and a.username=c.username and b.ID=c.kindID and a.username=d.username and e.refID=@ID and b.kind='material' order by a.SNo, b.ID";
+    }
+    
+    params = { ID: req.query.refID };
+    db.excuteSQL(sqlstr, params, function (err, data1) {
+      if (err) {
+        console.log(err);
+        return res.send(response);
+      }
+
+      if(data1.recordset.length > 0){
+        let p = [];
+        let t = [];
+        for (var i in data1.recordset) {
+          p.push("users" + data1.recordset[i]["filename"]);
+          t.push(data1.recordset[i]["SNo"] + data1.recordset[i]["name"]);
+        }
+        //console.log("p", p);
+        zip.doZIP(p, path, t);
+        sqlstr = "updateMaterialZip";
+        params = { refID: req.query.refID, kind:req.query.kind, type:req.query.type, zip: filename };
+        //console.log(params);
+        //generate diploma data
+        db.excuteProc(sqlstr, params, function (err, data) {
+          if (err) {
+            console.log(err);
+            return res.send(response);
+          }
+          response = [filename];
+          return res.send(response);
+        });
+      }else {
+        return res.send(response);
+      }
+    });
+  } else {
     return res.send(response);
   }
 });
