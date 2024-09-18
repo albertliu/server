@@ -1628,7 +1628,7 @@ router.get('/generate_student_material_zip', function (req, res, next) {
         let t = [];
         for (var i in data1.recordset) {
           p.push("users" + data1.recordset[i]["filename"]);
-          t.push(data1.recordset[i]["SNo"] + data1.recordset[i]["name"]);
+          t.push(data1.recordset[i]["SNo"] + data1.recordset[i]["name"] + "_" + data1.recordset[i]["item"]);
         }
         //console.log("p", p);
         zip.doZIP(p, path, t);

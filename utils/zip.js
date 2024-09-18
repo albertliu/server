@@ -43,7 +43,7 @@ const zip ={
             let fn1 = fn;
             const ext = path.extname(fn);
             if(newTrail[i]>''){
-                fn1 = fn.replace(ext,'') + '_' + newTrail[i] + ext;
+                fn1 = newTrail[i] + '_' + fn.replace(ext,'') + ext;
             }
             zips.file(path.basename(fn1), fs.readFileSync(fn));
         }
