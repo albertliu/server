@@ -1630,7 +1630,7 @@ router.get('/generate_student_material_zip', function (req, res, next) {
           p.push("users" + data1.recordset[i]["filename"]);
           t.push(data1.recordset[i]["SNo"] + data1.recordset[i]["name"] + "_" + data1.recordset[i]["item"]);
         }
-        //console.log("p", p);
+        // console.log("t", t);
         zip.doZIP(p, path, t);
         sqlstr = "updateMaterialZip";
         params = { refID: req.query.refID, kind:req.query.kind, type:req.query.type, zip: filename };

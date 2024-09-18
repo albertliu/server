@@ -43,9 +43,9 @@ const zip ={
             let fn1 = fn;
             const ext = path.extname(fn);
             if(newTrail[i]>''){
-                fn1 = newTrail[i] + '_' + fn.replace(ext,'') + ext;
+                fn1 = newTrail[i] + '_' + path.basename(fn).replace(ext,'') + ext;
             }
-            zips.file(path.basename(fn1), fs.readFileSync(fn));
+            zips.file(fn1, fs.readFileSync(fn));
         }
         zips.generateAsync({//设置压缩格式，开始打包
             type: "nodebuffer",//nodejs用
