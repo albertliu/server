@@ -22,7 +22,7 @@ from datetime import date
 # pip install -i https://mirrors.aliyun.com/pypi/simple/ opencv_python  # this is cv2's package
 # 如果临时文件目录不存在，则创建该目录
 new_temp_path = tempfile.gettempdir()
-print(new_temp_path)
+# print(new_temp_path)
 os.makedirs(new_temp_path + "\\2", exist_ok=True)  # 确保目录存在
 
 env_dist = os.environ
@@ -546,7 +546,9 @@ def enter_by_list8(elist, classID, courseName, reex):
             # 确定按钮
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确 认')]/..")))
             name_input.click()
-            time.sleep(3)
+            while name_input.is_displayed() and name_input.is_enabled():    # 等待确认按钮消失
+                pass
+            # time.sleep(3)
             # print(3)
 
             # 保存结果
@@ -557,7 +559,7 @@ def enter_by_list8(elist, classID, courseName, reex):
             time.sleep(1)
 
         except Exception as e:
-            print("exceptZ:", e)
+            # print("exceptZ:", e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
             pass
@@ -641,7 +643,9 @@ def enter_by_list9(elist, classID, courseName, reex):
             # 确定按钮
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确 认')]/..")))
             name_input.click()
-            time.sleep(5)
+            while name_input.is_displayed() and name_input.is_enabled():    # 等待确认按钮消失
+                pass
+            # time.sleep(5)
             # print(3)
 
             # 保存结果
