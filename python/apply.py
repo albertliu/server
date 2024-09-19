@@ -546,7 +546,7 @@ def enter_by_list8(elist, classID, courseName, reex):
             # 确定按钮
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确 认')]/..")))
             name_input.click()
-            time.sleep(1)
+            time.sleep(3)
             # print(3)
 
             # 保存结果
@@ -641,7 +641,7 @@ def enter_by_list9(elist, classID, courseName, reex):
             # 确定按钮
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确 认')]/..")))
             name_input.click()
-            time.sleep(3)
+            time.sleep(5)
             # print(3)
 
             # 保存结果

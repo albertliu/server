@@ -41,7 +41,7 @@ const zip ={
         const zips = new JSZIP();
         for (var i in fList){
             let fn = fList[i];
-            let fn1 = fn;
+            let fn1 = path.basename(fn);
             const ext = path.extname(fn);
             if(newTrail[i]>''){
                 fn1 = newTrail[i] + '_' + path.basename(fn).replace(ext,'') + ext;
