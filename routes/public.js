@@ -260,7 +260,7 @@ router.get('/getRptList', function(req, res) {
       break;
     case "payInvoice":
       sqlstr = "getPayInvoiceRpt";
-      params = { host: req.query.host, startDate: req.query.startDate, endDate: req.query.endDate, startDate1: req.query.startDate1, endDate1: req.query.endDate1, autoPay: req.query.autoPay, autoInvoice: req.query.autoInvoice };
+      params = { host: req.query.host, startDate: req.query.startDate, endDate: req.query.endDate, startDate1: req.query.startDate1, endDate1: req.query.endDate1, autoPay: req.query.autoPay, autoInvoice: req.query.autoInvoice, receivable: req.query.receivable };
       break;
     case "student":
       sqlstr = "p_rptStudentRegister";
