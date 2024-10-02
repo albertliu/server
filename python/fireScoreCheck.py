@@ -142,6 +142,10 @@ def enter_by_list0(elist, kindID, refID):
                     # print(sql)
                     execSQL(sql)
                     time.sleep(1)
+                else:
+                    result["count_s"] += 1
+                    # @enterID int, @date varchar(50), @registerID varchar(50)  删除字符串首尾的空格
+                    sql = "exec setFireScoreCheck " + str(row[4]) + ",'','', '', 'system'"
             else:
                 pass
 
