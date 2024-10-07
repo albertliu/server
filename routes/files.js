@@ -1438,7 +1438,7 @@ router.get('/generate_fireman_zip', function (req, res, next) {
 });
 
 //22d. generate_emergency_materials
-//status: 0 成功  9 其他  msg, emergency item  keyID: 2 归档资料  3 报名表
+//status: 0 成功  9 其他  msg, emergency item  keyID: 2 归档资料  5 报名表
 router.get('/generate_emergency_materials', function (req, res, next) {
   let filename2 = "";
   let filename1 = "";
@@ -1463,7 +1463,7 @@ router.get('/generate_emergency_materials', function (req, res, next) {
     path = 'users/upload/students/firemanMaterials/' + req.query.refID + '_' + req.query.nodeID + '报名表.jpg';
     filename2 = path.replace("users/", "/");
     // pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
-    shotimg.genImg(sqlstr, path, 80);
+    shotimg.genImg(sqlstr, path, 700, 800);
 
     //return publish file path
     sqlstr = "updateEnterMaterials";
@@ -1486,11 +1486,11 @@ router.get('/generate_emergency_materials', function (req, res, next) {
 });
 
 //22d. generate_emergency_exam_materials_byclass
-//同时一个班级的归档/报名表 keyID: 2/3
+//同时一个班级的归档/报名表 keyID: 2/5
 //status: 0 成功  9 其他  msg, emergency item
 router.post('/generate_emergency_exam_materials_byclass', function (req, res, next) {
   let path = "";
-  let f = ['','','班级归档资料.pdf','报名表.jpg']
+  let f = ['','','班级归档资料.pdf','','','报名表.jpg']
   let keyID = req.query.keyID;
 
   // sqlstr = "select ID,name,username,enterID,entryform from v_applyInfo where refID=@refID and signature>'' order by ID";   //获取指定申报下的有签名的名单
@@ -1510,13 +1510,13 @@ router.post('/generate_emergency_exam_materials_byclass', function (req, res, ne
       response = [dat.length];
       for (var i in dat) {
         //班级归档资料
-        sqlstr = env + "/entryform_" + dat[i]["entryform"] + ".asp?public=1&nodeID=" + dat[i]["enterID"] + "&refID=" + dat[i]["username"] + "&host=" + req.query.host + "&keyID=";
+        sqlstr = env + "/entryform_" + dat[i]["entryform"] + ".asp?public=1&nodeID=" + dat[i]["enterID"] + "&refID=" + dat[i]["username"] + "&host=" + req.query.host + "&kindID=" + req.query.kindID + "&status=" + req.query.refID + "&keyID=";
         path = 'users/upload/students/firemanMaterials/' + dat[i]["ID"] + '_' + dat[i]["name"] + '_' + dat[i]["username"];
         if(keyID==2){ //班级存档资料\考站资料生成pdf文件
           await pdf.genPDF([sqlstr + keyID], [path + f[keyID]], '210mm', '290mm', '', false, 1, false);
         }
-        if(keyID==3){ //申报资料生成jpg文件
-          await shotimg.genImg(sqlstr + keyID, path + f[keyID], 50);
+        if(keyID==5){ //申报资料生成jpg文件
+          await shotimg.genImg(sqlstr + keyID, path + f[keyID], (req.query.kindID==0?2160:2800), 1020);
         }
       }
       // console.log("len:", response);
@@ -1680,12 +1680,44 @@ router.get('/get_entryform_shot', async function (req, res, next) {
     // res.send(img);
     let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '报名表.jpg';
     let filename = path.replace("users/", "/");
-    shotimg.genImg(sqlstr, path, 80);
+    shotimg.genImg(sqlstr, path, 700, 800);
 
     //return publish file path
     sqlstr = "updateEnterMaterials";
     //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
     params = { enterID: req.query.nodeID, filename1: "", filename2: "", filename3: "", filename4: filename };
+    //generate diploma data
+    db.excuteProc(sqlstr, params, function (err, data) {
+      if (err) {
+        console.log(err);
+        response = [];
+        return res.send(response);
+      }
+      response = [filename];
+      return res.send(response);
+    });
+  } else {
+    response = [];
+    return res.send(response);
+  }
+});
+
+//get_trainProof_shot 获取机构培训证明的图片buffer(base64)
+//status: 0 成功  9 其他  msg, filename
+router.get('/get_trainProof_shot', async function (req, res, next) {
+  if (req.query.nodeID > 0) {
+    sqlstr = env + "/trainingProofUnit.asp?public=1&nodeID=" + req.query.nodeID + "&keyID=0";
+    console.log("str:", sqlstr);
+    // let img = await shotimg.genImg(sqlstr, "", 50);
+    // res.send(img);
+    let path = 'users/upload/students/trainingProof/unit' + req.query.nodeID + '.png';
+    let filename = path.replace("users/", "/");
+    shotimg.genImg(sqlstr, path, 700, 800);
+
+    //return publish file path
+    sqlstr = "updateTrainingProof";
+    //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
+    params = { classID: req.query.nodeID, filename: filename };
     //generate diploma data
     db.excuteProc(sqlstr, params, function (err, data) {
       if (err) {

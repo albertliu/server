@@ -262,6 +262,10 @@ router.get('/getRptList', function(req, res) {
       sqlstr = "getPayInvoiceRpt";
       params = { host: req.query.host, startDate: req.query.startDate, endDate: req.query.endDate, startDate1: req.query.startDate1, endDate1: req.query.endDate1, autoPay: req.query.autoPay, autoInvoice: req.query.autoInvoice, receivable: req.query.receivable };
       break;
+    case "dailyTotal":
+      sqlstr = "getDailyRptTotal";
+      params = { host: req.query.host, startDate: req.query.startDate, mark: req.query.mark};
+      break;
     case "student":
       sqlstr = "p_rptStudentRegister";
       //@host varchar(50),@startDate varchar(50),@endDate varchar(50),@kindID varchar(20),@groupHost int,@groupDept1 int,@groupKindID int,@groupDate
@@ -1168,6 +1172,38 @@ router.get('/getTrainingProofInfo', function (req, res, next) {
       return res.send({ "status": 9, "msg": "操作失败。" });
     }
     let response = data.recordset[0];
+    // console.log(response);
+    return res.send(response);
+  });
+});
+
+//4. 培训证明（机构版）
+router.get('/getUnitTrainingProofInfo', function (req, res, next) {
+  sqlstr = "getUnitTrainingProofInfo";
+  params = { classID:req.query.classID };
+  // console.log(params);
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      return res.send({ "status": 9, "msg": "操作失败。" });
+    }
+    let response = data.recordset[0];
+    // console.log(response);
+    return res.send(response);
+  });
+});
+
+//4. comm proc whit params, return josn data
+router.post('/postCommInfo', function (req, res, next) {
+  sqlstr = req.body.proc;
+  params = req.body.params;
+  // console.log(params);
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      return res.send({ "status": 9, "msg": "操作失败。" });
+    }
+    let response = data.recordset;
     // console.log(response);
     return res.send(response);
   });

@@ -22,50 +22,33 @@ const puppeteer = require('puppeteer');
     });
   }
 const shotImg = {
-  async genImg(pdf_string, path, s) {
-      const browser = await puppeteer.launch({
-        args: ['--no-sandbox', '--start-maximized'],
+  async genImg(pdf_string, path, w, h) {
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--start-maximized'],
+    });
+    const page = await browser.newPage();
+    try {
+      // 设置浏览器视窗
+      await page.setViewport({
+        width: w || 2160,
+        height: h || 1020
+      })
+      await page.goto(pdf_string, {
+        waitUntil: 'networkidle2',  //networkidle0：页面加载后不存在 0 个以上的资源请求，这种状态持续至少 500 ms; networkidle2：页面加载后不存在 2 个以上的资源请求，这种状态持续至少 500 ms。
+        timeout: 60000  //最长的加载时间60s
+      });//默认30秒超时，见文档
+      await autoScroll(page);
+      await page.screenshot({
+        path: path,  //保存路径（带文件名），可以根据扩展名自动判断图片格式。如果路径为空，则返回buffer
+        fullPage: true, //支持页面滚动到最后。
+        omitBackground: true
       });
-      const page = await browser.newPage();
-      try {
-        // 设置浏览器视窗
-        await page.setViewport({
-          width: 2160,
-          height: 1020
-        })
-        await page.goto(pdf_string, {
-          waitUntil: 'networkidle2',  //networkidle0：页面加载后不存在 0 个以上的资源请求，这种状态持续至少 500 ms; networkidle2：页面加载后不存在 2 个以上的资源请求，这种状态持续至少 500 ms。
-          timeout: 60000  //最长的加载时间60s
-        });//默认30秒超时，见文档
-        // await page.content();
-        // const base64 = await page.screenshot({
-        //   //path: 'views/hn.jpg',
-        //   path: path,  //保存路径（带文件名），可以根据扩展名自动判断图片格式。如果路径为空，则返回buffer
-        //   type: 'jpeg',  //图片格式，jpeg,png. 默认png。
-        //   quality: s, //图片质量 0-100. png格式不可用。
-        //   fullPage: true, //支持页面滚动到最后。
-        //   omitBackground: false,  //将白色背景设为透明。默认false(不透明)
-        //   encoding: "base64"  //编码类型 base64, binary(默认)
-        // });
-        // // console.log("shot base64:", base64.substr(0,100));
-        // await browser.close(); //关闭   
-        // // const img = new Buffer.from(base64, "base64");
-        // return ("data:image/png;base64," + base64);
-        await autoScroll(page);
-        await page.screenshot({
-          path: path,  //保存路径（带文件名），可以根据扩展名自动判断图片格式。如果路径为空，则返回buffer
-          type: 'jpeg',
-          quality: s,
-          fromSurface: false,
-          omitBackground: false,
-          fullPage: true //支持页面滚动到最后。
-        });
-        await browser.close(); //关闭 
-      } catch (err) {
-        await browser.close(); //关闭
-        console.log("shot err:", err);
-      }
-  }
+      await browser.close(); //关闭 
+    } catch (err) {
+      await browser.close(); //关闭
+      console.log("shot err:", err);
+    }
+}
 
 }
 
