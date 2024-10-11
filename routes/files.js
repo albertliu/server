@@ -1445,25 +1445,25 @@ router.get('/generate_emergency_materials', function (req, res, next) {
   let path = "";
   if (req.query.nodeID > 0) {
     //publish diploma on A4 with pdf
-    let certID = req.query.certID;
-    if(certID=="C16" || certID=="C17"){
-      certID = "C16";
-    }
-    if(certID=="C12" || certID=="C15" || certID=="C24" || certID=="C25" || certID=="C26" || certID == "C27"){
-      certID = "C12";
-    }
+    // let certID = req.query.certID;
+    // if(certID=="C16" || certID=="C17"){
+    //   certID = "C16";
+    // }
+    // if(certID=="C12" || certID=="C15" || certID=="C24" || certID=="C25" || certID=="C26" || certID == "C27"){
+    //   certID = "C12";
+    // }
     //申报材料
-    sqlstr = env + "/entryform_" + certID + ".asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + req.query.refID + "&keyID=" + req.query.keyID;
+    sqlstr = env + "/entryform_" + req.query.entryForm + ".asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + req.query.refID + "&keyID=" + req.query.keyID;
     path = 'users/upload/students/firemanMaterials/' + req.query.refID + '_' + req.query.nodeID + '报名材料.pdf';
     filename1 = path.replace("users/", "/");
     pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
 
     //报名表
-    sqlstr = env + "/entryform_" + certID + ".asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + req.query.refID + "&keyID=3";
+    sqlstr = env + "/entryform_" + req.query.entryForm + ".asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + req.query.refID + "&keyID=5";
     path = 'users/upload/students/firemanMaterials/' + req.query.refID + '_' + req.query.nodeID + '报名表.jpg';
     filename2 = path.replace("users/", "/");
     // pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
-    shotimg.genImg(sqlstr, path, 700, 800);
+    shotimg.genImg(sqlstr, path, 2160, 1020);
 
     //return publish file path
     sqlstr = "updateEnterMaterials";
