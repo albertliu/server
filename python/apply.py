@@ -170,8 +170,7 @@ def enter_by_list0(elist, kind):
     for row in rs:
         try:
             if row[2] == "":    # if no education item, pass
-                name_input = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@role='dialog']//div[@class='el-message-box__message']/p")))
-                sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：" + name_input.text + "'"
+                sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：缺少学历信息'"
                 execSQL(sql)
                 d_list.remove(str(row[13]))     # 从列表中删除失败数据
                 continue
@@ -312,8 +311,7 @@ def enter_by_list1(elist):
     for row in rs:
         try:
             if row[2] == "":    # if no education item, pass
-                name_input = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@role='dialog']//div[@class='el-message-box__message']/p")))
-                sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：" + name_input.text + "'"
+                sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：缺少学历信息'"
                 execSQL(sql)
                 d_list.remove(str(row[13]))     # 从列表中删除失败数据
                 continue
