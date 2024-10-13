@@ -562,7 +562,14 @@ def enter_by_list8(elist, classID, courseName, reex):
             # print("exceptZ:", e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
-            pass
+            try:
+                # 如果发生错误，可能是弹窗未关闭，先尝试关闭
+                name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@class='el-dialog__headerbtn',@aria-label='Close']/i/..")))
+                name_input.click()
+                while name_input.is_displayed() and name_input.is_enabled():    # 等待确认按钮消失
+                    pass
+            except Exception:
+                pass
 
     # 关闭数据库
     cursor.close()
@@ -659,7 +666,14 @@ def enter_by_list9(elist, classID, courseName, reex):
             # print("exceptZ:", e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
-            pass
+            try:
+                # 如果发生错误，可能是弹窗未关闭，先尝试关闭
+                name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@class='el-dialog__headerbtn',@aria-label='Close']/i/..")))
+                name_input.click()
+                while name_input.is_displayed() and name_input.is_enabled():    # 等待确认按钮消失
+                    pass
+            except Exception:
+                pass
 
     # 关闭数据库
     cursor.close()
