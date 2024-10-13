@@ -169,9 +169,12 @@ def enter_by_list0(elist, kind):
     # print(len(rs))
     for row in rs:
         try:
-            # print(row)  # 输出结果
-            # input = wait.until(EC.presence_of_element_located((By.CLASS_NAME,'nav-search-input')))
-            # button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME,'nav-search-btn')))
+            if row[2] == "":    # if no education item, pass
+                name_input = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@role='dialog']//div[@class='el-message-box__message']/p")))
+                sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：" + name_input.text + "'"
+                execSQL(sql)
+                d_list.remove(str(row[13]))     # 从列表中删除失败数据
+                continue
             # 查找身份证
             # 身份证输入框
             username_input = wait.until(EC.presence_of_element_located((By.XPATH, "//input[contains(@placeholder, '请输入证件号码')]")))  
@@ -308,6 +311,12 @@ def enter_by_list1(elist):
     # print(len(rs))
     for row in rs:
         try:
+            if row[2] == "":    # if no education item, pass
+                name_input = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@role='dialog']//div[@class='el-message-box__message']/p")))
+                sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：" + name_input.text + "'"
+                execSQL(sql)
+                d_list.remove(str(row[13]))     # 从列表中删除失败数据
+                continue
             # 姓名输入框
             username_input = wait.until(EC.presence_of_element_located((By.XPATH, "//input[contains(@placeholder, '请输入姓名')]")))
             clean_send(username_input, row[0])
