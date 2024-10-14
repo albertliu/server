@@ -576,7 +576,9 @@ def enter_by_list8(elist, classID, courseName, reex):
                 while name_input.is_displayed() and name_input.is_enabled():    # 等待确认按钮消失
                     pass
             except Exception:
-                pass
+                result["err"] = 1
+                result["errMsg"] = "安监系统超时退出"
+                break
 
     # 关闭数据库
     cursor.close()
@@ -680,7 +682,9 @@ def enter_by_list9(elist, classID, courseName, reex):
                 while name_input.is_displayed() and name_input.is_enabled():    # 等待确认按钮消失
                     pass
             except Exception:
-                pass
+                result["err"] = 1
+                result["errMsg"] = "安监系统超时退出"
+                break
 
     # 关闭数据库
     cursor.close()
