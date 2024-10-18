@@ -473,6 +473,109 @@ def enter_by_list1(elist):
     return result
 
 
+def enter_by_list7(adviser, classID, courseName, reex):
+    # 根据指定开班编号（applyID)上传课程表。
+    # 获取名单完整信息
+    cursor = conn.cursor()  # 使用cursor()方法获取操作游标
+    sql = "exec getClassScheduleList '" + classID + "'"  # 数据库查询语句
+    cursor.execute(sql)  # 执行sql语句
+
+    # 开班管理菜单
+    # if len(driver.find_elements(By.XPATH, "//li[contains(text(),'班级管理')]")) == 0:
+    driver.find_elements(By.XPATH, "//span[contains(text(),'开班管理')]")[0].click()  # 点击开班管理菜单
+    time.sleep(1)
+    # else:
+    # driver.find_elements(By.XPATH, "//li[contains(text(),'班级管理')]")[0].click()  # 点击班级管理菜单
+    name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//li[contains(text(),'班级管理')]")))
+    name_input.click()
+    time.sleep(1)
+    # 选择课程
+    # 点击下拉框
+    name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'资格类型')]/following-sibling::div//input[contains(@placeholder, '查询全部')]")[0].click()
+    time.sleep(1)
+    # 点击符合要求的项目
+    name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li[contains(text(),'" + courseName + "')]")))
+    name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li[contains(text(),'" + courseName + "')]")[0].click()
+    time.sleep(1)
+    # 选择类型
+    # 点击下拉框
+    name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//form[@class='el-form']//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")))
+    name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
+    time.sleep(1)
+    # 点击符合要求的类型
+    name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + reex + "')]")[0].click()
+    # 开班编号
+    name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'开班编号:')]/following-sibling::div/div//input")[0]
+    clean_send(name_input, classID)
+    # 查找按钮
+    search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '查询')]/..")[0]
+    search_btn.click()
+    time.sleep(1)
+    # wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'" + classID + "')]")))
+    driver.find_elements(By.XPATH, "//div[contains(text(),'" + classID + "')]")[0].click()  # 点击班级记录
+    # 考核申请材料上传
+    search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '修改课程安排')]/..")[0]
+    search_btn.click()
+    time.sleep(1)
+    wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(), '班级培训负责人')]")))
+    # 添加班主任
+    name_input = driver.find_element(By.XPATH, "//label[contains(text(), '班级培训负责人')]/../following-sibling::div//input[@class='el-input__inner']")
+    clean_send(name_input, adviser)
+
+    rs = cursor.fetchall()
+    # print(len(rs))
+    _no = 0
+    _form = []
+    _i = 0
+    for row in rs:
+        try:
+            _form = driver.find_elements(By.XPATH, "//form[@class='el-form demo-form-inline el-form--inline']")
+            # 是否有空行
+            if row[2] == 0:   # 上午
+                _i = 0
+                _no += 1
+                if len(_form) < _no:  # 需要添加行
+                    search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '新 增')]")[0]
+                    search_btn.click()
+                    time.sleep(1)
+                    _form = driver.find_elements(By.XPATH, "//form[@class='el-form demo-form-inline el-form--inline']")
+                # 添加日期
+                name_input = _form[_no-1].find_elements(By.XPATH, "//input[@class='el-input__inner']")
+                clean_send(name_input[(_no-1)*5+1], row[1])
+            else:
+                _i = 1
+            # 添加课程
+            name_input = _form[_no-1].find_elements(By.XPATH, "//input[@class='el-input__inner']")
+            # name_input[(_no-1)*5 + _i*2 + 2].send_keys(row[3])
+            clean_send(name_input[(_no-1)*5 + _i*2 + 2], row[3])
+            # 添加授课人
+            # name_input[(_no-1)*5 + _i*2 + 3].send_keys(row[4])
+            clean_send(name_input[(_no-1)*5 + _i*2 + 3], row[4])
+
+        except Exception as e:
+            # print("exceptZ:", e)
+            # result["err"] = 1
+            # result["errMsg"] = "action failed"
+            break
+
+    if _no > 0:
+        search_btn = driver.find_element(By.XPATH, "//button/span[contains(text(), '保存')]/..")
+        search_btn.click()
+        # 提交成功，确定按钮
+        name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
+        name_input.click()
+        result["count_s"] = _no
+        sql = "exec setUploadSchedule '" + classID + "','system.'"  # 记录上传日志
+        cursor.execute(sql)  # 执行sql语句
+        d_list.remove(adviser[0])     # 从列表中删除已成功数据
+    # 关闭数据库
+    cursor.close()
+    # conn.close()
+    # print("window:", driver.window_handles)
+    # driver.quit()
+    return result
+
+
 def enter_by_list8(elist, classID, courseName, reex):
     # 根据指定开班编号及名单（enterID list)上传照片。
     # 获取名单完整信息
@@ -831,18 +934,19 @@ def execSQL(text: str):
 
 if __name__ == '__main__':
     # 以下是测试代码
-    # username = "13651648767"
+    username = "13651648767"
     # password = "Pqf1823797198"
-    # register = "test"
-    # d_list = '7300'.split(',')    # 需要处理的数据列表
+    # register = "desk."
+    # d_list = '张三'.split(',')    # 需要处理的数据列表
     # # courseName = "危险化学品经营单位安全生产管理人员"  # 课程名称
     # courseName = "低压电工作业"  # 课程名称
     # kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
     # if login_fr() == 0:
     #     i = 0
     #     while len(d_list) > 0:
-    #         enter_by_list0(d_list, kind)
+    #         # enter_by_list0(d_list, kind)
     #         # enter_by_list1(d_list)
+    #         enter_by_list7(d_list, '0110202410209', '熔化焊接与热切割作业', '复审')
     #         # enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
@@ -878,6 +982,8 @@ if __name__ == '__main__':
                     enter_by_list0(d_list, kind)
                 if reexamine == '1':
                     enter_by_list1(d_list)
+                if reexamine == '7':    # 上传课表
+                    enter_by_list7(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
                 if reexamine == '8':    # 上传照片
                     # 5:classID, 6:courseName, 7:reex（初训,复训,初训补考,复训补考）
                     enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
