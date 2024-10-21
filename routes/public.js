@@ -866,8 +866,8 @@ router.post('/send_message_submit_attention_close', function(req, res, next) {
 router.post('/checkReceiveList', function(req, res, next) {
     let ec = 0;
     sqlstr = "checkReceiveList";
-    params = {selList: req.body.selList, registerID: req.body.registerID };
-    //console.log(params);
+    params = {selList: req.body.selList, theDate: req.body.theDate, registerID: req.body.registerID };
+    console.log(params);
     db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
             console.log(err);

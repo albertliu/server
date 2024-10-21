@@ -165,6 +165,125 @@ def enter_by_list0(elist, kindID, refID):
     return result
 
 
+def enter_by_list1(elist, kindID, refID):
+    # 根据指定名单（kindID:0 applyID  1 enterID)报名并上传资料。
+    # 获取名单完整信息
+    cursor = conn.cursor()  # 使用cursor()方法获取操作游标
+    sql = "exec getStudentListByList '" + elist + "', " + str(kindID) + ", " + str(refID)  # 数据库查询语句
+    cursor.execute(sql)  # 执行sql语句
+    rs = cursor.fetchall()
+    url = r'https://xfhyjd.119.gov.cn/#/userLogin'
+
+    # 打开网址
+    driver.get(url)
+    wait = WebDriverWait(driver, 5)
+    # 浏览器全屏，可有可无
+    driver.maximize_window()
+
+    for row in rs:
+        c = 0
+        try:
+            # driver.execute_script("window.open('" + url + "','_self');")
+            # 查找验证码的元素
+            driver.refresh()
+            wait.until(EC.presence_of_element_located((By.XPATH, "//img[@class='code']")))
+            # 输入证件号码
+            name_input = driver.find_elements(By.XPATH, "//table[@class='score-box-table']/tr/td/following-sibling::td//input")[0]
+            clean_send(name_input, row[2])
+            # 输入姓名
+            name_input = driver.find_elements(By.XPATH, "//td[contains(text(), '姓名')]/following-sibling::td//input")[0]
+            clean_send(name_input, row[1])
+
+            # 循环获取验证码，知道输入的验证码正确
+            while True:
+                # 验证码截取、保存
+                img = driver.find_elements(By.XPATH, "//img[@class='code']")[0].get_attribute("src")  # 要截图的元素
+                imgpath = base64_to_photo(img)
+                # imgpath = img_save(img, driver)  # 将验证码的部分使用图片保存
+                res = img_to_code(imgpath)  # 将图片解析为验证码，每次验证码不一定正确，所以代码逻辑使用循环处理，直到拿到正确的验证码
+                # 输入验证码
+                name_input = driver.find_elements(By.XPATH, "//table[@class='score-box-table']/tr/following-sibling::tr/td/following-sibling::td//input")[0]
+                # name_input.send_keys(Keys.CONTROL, 'a')     # 模拟全选然后清空内容
+                clean_send(name_input, res)
+                time.sleep(1)
+
+                driver.find_elements(By.XPATH, "//button/span[contains(text(), '查询')]/..")[0].click()  # 点击【查询】
+                time.sleep(2)
+
+                # 验证码获取失败，再重新获取
+                # 我的网页的情况是当在登录页面时，url里带有login，如果登录成功，则没有login字符串，所以这里采用这样条件来判断是否登录成功
+                # if "queryResults" in driver.current_url:  # 根据自己的实际网页情况，编写不同的判断条件
+                try:
+                    if driver.find_elements(By.XPATH, "//p[contains(text(),'验证码错误')]"):
+                        # 刷新验证码
+                        driver.find_elements(By.XPATH, "//img[@class='code']")[0].click()
+                        time.sleep(1)
+                        continue  # 如果验证码校验失败，则重新获取验证码
+                    # if wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'成绩单')]"))):
+                    if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩单')]"):
+                        break   # 登录成功，则跳出循环，不再获取验证码
+                    if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩合格电子凭证')]"):
+                        break   # 登录成功，则跳出循环，不再获取验证码
+                    # if wait.until(EC.presence_of_element_located((By.XPATH, "//p[contains(text(),'查无成绩')]"))):
+                    if driver.find_elements(By.XPATH, "//p[contains(text(),'查无成绩')]"):
+                        c = 1
+                        break   # 登录成功，则跳出循环，不再获取验证码
+                except Exception as e:
+                    # print(e)
+                    c = 1
+                    break
+
+            if c == 1:
+                continue
+            if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩单')]") or driver.find_elements(By.XPATH, "//div[contains(text(),'成绩合格电子凭证')]"):
+                score1 = ""
+                score2 = ""
+                score2a = ""
+                examDate = ""
+                if ((row[5] == "C20" or row[5] == "C20A") and driver.find_elements(By.XPATH, "//td[contains(text(), '四级/中级工')]")) or (row[5] == "C21" and driver.find_elements(By.XPATH, "//td[contains(text(), '五级/初级工')]")):
+                    if driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td"):
+                        score1 = driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td")[0].get_attribute('innerText')
+                    if driver.find_elements(By.XPATH, "//td[contains(text(), '技能成绩')]/following-sibling::td/span"):
+                        score2a = driver.find_elements(By.XPATH, "//td[contains(text(), '技能成绩')]/following-sibling::td/span")[0].get_attribute('innerText')
+                        ln = score2a.find('(')
+                        if ln > -1:
+                            score2 = score2a[:ln]
+                        else:
+                            score2 = score2a
+                    if driver.find_elements(By.XPATH, "//td[contains(text(), '理论考试时间')]/following-sibling::td"):
+                        examDate = driver.find_elements(By.XPATH, "//td[contains(text(), '理论考试时间')]/following-sibling::td")[0].get_attribute('innerText')
+                    elif driver.find_elements(By.XPATH, "//td[contains(text(), '评定时间')]/following-sibling::td"):
+                        examDate = driver.find_elements(By.XPATH, "//td[contains(text(), '评定时间')]/following-sibling::td")[0].get_attribute('innerText')
+                    # 保存结果
+                    result["count_s"] += 1
+                    # @enterID int, @date varchar(50), @registerID varchar(50)  删除字符串首尾的空格
+                    sql = "exec setFireScoreCheck " + str(row[4]) + ",'" + score1 + "','" + score2 + "', '" + examDate.strip() + "', 'system'"
+                    # print(sql)
+                    execSQL(sql)
+                    time.sleep(1)
+                else:
+                    result["count_s"] += 1
+                    # @enterID int, @date varchar(50), @registerID varchar(50)  删除字符串首尾的空格
+                    sql = "exec setFireScoreCheck " + str(row[4]) + ",'','', '', 'system'"
+                    execSQL(sql)
+                    time.sleep(1)
+            else:
+                pass
+
+        except Exception as e:
+            # print(e)
+            # result["err"] = 1
+            # result["errMsg"] = "action failed"
+            pass
+
+    # 关闭数据库
+    cursor.close()
+    conn.close()
+    # print("window:", driver.window_handles)
+    driver.quit()
+    return result
+
+
 def base64_to_photo(file_data):
     imgpath = py_path + "/temp/code.png"
     if file_data:
