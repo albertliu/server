@@ -643,7 +643,10 @@ router.post('/add_student_certificate', function (req, res, next) {
           return res.send(response);
         }
         //生成签名资料
-        comFunc.generate_entryform_sign(data1.recordset[0]["enterID"]);
+        if(data1.recordset[0] && data1.recordset[0]["enterID"]>0){
+          comFunc.generate_entryform_sign(data1.recordset[0]["enterID"]);
+        }
+        
         let response = { "status": data1.recordset[0]["status"], "msg": data1.recordset[0]["msg"] };
         return res.send(response);
       });
