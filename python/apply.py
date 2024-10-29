@@ -561,6 +561,7 @@ def enter_by_list7(adviser, classID, courseName, reex):
     if _no > 0:
         search_btn = driver.find_element(By.XPATH, "//button/span[contains(text(), '保存')]/..")
         search_btn.click()
+        time.sleep(3)
         # 提交成功，确定按钮
         name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
         name_input.click()
@@ -934,7 +935,7 @@ def execSQL(text: str):
 
 if __name__ == '__main__':
     # 以下是测试代码
-    username = "13651648767"
+    # username = "13651648767"
     # password = "Pqf1823797198"
     # register = "desk."
     # d_list = '张三'.split(',')    # 需要处理的数据列表
@@ -946,7 +947,7 @@ if __name__ == '__main__':
     #     while len(d_list) > 0:
     #         # enter_by_list0(d_list, kind)
     #         # enter_by_list1(d_list)
-    #         enter_by_list7(d_list, '0110202410209', '熔化焊接与热切割作业', '复审')
+    #         enter_by_list7(d_list, '0110782410127', '高处安装、维护、拆除', '初证')
     #         # enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
