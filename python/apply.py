@@ -251,6 +251,7 @@ def enter_by_list0(elist, kind):
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//form[@class='el-form']/div[@class='button']//span[contains(text(),'保存')]/..")))
             name_input.click()
             # driver.implicitly_wait(2)
+            time.sleep(1)
             name_input = wait.until(EC.invisibility_of_element_located((By.XPATH, "//form[@class='el-form']/div[@class='button']//span[contains(text(),'保存')]/..")))
 
             # 判断保存结果
@@ -273,10 +274,10 @@ def enter_by_list0(elist, kind):
                 d_list.remove(str(row[13]))     # 从列表中删除失败数据
 
                 # 关闭按钮
-                name_input = driver.find_elements(By.XPATH, "//div[@role='dialog']//span[contains(text(),'关闭')]/..")
+                name_input = driver.find_element(By.XPATH, "//div[@role='dialog']//span[contains(text(),'关闭')]/..")
                 if len(name_input) < 1:
-                    name_input = driver.find_elements(By.XPATH, "//div[@role='dialog']//span[contains(text(),'确定')]/..")
-                name_input[-1].click()
+                    name_input = driver.find_element(By.XPATH, "//div[@role='dialog']//span[contains(text(),'确定')]/..")
+                name_input.click()
                 time.sleep(1)
 
         except Exception as e:
@@ -454,10 +455,10 @@ def enter_by_list1(elist):
                 d_list.remove(str(row[13]))     # 从列表中删除失败数据
 
                 # 关闭按钮
-                name_input = driver.find_elements(By.XPATH, "//div[@role='dialog']//span[contains(text(),'关闭')]/..")
+                name_input = driver.find_element(By.XPATH, "//div[@role='dialog']//span[contains(text(),'关闭')]/..")
                 if len(name_input) < 1:
-                    name_input = driver.find_elements(By.XPATH, "//div[@role='dialog']//span[contains(text(),'确定')]/..")
-                name_input[-1].click()
+                    name_input = driver.find_element(By.XPATH, "//div[@role='dialog']//span[contains(text(),'确定')]/..")
+                name_input.click()
                 time.sleep(1)
 
         except Exception as e:
