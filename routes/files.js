@@ -1540,23 +1540,23 @@ router.get('/generate_material_zip', function (req, res, next) {
     
     if(req.query.kind=="class"){
       if(req.query.type=="m"){
-        sqlstr = "select file1 from studentCourseList where classID=@ID and file1>''";   //获取指定班级下的存档材料
+        sqlstr = "select file1,'' as name from studentCourseList where classID=@ID and file1>''";   //获取指定班级下的存档材料
       }
       if(req.query.type=="p"){ 
-        sqlstr = "select photo_filename as file1 from v_studentCourseList where classID=@ID and photo_filename>''";   //获取指定班级下的照片
+        sqlstr = "select photo_filename as file1,name from v_studentCourseList where classID=@ID and photo_filename>''";   //获取指定班级下的照片
       }
       if(req.query.type=="e"){ 
-        sqlstr = "select file2 as file1 from v_studentCourseList where classID=@ID and file2>''";   //获取指定班级下的报名表
+        sqlstr = "select file2 as file1,name from v_studentCourseList where classID=@ID and file2>''";   //获取指定班级下的报名表
       }
     }else{
       if(req.query.type=="m"){
-        sqlstr = "select file1 from studentCourseList where applyID=@ID and file1>''";   //获取指定申报下的存档材料
+        sqlstr = "select file1,'' as name from studentCourseList where applyID=@ID and file1>''";   //获取指定申报下的存档材料
       }
       if(req.query.type=="p"){ 
-        sqlstr = "select photo_filename as file1 from v_studentCourseList where applyID=@ID and photo_filename>''";   //获取指定班级下的照片
+        sqlstr = "select photo_filename as file1,name from v_studentCourseList where applyID=@ID and photo_filename>''";   //获取指定班级下的照片
       }
       if(req.query.type=="e"){
-        sqlstr = "select file2 as file1 from studentCourseList where applyID=@ID and file2>''";   //获取指定申报下的报名表
+        sqlstr = "select file2 as file1,'' as name from studentCourseList where applyID=@ID and file2>''";   //获取指定申报下的报名表
       }
     }
     
@@ -1574,7 +1574,7 @@ router.get('/generate_material_zip', function (req, res, next) {
         let f = [];
         for (var i in data1.recordset) {
           p.push("users" + data1.recordset[i]["file1"]);
-          t.push("");
+          t.push(data1.recordset[i]["name"]);
           f.push("");
         }
         //console.log("p", p);
