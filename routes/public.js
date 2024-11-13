@@ -240,7 +240,7 @@ router.get('/getFiremanEnterInfo', function(req, res) {
       let response = {"status":9};
       return res.send(response);
     }
-    response = data.recordset[0];
+    response = (data.recordset? data.recordset[0]:{});
     //console.log(response);
     return res.send(response);
   });
@@ -1051,7 +1051,7 @@ router.post('/enterPay', function (req, res) {
       let response = { "status": 9 };
       return res.send(response);
     }
-    const re = data.recordset[0];
+    const re = (data.recordset? data.recordset[0]:{});
     let url = pyUrl + '/NNOpenSDK.py ' + re["host"] + ' ' + req.body.kindID + ' ' + re["enterOrder"] + ' ' + re["amount"] + ' ' + re["item"] + ' ' + re["name"] + ' ' + 'system.';
     console.log('url code:', url);
     shell.exec(url, function (code, stdout, stderr) {
@@ -1193,7 +1193,7 @@ router.get('/getTrainingProofInfo', function (req, res, next) {
       console.log(err);
       return res.send({ "status": 9, "msg": "操作失败。" });
     }
-    let response = data.recordset[0];
+    let response = (data.recordset? data.recordset[0]:{});
     // console.log(response);
     return res.send(response);
   });
@@ -1209,7 +1209,7 @@ router.get('/getUnitTrainingProofInfo', function (req, res, next) {
       console.log(err);
       return res.send({ "status": 9, "msg": "操作失败。" });
     }
-    let response = data.recordset[0];
+    let response = (data.recordset? data.recordset[0]:{});
     // console.log(response);
     return res.send(response);
   });
@@ -1225,7 +1225,7 @@ router.post('/postCommInfo', function (req, res, next) {
       console.log(err);
       return res.send({ "status": 9, "msg": "操作失败。" });
     }
-    let response = data.recordset;
+    let response = data.recordset || [];
     // console.log(response);
     return res.send(response);
   });
@@ -1242,7 +1242,7 @@ router.get('/getInvoiceList', function (req, res, next) {
       let response = { "status": 9 };
       return res.send(response);
     }
-    response = data.recordset || {};
+    response = data.recordset || [];
     // console.log("response:", response);
     return res.send(response);
   });

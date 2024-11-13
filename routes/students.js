@@ -596,7 +596,7 @@ router.post('/update_student_exam_secondRest', function (req, res, next) {
       return res.send(response);
     }
     //let response = { "status": data.returnValue, "msg": "" };
-    response = data.recordset[0];   //{status:0, secondRest:2300}
+    response = (data.recordset? data.recordset[0]:{});   //{status:0, secondRest:2300}
     return res.send(response);
   });
 });
@@ -634,7 +634,7 @@ router.post('/add_student_certificate', function (req, res, next) {
       return res.send(response);
     } else {
       sqlstr = "addStudentCert";
-      params = { certID: req.body.certID, mark: req.body.mark, username: req.body.username, reexamine: req.body.reexamine, fromID:_fromID, currDiplomaID:req.body.currDiplomaID, currDiplomaDate:req.body.currDiplomaDate };
+      params = { certID: req.body.certID, mark: req.body.mark, username: req.body.username, reexamine: req.body.reexamine, fromID:_fromID, currDiplomaID:req.body.currDiplomaID, currDiplomaDate:req.body.currDiplomaDate, url:req.body.url || '' };
       //console.log(params);
       db.excuteProc(sqlstr, params, function (err, data1) {
         if (err) {

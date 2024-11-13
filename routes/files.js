@@ -1508,15 +1508,16 @@ router.post('/generate_emergency_exam_materials_byclass', function (req, res, ne
       // console.log("len:", data.recordset.length);
       let dat = data.recordset;
       response = [dat.length];
+      let kindID = req.query.kindID || 0;
       for (var i in dat) {
         //班级归档资料
-        sqlstr = env + "/entryform_" + dat[i]["entryform"] + ".asp?public=1&nodeID=" + dat[i]["enterID"] + "&refID=" + dat[i]["username"] + "&host=" + req.query.host + "&kindID=" + req.query.kindID + "&status=" + req.query.refID + "&keyID=";
+        sqlstr = env + "/entryform_" + dat[i]["entryform"] + ".asp?public=1&nodeID=" + dat[i]["enterID"] + "&refID=" + dat[i]["username"] + "&host=" + req.query.host + "&kindID=" + kindID + "&status=" + req.query.refID + "&keyID=";
         path = 'users/upload/students/firemanMaterials/' + dat[i]["ID"] + '_' + dat[i]["name"] + '_' + dat[i]["username"];
         if(keyID==2){ //班级存档资料\考站资料生成pdf文件
           await pdf.genPDF([sqlstr + keyID], [path + f[keyID]], '210mm', '290mm', '', false, 1, false);
         }
         if(keyID==5){ //申报资料生成jpg文件
-          await shotimg.genImg(sqlstr + keyID, path + f[keyID], (req.query.kindID==0?2160:2800), 1020);
+          await shotimg.genImg(sqlstr + keyID, path + f[keyID], (kindID==0?2160:2800), 1020);
         }
       }
       // console.log("len:", response);
