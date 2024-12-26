@@ -457,7 +457,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     data1.forEach(val => {
       sqlstr = "generateApply";
       //params = {"batchID":key, "username":val["证件号码"], "certID":val["认证项目"], "score":""+val["成绩"], "startDate":val["发证日期"], "term": val["期限"], "diplomaID":""+val["证书编号"], "memo":val["备注"], "host":host, "registerID":currUser};
-      un = val["证件号码"];
+      un = '' + val["证件号码"];
       if (String(val["考试时间"]).slice(0, 3) != "202") {
         dt = new Date(new Date("1900-01-01").getTime() + (val["考试时间"] - 2) * 3600 * 24 * 1000 - 3600 * 8 * 1000 + 60 * 1000);
         dt = dt.Format("yyyy-MM-dd hh:mm");
@@ -1708,7 +1708,7 @@ router.get('/get_entryform_shot', async function (req, res, next) {
 router.get('/get_trainProof_shot', async function (req, res, next) {
   if (req.query.nodeID > 0) {
     sqlstr = env + "/trainingProofUnit.asp?public=1&nodeID=" + req.query.nodeID + "&keyID=0";
-    console.log("str:", sqlstr);
+    // console.log("str:", sqlstr);
     // let img = await shotimg.genImg(sqlstr, "", 50);
     // res.send(img);
     let path = 'users/upload/students/trainingProof/unit' + req.query.nodeID + '.png';
@@ -1790,7 +1790,7 @@ router.get('/generate_excel', function (req, res, next) {
   }
 });
 
-// 从指定目录读取文件，写入题库表
+// 从指定目录读取文件，写入题库表  小鹅通
 router.post('/readQustionOther', function (req, res, next) {
   let path = 'users/upload/questions/others';
   //console.log(path);
@@ -1819,6 +1819,64 @@ router.post('/readQustionOther', function (req, res, next) {
           let answers = x.correct_answer;
           for(const a of answers){
             answer += (req.query.mark=="lx"?a:a[0]) + ",";   //练习["xxx","xxx"] 试卷[["xxx"],["xxx"]]
+          }
+          answer = answer.substring(0, answer.length-1);
+          let k = 0;
+          if(x.option){
+            for(const option of x.option){
+              items[k] = option.content.replace("<p>","").replace("</p>","");
+              items_id[k] = option.id;
+              k += 1;
+            }
+          }
+          sqlstr = "addNewQuestionOther";
+          params = {mark:(req.query.mark=="lx"?file.replace(".txt",""):req.query.mark), knowPointID:'', kindID:kindID, questionName:questionName, answer:answer, memo:memo, A:items[0], B:items[1], C:items[2], D:items[3], E:items[4], F:items[5], id_A:items_id[0], id_B:items_id[1], id_C:items_id[2], id_D:items_id[3], id_E:items_id[4], id_F:items_id[5] };
+          // console.log(params);
+          db.excuteProc(sqlstr, params, function (err, data) {
+              if (err) {
+                  console.log(err);
+              }
+          });
+          i += 1;
+        }
+      }
+    });
+    response = [i];
+    return res.send(response);
+  });
+});
+
+
+// 从指定目录读取文件，写入题库表  小鹅通
+router.post('/readQustionOther_xfgly', function (req, res, next) {
+  let path = 'users/upload/questions/others';
+  //console.log(path);
+  fs.readdir(path, function (err, files) {
+    //err 为错误 , files 文件名列表包含文件夹与文件
+    if (err) {
+      console.log('error:\n' + err);
+      return;
+    }
+    let i = 0;
+    //console.log(1);
+    files.forEach(function (file) {
+      let q = fs.readFileSync(path + '/' + file, { encoding: 'utf8' });
+      // console.log("file:",file);
+      let arr = JSON.parse(q.replace(/\r\n/g,""));
+      if(arr.length>0){
+        // console.log("question1:",arr[1]);
+        for(const x of arr){
+          let answer = "";
+          let items = ["","","","","",""];
+          let items_id = ["","","","","",""];
+          // let questionName = x.content.replace("<p>","").replace("</p>","");
+          let questionName = x.content.replace(/<[^>]*>/g, '');   // 去除所有<>内容
+          let type = x.type;
+          let kindID = type + 1;
+          let memo = x.analysis.replace("<p>","").replace("</p>","");
+          let answers = x.correct_answer;
+          for(const a of answers){
+            answer += a + ",";   //练习["xxx","xxx"] 试卷[["xxx"],["xxx"]]
           }
           answer = answer.substring(0, answer.length-1);
           let k = 0;

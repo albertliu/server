@@ -77,7 +77,7 @@ router.post('/oderRefundReturn', function(req, res, next) {
   // 记录返回结果
   params = {kind:1, enterOrder:'', amount:re.refundAmount, payStatus:re.payStatus, payTime:re.refundTime, payType:"", customerTaxnum:"", orderNo:re.originOrderNo, outOrderNo:re.orderNo, subject:"", userId:"", memo:"", phone:""};
   sqlstr = "setAutoPayReturn";
-  let params1 = {kind:"oderPaymentReturn", memo:text, memo1:JSON.stringify(params)};
+  let params1 = {kind:"oderRefundReturn", memo:text, memo1:JSON.stringify(params)};
   //console.log("params:", params);
   db.excuteProc(sqlstr, params1, function(err, data){
   });
