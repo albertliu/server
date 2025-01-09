@@ -537,7 +537,9 @@ def enter_by_list7(adviser, classID, courseName, reex):
                 _no += 1
                 if len(_form) < _no:  # 需要添加行
                     search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '新 增')]")[0]
-                    search_btn.click()
+                    # search_btn.click()
+                    # 使用JavaScript执行点击操作
+                    driver.execute_script("arguments[0].click();", search_btn)
                     time.sleep(1)
                     _form = driver.find_elements(By.XPATH, "//form[@class='el-form demo-form-inline el-form--inline']")
                 # 添加日期
