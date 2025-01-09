@@ -35,7 +35,7 @@ def login_fr():
     aim_url = {
         'login_url':
         r'https://study.xiaoe-tech.com/#/acount',
-        'username': username,   # 13621659092
+        'username': username,   # 13621659092  陈13774215805
         'password': password
     }
     # 打开链接

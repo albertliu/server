@@ -106,7 +106,7 @@ app.use(function(req, res, next) {
           next(); //如果请求的地址是登录则通过，进行下一个请求
       } else {
           //console.log("sessionExpire url：",req.url,req.session.user);
-          res.send(backStatus);
+          res.sendStatus(backStatus);
       }
   } else {
       next();//如果已经登录，则可以进入

@@ -10,6 +10,7 @@
     "@alicloud/facebody20191230": "^5.1.2",
     "@alicloud/pop-core": "^1.7.13",
     "@alicloud/sms-sdk": "^1.1.6",
+    "ali-oss": "^6.21.0",
     "async": "^3.2.5",
     "body-parser": "^1.20.1",
     "connect-redis": "^4.0.4",
@@ -55,6 +56,7 @@
     "xlsx": "^0.16.2"
   },
   "devDependencies": {
+    "increase-memory-limit": "^1.0.7",
     "nodemon": "^2.0.3"
   }
 }
