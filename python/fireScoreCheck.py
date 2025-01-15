@@ -73,7 +73,7 @@ def enter_by_list0(elist, kindID, refID):
             clean_send(name_input, row[2])
             # 输入姓名
             # name_input = driver.find_elements(By.XPATH, "//td[contains(text(), '姓名')]/following-sibling::td//input")[0]
-            name_input = driver.find_elements(By.XPATH, "//td/div/input/[@type='password']")[0]  # 密码
+            name_input = driver.find_elements(By.XPATH, "//td/div/input[@type='password']")[0]  # 密码
             # clean_send(name_input, row[1])
             clean_send(name_input, "Aa12345=")
 
@@ -157,7 +157,7 @@ def enter_by_list0(elist, kindID, refID):
                 pass
 
         except Exception as e:
-            # print(e)
+            print(e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
             pass
@@ -351,7 +351,7 @@ def execSQL(text: str):
 if __name__ == '__main__':
     # 以下是测试代码
     # register = "test"
-    # enter_by_list0('320321197402284830,130281199411220016,341222198001217434', 2, 210)
+    # enter_by_list0('412824199002213135', 2, 1009)
     # 以上是测试代码
     enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 applyID  1 enterID  2 username  argv[3]:classInfo.ID
     print(result)
