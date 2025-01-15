@@ -136,9 +136,7 @@ def enter_by_list0(elist, kindID, refID):
                             score2 = score2a[:ln]
                         else:
                             score2 = score2a
-                    if driver.find_elements(By.XPATH, "//td[contains(text(), '理论考试时间')]/following-sibling::td"):
-                        examDate = driver.find_elements(By.XPATH, "//td[contains(text(), '理论考试时间')]/following-sibling::td")[0].get_attribute('innerText')
-                    elif driver.find_elements(By.XPATH, "//td[contains(text(), '评定时间')]/following-sibling::td"):
+                    if driver.find_elements(By.XPATH, "//td[contains(text(), '评定时间')]/following-sibling::td"):
                         examDate = driver.find_elements(By.XPATH, "//td[contains(text(), '评定时间')]/following-sibling::td")[0].get_attribute('innerText')
                     # 保存结果
                     result["count_s"] += 1

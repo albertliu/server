@@ -10017,7 +10017,7 @@ BEGIN
 			update studentCertList set result=0,score=null, score1=null, score2=null, examDate=null where ID=@refID
 		else
 		begin
-			select @status=iif(@score1='È±¿¼' and @score1='È±¿¼',3,2)
+			select @status=iif(@score1='È±¿¼' and @score2='È±¿¼',3,2)
 			if @score1='È±¿¼'
 				select @score1 = 0, @score2=0
 			if @score1='È±¿¼'
