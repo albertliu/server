@@ -10017,11 +10017,11 @@ BEGIN
 			update studentCertList set result=0,score=null, score1=null, score2=null, examDate=null where ID=@refID
 		else
 		begin
-			select @status=2
+			select @status=iif(@score1='È±¿¼' and @score1='È±¿¼',3,2)
 			if @score1='È±¿¼'
-				select @score1 = 0, @score2=0, @status=3
-			if @score2='È±¿¼'
-				select @score2=0, @status=3
+				select @score1 = 0, @score2=0
+			if @score1='È±¿¼'
+				select @score2=0
 			select @score1 = dbo.whenull(@score1,0), @score2=dbo.whenull(@score2,0), @examDate=dbo.whenull(@examDate,null)
 			select @status=(case when @score1>=60.0 and @score2>=60.0 then 1 else @status end)
 			update studentCertList set result=@status,status=(case when @status>0 then 2 else status end),score=@score1, score1=@score1, score2=@score2, examDate=@examDate,closeDate=getDate() from studentCertList where ID=@refID

@@ -72,8 +72,10 @@ def enter_by_list0(elist, kindID, refID):
             name_input = driver.find_elements(By.XPATH, "//table[@class='score-box-table']/tr/td/following-sibling::td//input")[0]
             clean_send(name_input, row[2])
             # 输入姓名
-            name_input = driver.find_elements(By.XPATH, "//td[contains(text(), '姓名')]/following-sibling::td//input")[0]
-            clean_send(name_input, row[1])
+            # name_input = driver.find_elements(By.XPATH, "//td[contains(text(), '姓名')]/following-sibling::td//input")[0]
+            name_input = driver.find_elements(By.XPATH, "//td/div/input/[@type='password']")[0]  # 密码
+            # clean_send(name_input, row[1])
+            clean_send(name_input, "Aa12345=")
 
             # 循环获取验证码，知道输入的验证码正确
             while True:
@@ -109,6 +111,9 @@ def enter_by_list0(elist, kindID, refID):
                     if driver.find_elements(By.XPATH, "//p[contains(text(),'查无成绩')]"):
                         c = 1
                         break   # 登录成功，则跳出循环，不再获取验证码
+                    if driver.find_elements(By.XPATH, "//p[contains(text(),'账号或密码不正确')]"):
+                        c = 1
+                        break   # 密码错误，则跳出循环，不再获取验证码
                 except Exception as e:
                     # print(e)
                     c = 1
