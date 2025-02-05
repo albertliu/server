@@ -1530,7 +1530,7 @@ ALTER FUNCTION [dbo].[getCoursePaperID](@enterID int, @refID int)
 RETURNS varchar(4000)
 AS
 BEGIN
-	declare @re varchar(4000), @p int, @item nvarchar(50),@score decimal(18, 2),@i int
+	declare @re nvarchar(max), @p int, @item nvarchar(50),@score decimal(18, 2),@i int
 	select @re = '',@i=0
 	--select @re = paperID from studentExamList where refID=(case when @enterID>0 then @enterID else @refID end) 
 	declare rc cursor for select a.paperID,isnull(b.memo,'') item,isnull(a.score,0) from studentExamList a, examInfo b where a.examID=b.examID and a.kind=0 and a.refID=(case when @enterID>0 then @enterID else @refID end)
@@ -1570,8 +1570,23 @@ BEGIN
 		select @re = @re + '{"paperID":' + cast(@enterID as varchar) + ',"item":"收藏夹","examScore":"' + cast(count(*) as varchar) + '题","pkind":3, "examID":""},' from studentQuestionMark where enterID=@enterID
 
 		-- 添加章节练习
-		if exists(select top 1 1 from questionInfo a, (select distinct knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID) d where a.knowPointID=d.knowPointID and a.status=0 and a.chapterID>'')
-		select @re = @re + '{"paperID":' + cast(@enterID as varchar) + ',"item":"章节练习","examScore":"' + cast(count(*) as varchar) + '题","pkind":4, "examID":""},' from questionInfo a, (select distinct knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID) d where a.knowPointID=d.knowPointID and a.status=0 and a.chapterID>''
+		if exists(select top 1 1 from questionInfo a, (select distinct knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID) d where a.knowPointID=d.knowPointID and a.status=0 and a.chapterID>0)
+		begin
+			select @re = @re + '{"paperID":' + cast(@enterID as varchar) + ',"item":"章节练习","examScore":"' + cast(count(*) as varchar) + '题","pkind":4, "examID":"","list":[' from questionInfo a, (select distinct knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID) d where a.knowPointID=d.knowPointID and a.status=0 and a.chapterID>0
+			declare rc cursor for select cast(count(*) as varchar), a.chapterID from questionInfo a, (select distinct c.knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID) d where a.knowPointID=d.knowPointID and a.status=0 and a.chapterID>0
+				group by a.chapterID
+			open rc
+			fetch next from rc into @qty1,@kindID
+			While @@fetch_status=0 
+			Begin
+				select @pp = lessonName from lessonInfo where courseID=@courseID and lessonID='N' + cast(@kindID as varchar)
+				select @re = @re + '{"item":"' + @pp + '","qty":' + @qty1 + ',"chapterID":' + cast(@kindID as varchar) + '},'
+				fetch next from rc into @qty1,@kindID
+			End
+			Close rc 
+			Deallocate rc
+			select @re = left(@re,len(@re)-1) + ']},'
+		end
 	end
 
 	if @re>''
@@ -1585,7 +1600,7 @@ GO
 -- 获取考试信息  pkind:0 模拟/正式考试  1 错题集  2 总题库  3 收藏夹  4 章节练习
 -- USE CASE: exec getStudentExamInfo
 -- =============================================
-CREATE PROCEDURE [dbo].[getStudentExamInfo] 
+ALTER PROCEDURE [dbo].[getStudentExamInfo] 
 	@paperID int, @pkind int, @examID varchar(50), @username varchar(50), @kind int
 AS
 BEGIN
@@ -1596,13 +1611,13 @@ BEGIN
 	if @pkind = 0
 	begin
 		select @answerQty=count(*) from studentQuestionList where refID=@paperID and myAnswer is not null
-		select *,dbo.getOnlineExamStatus(paperID) as startExamMsg, 0 as pkind, @examID as examID, 0 as lastNum, @username as username,[dbo].[getExamQuestionQty](examID) as questionQty,@answerQty as answerQty from v_studentExamList where paperID=@paperID
+		select *,dbo.getOnlineExamStatus(paperID) as startExamMsg, 0 as pkind, @examID as examID, 0 as lastNum, @username as username,[dbo].[getExamQuestionQty](examID) as questionQty,@answerQty as answerQty, [dbo].[getMockAllow](iif(kind=0,refID,0)) as allowMockMsg from v_studentExamList where paperID=@paperID
 	end
 	--错题集
 	if @pkind = 1
 	begin
 		select @n=count(*) from v_studentQuestionWrong where enterID=@paperID
-		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 1 as pkind, '' as startExamMsg, @examID as examID, 0 as lastNum, @username as username, @n as questionQty, 0 as answerQty
+		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 1 as pkind, '' as startExamMsg, @examID as examID, 0 as lastNum, @username as username, @n as questionQty, 0 as answerQty, '' as allowMockMsg
 	end
 	--总题库
 	if @pkind = 2
@@ -1611,14 +1626,22 @@ BEGIN
 		select @n=count(*) from questionInfo where [knowPointID] in(select [knowPointID] from examRuleInfo where examID=@examID) and status=0 and kindID=@kind
 		--防止最大题目超出所有题目数量
 		select @num=iif(@num>=@n-1,@n-1,@num)
-		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 2 as pkind, '' as startExamMsg, @examID as examID, isnull(@num,0) as lastNum, @username as username, @n as questionQty, 0 as answerQty
+		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 2 as pkind, '' as startExamMsg, @examID as examID, isnull(@num,0) as lastNum, @username as username, @n as questionQty, 0 as answerQty, '' as allowMockMsg
 	end
 	--收藏夹
 	if @pkind = 3
 	begin
 		select @num = num from studentTotalExamPlace where examID=@paperID and kind=4
 		select @n=count(*) from [dbo].[studentQuestionMark] where enterID=@paperID
-		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 3 as pkind, '' as startExamMsg, @examID as examID, isnull(@num,0) as lastNum, @username as username, @n as questionQty, 0 as answerQty
+		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 3 as pkind, '' as startExamMsg, @examID as examID, isnull(@num,0) as lastNum, @username as username, @n as questionQty, 0 as answerQty, '' as allowMockMsg
+	end
+	--章节练习
+	if @pkind = 4
+	begin
+		declare @courseID varchar(50)
+		select @courseID=a.courseID from studentCourseList a, courseInfo b where a.courseID=b.courseID and a.ID=@paperID
+		select @n=count(*) from questionInfo a, (select distinct knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID) d where a.knowPointID=d.knowPointID and a.status=0 and a.chapterID=@kind
+		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 4 as pkind, '' as startExamMsg, @examID as examID, 0 as lastNum, @username as username, @n as questionQty, 0 as answerQty, '' as allowMockMsg
 	end
 END
 GO
@@ -3444,6 +3467,7 @@ BEGIN
 END
 GO
 
+/*
 -- =============================================
 -- CREATE Date: 2020-05-10
 -- Description:	根据给定的试卷编号，为学员生成考试题目。
@@ -3493,6 +3517,108 @@ BEGIN
 		update studentQuestionUsed set times=times+1 from studentQuestionList b where studentQuestionUsed.questionID=b.questionID and studentQuestionUsed.refID=b.refID and studentQuestionUsed.refID=@paperID
 		insert into studentQuestionUsed(questionID,refID,kindID,status,answer) select questionID,refID,kindID,0,answer from studentQuestionList where refID=@paperID and questionID not in(select questionID from studentQuestionUsed where refID=@paperID)
 	end
+	return 0
+END
+GO*/
+
+-- =============================================
+-- CREATE Date: 2020-05-10
+-- Description:	根据给定的试卷编号，为学员生成考试题目。
+-- mark:0 如果已有题目，不再生成  1 强制生成新题目
+-- pkind:0 模拟/正式考试  1 错题集  2 总题库  3 收藏夹  4 章节练习
+-- kindID: when pkind=2  questionInfo.kindID   when pkind=4  questionInfo.chapterID
+-- paperID: pkind 0 - paperID; pkind>0 - enterID
+-- Use Case:	exec addQuestions4StudentExam 1,1
+-- =============================================
+ALTER PROCEDURE [dbo].[addQuestions4StudentExam] 
+	@paperID int, @mark int, @pkind int, @examID varchar(50), @kindID int, @page int, @pageSize int
+AS
+BEGIN
+	declare @kp varchar(50),@type int, @qty int,@scorePer decimal(18, 2),@sql nvarchar(1000), @n int,@q int
+	declare @courseID varchar(50), @certID varchar(50)
+	select @mark = dbo.whenull(@mark,0), @page=dbo.whenull(@page,0), @pageSize=dbo.whenull(@pageSize,0)
+	create table #temp(ID int,questionID varchar(50),kindID int,scorePer decimal(18,2),score decimal(18,2),answer varchar(50),myAnswer varchar(50),questionName nvarchar(2000),A nvarchar(200),B nvarchar(200),C nvarchar(200),D nvarchar(200),E nvarchar(200),F nvarchar(200),image varchar(200),imageA varchar(200),imageB varchar(200),imageC varchar(200),imageD varchar(200),imageE varchar(200),imageF varchar(200),knowPointID varchar(50),kindName varchar(50))
+	
+	if @pkind=0 and @mark=0	
+		select @n = count(*) from studentQuestionList where refID=@paperID
+
+	-- 模拟/正式考试
+	if @pkind=0 and (@n=0 or @mark=1)
+	begin
+		select @examID=examID from studentExamList where paperID=@paperID
+		delete from studentQuestionList where refID=@paperID		--remove old records firstly
+		--initial exam paper status.
+		update studentExamList set secondRest=minutes*60,startDate=null,endDate=null,status=0,lastDate=null where paperID=@paperID
+		--read exam rule, and execute it one by one.
+		declare rc cursor for select knowPointID,typeID,qty,scorePer from examRuleInfo where examID=@examID and status=0 order by seq
+		open rc
+		fetch next from rc into @kp,@type,@qty,@scorePer
+		While @@fetch_status=0 
+		Begin 
+			--组卷时参照该试卷已使用过的题目情况，抽取使用次数较少的题目
+			set @sql='insert into studentQuestionList(questionID,refID,kindID,scorePer,answer) select top ' + cast(@qty as varchar) + ' a.questionID,' + cast(@paperID as varchar) + ',a.kindID,' + cast(@scorePer as varchar) + ',a.answer from questionInfo a left outer join studentQuestionUsed b on a.questionID=b.questionID and b.refID=' + cast(@paperID as varchar) + ' where a.knowPointID=''' + @kp + ''' and a.kindID=' + cast(@type as varchar) + ' and a.status=0 order by b.times,newid()'
+			if exists(select 1 from v_studentQuestionList where refID=@paperID and knowPointID=@kp and kindID=@type)	--防止重复生成题目
+			begin
+				insert into look_exam_question_overflow(questionID,refID,kindID,knowPointID) select questionID,refID,kindID,@kp from studentQuestionList where refID=@paperID and kindID=@type
+				delete from studentQuestionList where ID in(select ID from v_studentQuestionList where refID=@paperID and knowPointID=@kp and kindID=@type)
+			end
+			EXEC sp_executesql @sql		--随机获取题目
+
+			if exists(select 1 from v_studentQuestionList where refID=@paperID and knowPointID=@kp and kindID=@type group by questionID having count(*)>1)	--检查重复题目
+			begin
+				delete from studentQuestionList where ID in(select ID from v_studentQuestionList where refID=@paperID and knowPointID=@kp and kindID=@type)
+				EXEC sp_executesql @sql		--随机获取题目
+			end
+
+			fetch next from rc into @kp,@type,@qty,@scorePer
+		End
+		Close rc 
+		Deallocate rc
+
+		--将新抽取的题目写入到已使用题目列表中
+		update studentQuestionUsed set times=times+1 from studentQuestionList b where studentQuestionUsed.questionID=b.questionID and studentQuestionUsed.refID=b.refID and studentQuestionUsed.refID=@paperID
+		insert into studentQuestionUsed(questionID,refID,kindID,status,answer) select questionID,refID,kindID,0,answer from studentQuestionList where refID=@paperID and questionID not in(select questionID from studentQuestionUsed where refID=@paperID)
+	end
+
+	if @pkind=0
+		insert into #temp
+		select ID,questionID,kindID,scorePer,score,answer,myAnswer,questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName from v_studentQuestionList where refID=@paperID order by kindID,newid()
+
+	-- 错题集
+	if @pkind=1
+		insert into #temp
+		select ID,questionID,kindID,0,0,answer,myAnswer,questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName from v_studentQuestionWrong where enterID=@paperID
+
+	-- 总题库
+	if @pkind=2
+	begin
+		select @courseID=a.courseID, @certID=b.certID from studentCourseList a, courseInfo b where a.courseID=b.courseID and a.ID=@paperID
+		insert into #temp
+		select ID,questionID,kindID,0,0,answer,'',questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName
+		from v_questionInfo where [knowPointID] in(select [knowPointID] from examRuleInfo where examID=@examID) and status=0 and kindID=@kindID order by [knowPointID],kindID,ID
+	end
+
+	-- 收藏夹
+	if @pkind=3
+		insert into #temp
+		select ID,questionID,kindID,0,0,answer,'',questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName from v_studentQuestionMark where enterID=@paperID
+
+	-- 章节练习
+	if @pkind=4
+	begin
+		select @courseID=a.courseID, @certID=b.certID from studentCourseList a, courseInfo b where a.courseID=b.courseID and a.ID=@paperID
+		insert into #temp
+		select a.ID,a.questionID,a.kindID,0,0,a.answer,'',questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,a.knowPointID,a.kindName
+		from v_questionInfo a, (select distinct c.knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID) d where a.knowPointID=d.knowPointID and a.status=0 and a.chapterID=@kindID
+	end
+
+	if not exists(select 1 from #temp)
+		insert into #temp select 0,0,0,0,0,'','','没有发现相关题目。','','','','','','','','','','','','','',0,''
+
+	if @pkind=0 and @page>0 and @pageSize>0
+		select * from #temp order by ID offset (@page-1)*@pageSize rows fetch next @pageSize rows only
+	else
+		select top 100 percent * from #temp order by kindID, questionID
 	return 0
 END
 GO
@@ -7345,7 +7471,7 @@ GO
 -- 根据给定的参数，添加或者更新申报信息
 -- USE CASE: exec updateGenerateApplyInfo 1,'P1','xxxx'...
 ALTER PROCEDURE [dbo].[updateGenerateApplyInfo]
-	@ID int,@courseID varchar(50),@applyID varchar(50),@title nvarchar(100),@startDate varchar(100),@address nvarchar(100),@teacher varchar(50),@classroom nvarchar(100),@adviserID varchar(50),@diplomaReady varchar(50),@host varchar(50),@memo nvarchar(500),@registerID varchar(50)
+	@ID int,@courseID varchar(50),@applyID varchar(50),@title nvarchar(100),@startDate varchar(100),@address nvarchar(100),@teacher varchar(50),@classroom nvarchar(100),@adviserID varchar(50),@diplomaReady varchar(50),@host varchar(50),@memo nvarchar(500),@summary nvarchar(2000),@registerID varchar(50)
 AS
 BEGIN
 	declare @re int
@@ -7359,7 +7485,7 @@ BEGIN
 	end
 	if @ID>0	-- 保存信息
 	begin
-		update generateApplyInfo set applyID=@applyID,title=@title,startDate=@startDate,address=@address,teacher=@teacher,classroom=@classroom,adviserID=@adviserID,diplomaReady=@diplomaReady,host=@host,memo=@memo where ID=@ID
+		update generateApplyInfo set applyID=@applyID,title=@title,summary=@summary,startDate=@startDate,address=@address,teacher=@teacher,classroom=@classroom,adviserID=@adviserID,diplomaReady=@diplomaReady,host=@host,memo=@memo where ID=@ID
 	end
 	select @re as re
 END
@@ -7574,7 +7700,7 @@ ALTER PROCEDURE [dbo].[generateApplyScore1]
 AS
 BEGIN
 	declare @status int, @refID int, @enterID int, @certID varchar(50),@host varchar(50),@batchID int,@term int,@username varchar(50)
-	select @status=(case when len(@passNo)>2 then 1 when @score1>'' and len(@passNo)<2 then 2 else 3 end),@score1=dbo.whenull(@score1,'0'),@score2=dbo.whenull(@score2,'0')
+	select @status=(case when len(@passNo)>2 then 1 when @score1>'' and len(@passNo)<2 then 2 else 3 end),@score1=dbo.whenull(@score1,'0'),@score2=dbo.whenull(iif(@score2='无实操','',@score2),'0')
 	select @enterID=enterID,@batchID=refID from v_applyInfo where ID=@ID
 	select @refID=refID, @certID=certID, @username=username from v_studentCourseList where ID=@enterID
 	select @term=term from certificateInfo where certID=@certID
@@ -10267,5 +10393,138 @@ BEGIN
 	select @event='设置/取消免签'
 	exec writeOpLog '', @event,'setInvoiceGroup',@registerID,@selList,@invoice
 	select 0 as status, '操作成功' as msg
+END
+GO
+
+-- CREATE DATE: 2020-05-08
+-- 获取班级信息（档案用）
+-- USE CASE: select * from dbo.[getNodeInfoArchive]('123','A')
+-- kindID: A 申报班  B 培训班
+ALTER FUNCTION [dbo].[getNodeInfoArchive]
+(	
+	@classID int, @kindID varchar(50)
+)
+RETURNS @tab TABLE (classID int, className nvarchar(50),applyID varchar(100),certName nvarchar(100),reexamineName nvarchar(50),startDate varchar(50), endDate varchar(50),qty int,qtyReturn int,qtyExam int,qtyPass int,summary nvarchar(2000),adviser nvarchar(50),attendanceRate decimal(18,2))
+AS
+BEGIN
+	declare @startDate varchar(50),@endDate varchar(50),@qtyPass int,@adviserName nvarchar(50)
+
+	if @kindID='B'	--培训班
+	begin
+		INSERT INTO @tab
+		select ID,className,transaction_id,certName,reexamineName,dateStart,dateEnd,qty,qtyReturn,qtyExam,qtyPass,summary,adviserName,0 from v_classInfo where ID=@classID
+	end
+	if @kindID='A'		--申报班
+	begin
+		select @startDate=isnull(convert(varchar(20),min(theDate),23),''),@endDate=isnull(convert(varchar(20),max(theDate),23),'') from classSchedule where classID=@classID and mark=@kindID
+		select @qtyPass=count(*) from applyInfo where refID=@classID and status=1
+		select @adviserName=b.realName from generateApplyInfo a, userInfo b where a.adviserID=b.username and a.ID=@classID
+		INSERT INTO @tab
+		select ID,title,applyID,courseName,reexamineName,isnull(@startDate,''),isnull(@endDate,''),qty,0,qty,isnull(@qtyPass,0),summary,isnull(@adviserName,''),0 from v_generateApplyInfo where ID=@classID
+	end
+
+	update @tab set attendanceRate=dbo.getClassAttendanceRate(@classID, @kindID)
+
+	RETURN
+END
+GO
+
+-- CREATE DATE: 2020-05-08
+-- 获取班级学员列表信息（档案用）
+-- USE CASE: select * from dbo.[getStudentListByClassIDArchive]('123','A')
+-- kindID: A 申报班  B 培训班
+CREATE FUNCTION [dbo].[getStudentListByClassIDArchive]
+(	
+	@classID int, @kindID varchar(50)
+)
+RETURNS @tab TABLE (username varchar(50), name nvarchar(50),sexName nvarchar(50), age int, SNo varchar(50),mobile nvarchar(100),unit1 nvarchar(100),score varchar(50),
+	diploma_startDate varchar(50),diplomaID varchar(50),score1 varchar(50),score2 varchar(50),statusName nvarchar(50),educationName nvarchar(50),hours varchar(50),
+	completion1 varchar(50),hoursSpend1 varchar(50),startDate varchar(50), enterID int)
+AS
+BEGIN
+	declare @refID varchar(50)
+
+	if @kindID='B'	--培训班
+	begin
+		select @refID=classID from classInfo where ID=@classID
+		INSERT INTO @tab
+		select username , name ,sexName , age, SNo ,mobile ,(case when host='znxf' then unit else hostName end) as unit1 ,score ,
+			diploma_startDate ,diplomaID ,score1 ,score2 ,statusName ,educationName ,hours ,
+			cast(isnull(completion,0) as decimal(18,2)) as completion1 ,cast(isnull(completion*hours/100,0) as decimal(18,2)) as hoursSpend1 ,startDate,ID
+		 from v_studentCourseList where classID=@refID
+ 	end
+	if @kindID='A'		--申报班
+	begin
+		INSERT INTO @tab
+		select username , name ,sexName , age, SNo ,mobile ,(case when host='znxf' then unit else hostName end) as unit1 ,a.score ,
+			diploma_startDate ,diplomaID ,a.score1 ,a.score2 ,statusName ,educationName ,hours ,
+			cast(isnull(completion,0) as decimal(18,2)) as completion1 ,cast(isnull(completion*hours/100,0) as decimal(18,2)) as hoursSpend1 ,startDate,a.ID
+		 from v_studentCourseList a, applyInfo b where a.ID=b.enterID and b.refID=@classID
+	end
+
+	RETURN
+END
+GO
+
+-- CREATE DATE: 2025-01-20
+--计算某个班级的出勤率
+-- kindID: A 申报班  B 培训班
+ALTER FUNCTION getClassAttendanceRate
+(	
+	@classID int, @kindID varchar(50)
+)
+RETURNS decimal(18,2)
+AS
+BEGIN
+	declare @re decimal(18,2), @r1 decimal(18,2), @r int, @studentCount int, @scheduleCount int
+	select @re=0, @r1=0, @r=0, @studentCount=0, @scheduleCount=0
+	if @kindID='A'		--申报班
+	begin
+		-- 在线考勤
+		select @re=avg(dbo.getCourseCompletion(a.ID)), @r=sum(dbo.getEnterCheckinOutClassQty(a.ID)), @studentCount=count(*) from dbo.studentCourseList a, applyInfo b where a.ID=b.enterID and b.refID=@classID
+		-- 线下考勤
+		select @r=@r+count(*) from classSchedule c, checkinInfo d where c.ID=d.refID and c.mark='A' and c.typeID=0 and c.classID=@classID
+		select @scheduleCount=count(*) from classSchedule where mark='A' and typeID=0 and online=0 and classID=@classID
+		select @r1 = @r*100.00/@studentCount/@scheduleCount/1.00
+	end
+	select @re=isnull((@re+iif(@r1>100,100,@r1))/2.00,0)
+	return @re
+END
+GO
+
+-- CREATE DATE: 2025-01-30
+-- 根据身份证查找当前有课的消防操作员信息
+-- USE CASE: exec [getFiremanInfo] '120'
+ALTER PROCEDURE [dbo].[getFiremanInfo]
+	@username varchar(50)
+AS
+BEGIN
+	declare @name nvarchar(50), @enterID int, @examDate varchar(50), @refID int, @status int, @msg nvarchar(50)
+	select @name='',@enterID=0,@examDate='',@status=0,@msg='',@refID=0
+	select @name=name from studentInfo where username=@username
+	select @enterID=ID, @refID=refID from studentCourseList where username=@username and status<2 and courseID in('L20','L20A','L21')
+	
+	if @enterID=0
+		select @status=2, @msg='该学员没有相关课程'
+	if @name=''
+		select @status=1, @msg='没有找到该学员信息'
+
+	if @refID>0
+		select @examDate=isnull(convert(varchar(20),examDate,23),'') from studentCertList where ID=@refID
+	select @status as status,@name as name, @enterID as enterID, @refID as refID, @examDate as examDate, @msg as msg
+END
+GO
+
+-- CREATE DATE: 2025-01-30
+-- 登记消防操作员考试日期
+-- USE CASE: exec [setFiremanExamDate] '120'
+CREATE PROCEDURE [dbo].[setFiremanExamDate]
+	@refID int, @examDate varchar(50)
+AS
+BEGIN
+	declare @status int, @msg nvarchar(50)
+	select @status=0,@msg=''
+	update studentCertList set examDate=@examDate where ID=@refID
+	select @status as status, @msg as msg
 END
 GO

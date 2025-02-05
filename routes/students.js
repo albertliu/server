@@ -241,18 +241,21 @@ router.get('/getStudentCourseware', function (req, res, next) {
   });
 });
 
-//11. getStudentExamInfo
+//11. getStudentExamInfo  pkind:0 模拟/正式考试  1 错题集  2 总题库  3 收藏夹  4 章节练习
 router.get('/getStudentExamInfo', function (req, res, next) {
-  sqlstr = "select *,dbo.getOnlineExamStatus(paperID) as startExamMsg, [dbo].[getMockAllow](iif(kind=0,refID,0)) as allowMockMsg from v_studentExamList where paperID=" + req.query.paperID;
-  params = {};
-  //console.log("params:", params);
-  db.excuteSQL(sqlstr, params, function (err, data) {
+  // sqlstr = "select *,dbo.getOnlineExamStatus(paperID) as startExamMsg from v_studentExamList where paperID=" + req.query.paperID;
+  sqlstr = "getStudentExamInfo";
+  params = {paperID: req.query.paperID, pkind: req.query.pkind, examID: req.query.pkind==2 ? req.query.examID : '', username: req.query.pkind==2 ? req.query.username : '', kind:req.query.kind};
+  // console.log("getStudentExamInfo params:", params);
+  db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
       let response = { "status": 9 };
       return res.send(response);
     }
+    data.recordset[0]["kind1"] = req.query.kind || 0;
     response = data.recordset;
+    // console.log("getStudentExamInfo response params:", response);
     return res.send(response);
   });
 });
@@ -260,22 +263,19 @@ router.get('/getStudentExamInfo', function (req, res, next) {
 //11a. getStudentQuestionList
 router.get('/getStudentQuestionList', function (req, res, next) {
   //firstly check the paper has its questions, if has not, create them now.
-  params = { paperID: req.query.paperID, mark: req.query.mark };
+  // params = { paperID: req.query.paperID, mark: req.query.mark };
+  params = { paperID: req.query.paperID, mark: req.query.mark || 0, pkind: req.query.pkind, examID: req.query.pkind==2 ? req.query.examID : '', kindID:req.query.kind, page: req.query.page, pageSize: req.query.pageSize };
   //sqlstr = "exec writeStudentLoginLog @username, @host, @cid";
   sqlstr = "addQuestions4StudentExam";
   db.excuteProc(sqlstr, params, function (e, re) {
-    sqlstr = "select * from v_studentQuestionList where refID=" + req.query.paperID + " order by kindID, questionID";
-    params = {};
-    //console.log("params:", params);
-    db.excuteSQL(sqlstr, params, function (err, data) {
-      if (err) {
-        console.log(err);
-        let response = { "status": 9 };
-        return res.send(response);
-      }
-      response = data.recordset;
+    if (err) {
+      console.log(err);
+      let response = { "status": 9 };
       return res.send(response);
-    });
+    }
+    response = data.recordset || [];
+    // console.log("response:", response);
+    return res.send(response);
   });
 });
 
@@ -597,6 +597,56 @@ router.post('/update_student_exam_secondRest', function (req, res, next) {
     }
     //let response = { "status": data.returnValue, "msg": "" };
     response = (data.recordset? data.recordset[0]:{});   //{status:0, secondRest:2300}
+    return res.send(response);
+  });
+});
+
+//12a. update_student_total_num  return: 0 成功  9 其他
+router.post('/update_student_total_num', function (req, res, next) {
+  sqlstr = "update_student_total_num";
+  params = { num: req.body.num, username: req.body.username, examID: req.body.examID, kind:req.body.kind };
+  // console.log("update_student_total_num params:", params);
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9 };
+      return res.send(response);
+    }
+    //let response = { "status": data.returnValue, "msg": "" };
+    response = [0];   //{status:0, secondRest:2300}
+    return res.send(response);
+  });
+});
+
+//12a. setFavoriteQuestion  添加/取消收藏题目 mark:0 添加 1 取消  return: 0 成功  9 其他
+router.post('/setFavoriteQuestion', function (req, res, next) {
+  sqlstr = "setFavoriteQuestion";
+  params = { enterID: req.body.enterID, questionID: req.body.questionID, mark: req.body.mark };
+  // console.log(params);
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9 };
+      return res.send(response);
+    }
+    response = { "status": data.recordset[0]["status"], "msg": data.recordset[0]["msg"] };
+    return res.send(response);
+  });
+});
+
+//12a. update_student_total_num  return: 0 成功  9 其他
+router.post('/add_student_question_mark', function (req, res, next) {
+  sqlstr = "addStudentQuestionMark";
+  params = { num: req.body.num, username: req.body.username, examID: req.body.examID, kind:req.body.kind };
+  // console.log(params);
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9 };
+      return res.send(response);
+    }
+    //let response = { "status": data.returnValue, "msg": "" };
+    response = [0];   //{status:0, secondRest:2300}
     return res.send(response);
   });
 });

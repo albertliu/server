@@ -31,11 +31,11 @@ password = ""
 
 def login_fr():
     # 在指定网页上进行登录：输入用户名、密码、登录，拉动滑块进行验证。
-    # 定义目标URL信息, , 
+    # 定义目标URL信息, 小鹅通
     aim_url = {
         'login_url':
         r'https://study.xiaoe-tech.com/#/acount',
-        'username': username,   # 13621659092  陈13774215805
+        'username': username,   # 徐慧13621659092  陈老师13774215805
         'password': password
     }
     # 打开链接
