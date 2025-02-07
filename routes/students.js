@@ -91,6 +91,7 @@ router.get('/getStudentCourseList', function (req, res, next) {
       return res.send(response);
     }
     response = data.recordset;
+    // console.log("getStudentCourseList response params:", req.query.username, response);
     return res.send(response);
   });
 });
@@ -253,7 +254,7 @@ router.get('/getStudentExamInfo', function (req, res, next) {
       let response = { "status": 9 };
       return res.send(response);
     }
-    data.recordset[0]["kind1"] = req.query.kind || 0;
+    // data.recordset[0]["kind1"] = req.query.kind || 0;
     response = data.recordset;
     // console.log("getStudentExamInfo response params:", response);
     return res.send(response);
@@ -267,7 +268,7 @@ router.get('/getStudentQuestionList', function (req, res, next) {
   params = { paperID: req.query.paperID, mark: req.query.mark || 0, pkind: req.query.pkind, examID: req.query.pkind==2 ? req.query.examID : '', kindID:req.query.kind, page: req.query.page, pageSize: req.query.pageSize };
   //sqlstr = "exec writeStudentLoginLog @username, @host, @cid";
   sqlstr = "addQuestions4StudentExam";
-  db.excuteProc(sqlstr, params, function (e, re) {
+  db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
       let response = { "status": 9 };

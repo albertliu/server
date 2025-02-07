@@ -194,7 +194,7 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
             }, function(error) {
               // 获取整体报错信息
               console.log("compareFaceWithOptions error:", error);
-              errCode += "5:" + error.data.Code;
+              errCode += "5:" + error;
               // 获取单个字段
               // console.log(error.data.Code);
               return res.send({status: 3, msg: msgRe[3] + errCode});
