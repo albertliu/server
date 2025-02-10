@@ -246,7 +246,8 @@ router.get('/getStudentCourseware', function (req, res, next) {
 router.get('/getStudentExamInfo', function (req, res, next) {
   // sqlstr = "select *,dbo.getOnlineExamStatus(paperID) as startExamMsg from v_studentExamList where paperID=" + req.query.paperID;
   sqlstr = "getStudentExamInfo";
-  params = {paperID: req.query.paperID, pkind: req.query.pkind, examID: req.query.pkind==2 ? req.query.examID : '', username: req.query.pkind==2 ? req.query.username : '', kind:req.query.kind};
+  let pkind = req.query.pkind || 0;
+  params = {paperID: req.query.paperID, pkind: pkind, examID: pkind==2 ? req.query.examID : '', username: pkind==2 ? req.query.username : '', kind:req.query.kind || 0};
   // console.log("getStudentExamInfo params:", params);
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
