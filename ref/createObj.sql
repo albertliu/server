@@ -1538,7 +1538,7 @@ BEGIN
 	fetch next from rc into @p,@item,@score
 	While @@fetch_status=0 
 	Begin 
-		select @re = @re + '{"paperID":' + cast(@p as varchar) + ',"item":"' + @item + '","examScore":' + cast(@score as varchar) + '分","pkind":0, "examID":""},'
+		select @re = @re + '{"paperID":' + cast(@p as varchar) + ',"item":"' + @item + '","examScore":"' + cast(@score as varchar) + '分","pkind":0, "examID":""},'
 		select @i=@i+1
 		fetch next from rc into @p,@item,@score
 	End
@@ -1611,13 +1611,13 @@ BEGIN
 	if @pkind = 0
 	begin
 		select @answerQty=count(*) from studentQuestionList where refID=@paperID and myAnswer is not null
-		select *,dbo.getOnlineExamStatus(paperID) as startExamMsg, 0 as pkind, @examID as examID, 0 as lastNum, @username as username,[dbo].[getExamQuestionQty](examID) as questionQty,@answerQty as answerQty, [dbo].[getMockAllow](iif(kind=0,refID,0)) as allowMockMsg from v_studentExamList where paperID=@paperID
+		select *,dbo.getOnlineExamStatus(paperID) as startExamMsg, 0 as pkind, @examID as examID, 0 as lastNum, @username as username,[dbo].[getExamQuestionQty](examID) as questionQty,@answerQty as answerQty, [dbo].[getMockAllow](iif(kind=0,refID,0)) as allowMockMsg, @kind as kind1 from v_studentExamList where paperID=@paperID
 	end
 	--错题集
 	if @pkind = 1
 	begin
 		select @n=count(*) from v_studentQuestionWrong where enterID=@paperID
-		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 1 as pkind, '' as startExamMsg, @examID as examID, 0 as lastNum, @username as username, @n as questionQty, 0 as answerQty, '' as allowMockMsg
+		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 1 as pkind, '' as startExamMsg, @examID as examID, 0 as lastNum, @username as username, @n as questionQty, 0 as answerQty, '' as allowMockMsg, @kind as kind1
 	end
 	--总题库
 	if @pkind = 2
@@ -1626,14 +1626,14 @@ BEGIN
 		select @n=count(*) from questionInfo where [knowPointID] in(select [knowPointID] from examRuleInfo where examID=@examID) and status=0 and kindID=@kind
 		--防止最大题目超出所有题目数量
 		select @num=iif(@num>=@n-1,@n-1,@num)
-		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 2 as pkind, '' as startExamMsg, @examID as examID, isnull(@num,0) as lastNum, @username as username, @n as questionQty, 0 as answerQty, '' as allowMockMsg
+		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 2 as pkind, '' as startExamMsg, @examID as examID, isnull(@num,0) as lastNum, @username as username, @n as questionQty, 0 as answerQty, '' as allowMockMsg, @kind as kind1
 	end
 	--收藏夹
 	if @pkind = 3
 	begin
 		select @num = num from studentTotalExamPlace where examID=@paperID and kind=4
 		select @n=count(*) from [dbo].[studentQuestionMark] where enterID=@paperID
-		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 3 as pkind, '' as startExamMsg, @examID as examID, isnull(@num,0) as lastNum, @username as username, @n as questionQty, 0 as answerQty, '' as allowMockMsg
+		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 3 as pkind, '' as startExamMsg, @examID as examID, isnull(@num,0) as lastNum, @username as username, @n as questionQty, 0 as answerQty, '' as allowMockMsg, @kind as kind1
 	end
 	--章节练习
 	if @pkind = 4
@@ -1641,7 +1641,7 @@ BEGIN
 		declare @courseID varchar(50)
 		select @courseID=a.courseID from studentCourseList a, courseInfo b where a.courseID=b.courseID and a.ID=@paperID
 		select @n=count(*) from questionInfo a, (select distinct knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID) d where a.knowPointID=d.knowPointID and a.status=0 and a.chapterID=@kind
-		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 4 as pkind, '' as startExamMsg, @examID as examID, 0 as lastNum, @username as username, @n as questionQty, 0 as answerQty, '' as allowMockMsg
+		select @paperID as paperID, 0 as status, '' as missingItems, 0 as kind, 0 as kindID, 0 as mark, 0 as score, 4 as pkind, '' as startExamMsg, @examID as examID, 0 as lastNum, @username as username, @n as questionQty, 0 as answerQty, '' as allowMockMsg, @kind as kind1
 	end
 END
 GO
@@ -3537,7 +3537,7 @@ BEGIN
 	declare @kp varchar(50),@type int, @qty int,@scorePer decimal(18, 2),@sql nvarchar(1000), @n int,@q int
 	declare @courseID varchar(50), @certID varchar(50)
 	select @mark = dbo.whenull(@mark,0), @page=dbo.whenull(@page,0), @pageSize=dbo.whenull(@pageSize,0)
-	create table #temp(ID int,questionID varchar(50),kindID int,scorePer decimal(18,2),score decimal(18,2),answer varchar(50),myAnswer varchar(50),questionName nvarchar(2000),A nvarchar(200),B nvarchar(200),C nvarchar(200),D nvarchar(200),E nvarchar(200),F nvarchar(200),image varchar(200),imageA varchar(200),imageB varchar(200),imageC varchar(200),imageD varchar(200),imageE varchar(200),imageF varchar(200),knowPointID varchar(50),kindName varchar(50))
+	create table #temp(ID int,questionID varchar(50),kindID int,scorePer decimal(18,2),score decimal(18,2),answer varchar(50),myAnswer varchar(50),questionName nvarchar(2000),A nvarchar(200),B nvarchar(200),C nvarchar(200),D nvarchar(200),E nvarchar(200),F nvarchar(200),image varchar(200),imageA varchar(200),imageB varchar(200),imageC varchar(200),imageD varchar(200),imageE varchar(200),imageF varchar(200),knowPointID varchar(50),kindName varchar(50),memo nvarchar(2000))
 	
 	if @pkind=0 and @mark=0	
 		select @n = count(*) from studentQuestionList where refID=@paperID
@@ -3582,38 +3582,38 @@ BEGIN
 
 	if @pkind=0
 		insert into #temp
-		select ID,questionID,kindID,scorePer,score,answer,myAnswer,questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName from v_studentQuestionList where refID=@paperID order by kindID,newid()
+		select ID,questionID,kindID,scorePer,score,answer,myAnswer,questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName,memo from v_studentQuestionList where refID=@paperID order by kindID,newid()
 
 	-- 错题集
 	if @pkind=1
 		insert into #temp
-		select ID,questionID,kindID,0,0,answer,myAnswer,questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName from v_studentQuestionWrong where enterID=@paperID
+		select ID,questionID,kindID,0,0,answer,myAnswer,questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName,memo from v_studentQuestionWrong where enterID=@paperID
 
 	-- 总题库
 	if @pkind=2
 	begin
 		select @courseID=a.courseID, @certID=b.certID from studentCourseList a, courseInfo b where a.courseID=b.courseID and a.ID=@paperID
 		insert into #temp
-		select ID,questionID,kindID,0,0,answer,'',questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName
+		select ID,questionID,kindID,0,0,answer,'',questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName,memo
 		from v_questionInfo where [knowPointID] in(select [knowPointID] from examRuleInfo where examID=@examID) and status=0 and kindID=@kindID order by [knowPointID],kindID,ID
 	end
 
 	-- 收藏夹
 	if @pkind=3
 		insert into #temp
-		select ID,questionID,kindID,0,0,answer,'',questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName from v_studentQuestionMark where enterID=@paperID
+		select ID,questionID,kindID,0,0,answer,'',questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName,memo from v_studentQuestionMark where enterID=@paperID
 
 	-- 章节练习
 	if @pkind=4
 	begin
 		select @courseID=a.courseID, @certID=b.certID from studentCourseList a, courseInfo b where a.courseID=b.courseID and a.ID=@paperID
 		insert into #temp
-		select a.ID,a.questionID,a.kindID,0,0,a.answer,'',questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,a.knowPointID,a.kindName
+		select a.ID,a.questionID,a.kindID,0,0,a.answer,'',questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,a.knowPointID,a.kindName,a.memo
 		from v_questionInfo a, (select distinct c.knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID) d where a.knowPointID=d.knowPointID and a.status=0 and a.chapterID=@kindID
 	end
 
 	if not exists(select 1 from #temp)
-		insert into #temp select 0,0,0,0,0,'','','没有发现相关题目。','','','','','','','','','','','','','',0,''
+		insert into #temp select 0,0,0,0,0,'','','没有发现相关题目。','','','','','','','','','','','','','',0,'',''
 
 	if @pkind=0 and @page>0 and @pageSize>0
 		select * from #temp order by ID offset (@page-1)*@pageSize rows fetch next @pageSize rows only
@@ -8809,7 +8809,7 @@ BEGIN
 	declare @paperID int, @n int
     --先找一个人配置题目
 	select @paperID=min(a.paperID), @n=count(*) from studentExamList a, passcardInfo b where a.refID=b.ID and b.refID=@batchID 
-	exec addQuestions4StudentExam @paperID,1	--强制重新生成题目
+	exec addQuestions4StudentExam @paperID,1,0,'',0,1,20	--强制重新生成题目
 	--将其复制给其他人
 	if @n>1 and @paperID>0
 	begin
