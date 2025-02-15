@@ -10216,7 +10216,7 @@ BEGIN
 	select @host=host, @fname='' from studentCourseList where ID=@enterID
 	select @hostName=hostName from hostInfo where hostNo=@host
 	select @fname=filename, @startDate=isnull(convert(varchar(20),startDate,23),'') from generateApplyInfo where ID=@classID
-	select a.username,b.name,signatureType,isnull(a.signature,'') as signature,isnull(convert(varchar(20),a.signatureDate,23),'') as signatureDate,@startDate as startDate,c.reexamine,c.certID,c.courseName1 as courseName,a.price,@host as host,'上海智能消防学校' as hostName,b.sexName,birthday,b.mobile,b.age,b.job,b.educationName,b.address,b.ethnicity,b.IDdateStart,b.IDdateEnd,b.IDD_long,iif(a.host='spc' or a.host='shm',@hostName,b.unit) as unit,b.photo_filename,b.IDa_filename,b.IDb_filename,b.edu_filename,@fname as proof_filename 
+	select a.username,b.name,signatureType,isnull(a.signature,'') as signature,isnull(convert(varchar(20),a.signatureDate,23),'') as signatureDate,@startDate as startDate,c.reexamine,c.certID,c.courseName1 as courseName,a.price,c.price as priceStandard,@host as host,'上海智能消防学校' as hostName,b.sexName,birthday,b.mobile,b.age,b.job,b.educationName,b.address,b.ethnicity,b.IDdateStart,b.IDdateEnd,b.IDD_long,iif(a.host='spc' or a.host='shm',@hostName,b.unit) as unit,b.photo_filename,b.IDa_filename,b.IDb_filename,b.edu_filename,@fname as proof_filename 
 		from studentCourseList a, v_studentInfo b, v_courseInfo c where a.username=b.username and a.courseID=c.courseID and a.ID=@enterID
 END
 GO
@@ -10376,7 +10376,8 @@ AS
 BEGIN
 	--将名单导入到临时表
 	create table #temp(id varchar(50))
-	declare @n int, @j int, @event nvarchar(50)
+	declare @n int, @j int, @event nvarchar(50), @date varchar(50)
+	select @date=dateInvoice from studentCourseList where invoice=@invoice and amount>0
 	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0
 	while @n>@j
 	begin
@@ -10385,9 +10386,9 @@ BEGIN
 	end
 
 	if @kind='A'
-		update studentCourseList set invoice=@invoice from studentCourseList a, #temp b, applyInfo c where b.id=c.id and a.id=c.enterID
+		update studentCourseList set invoice=@invoice,dateInvoice=@date from studentCourseList a, #temp b, applyInfo c where b.id=c.id and a.id=c.enterID
 	if @kind='B'
-		update studentCourseList set invoice=@invoice from studentCourseList a, #temp b where a.username=b.id and a.classID=@classID
+		update studentCourseList set invoice=@invoice,dateInvoice=@date from studentCourseList a, #temp b where a.username=b.id and a.classID=@classID
 
 	-- 写操作日志
 	select @event='设置/取消免签'

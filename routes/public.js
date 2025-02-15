@@ -1187,7 +1187,7 @@ router.get('/getScheduleNoCheckInList', function (req, res, next) {
 router.post('/setInvoiceGroup', function(req, res) {
   sqlstr = "setInvoiceGroup";
   params = { selList:req.body.selList, kind:req.body.kind, classID:req.body.classID, invoice:req.body.invoice, registerID:req.body.registerID };
-  console.log('setInvoiceGroup',params);
+  // console.log('setInvoiceGroup',params);
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
