@@ -14,6 +14,7 @@ select * from dictionaryDoc where kind like '%planStatus%' order by kind, ID
 select * from dictionaryDoc where kind like '%payType%' order by kind, ID
 select * from dictionaryDoc where item like '%预备%' order by kind, ID
 --delete from dictionaryDoc where mID=1298
+insert into dictionaryDoc(ID,item,kind,description,memo) values('0','541002','receipt','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('0','每天一次','checkinMark','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('1','每天两次','checkinMark','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('2','报账','accountKind','','')
@@ -3127,6 +3128,9 @@ BEGIN
 				select @re = 2, @msg = '应复训日期临近，无法满足申报要求。'
 			else
 			begin
+				--合作单位设为未付费、后付费
+				if @host not in('znxf','spc','shm')
+					select @payNow = 1
 				--添加证书项目
 				insert into studentCertList(username,certID,reexamine,host,registerID,memo) values(@username,@certID,@reexamine,@host,@username,@url)
 				select @refID=max(ID) from studentCertList where registerID=@username and certID=@certID
@@ -4759,11 +4763,14 @@ BEGIN
 							select @title=item from dictionaryDoc where kind='SPCtitle'	--报账类型的部门，选取石化公司统一开票信息
 					end
 				end
+				--合作单位设为未付费、后付费
+				if @host not in('znxf','spc','shm')
+					select @payNow = 1
 				-- 注册课程
 				--@ID,@username,@classID,@price,@amount,@invoice,@projectID,@title,@payNow,@needInvoice,@kindID,@type,@status,@datePay,@dateInvoice,@dateInvoicePick,@pay_memo,@currDiplomaID,@currDiplomaDate,@overdue,@fromID,@oldNo,@memo,@registerID
 				select @price=price from projectInfo where projectID=@projectID
 				if not exists(select 1 from studentCourseList where username=@username and courseID=@courseID and classID=@classID)
-					exec @enterID=doEnter 0,@username,@classID,@price,0,'',0,@projectID,@title,@payNow,0,0,0,0,'','','','','',@currDiplomaDate,0,0,@fromID,@oldNo,@memo,@host,@registerID
+					exec @enterID=doEnter 0,@username,@classID,@price,0,'','',0,@projectID,@title,@payNow,0,0,0,0,'','','','','',@currDiplomaDate,0,0,@fromID,@oldNo,@memo,@host,@registerID
 				else
 					select @exist=1		--已在本班注册过
 			end
@@ -5977,16 +5984,16 @@ GO
 -- USE CASE: exec [doEnter] 'P-20-001', 'albert'
 -- =============================================
 ALTER PROCEDURE [dbo].[doEnter] 
-	@ID int,@username varchar(50),@classID varchar(50),@price int,@amount int,@invoice varchar(50),@invoice_amount int,@projectID varchar(50),@title nvarchar(100),@payNow int,@needInvoice int,@kindID varchar(50),@type int,@status int,@datePay varchar(50),@dateInvoice varchar(50),@dateInvoicePick varchar(50),@pay_memo varchar(500),@currDiplomaID varchar(50),@currDiplomaDate varchar(50),@overdue int,@express int,@fromID varchar(50),@oldNo int,@memo varchar(2000),@host varchar(50),@registerID varchar(50)
+	@ID int,@username varchar(50),@classID varchar(50),@price int,@amount int,@invoice varchar(50),@receipt varchar(50),@invoice_amount int,@projectID varchar(50),@title nvarchar(100),@payNow int,@needInvoice int,@kindID varchar(50),@type int,@status int,@datePay varchar(50),@dateInvoice varchar(50),@dateInvoicePick varchar(50),@pay_memo varchar(500),@currDiplomaID varchar(50),@currDiplomaDate varchar(50),@overdue int,@express int,@fromID varchar(50),@oldNo int,@memo varchar(2000),@host varchar(50),@registerID varchar(50)
 AS
 BEGIN
 	declare @event varchar(50),@mem varchar(500),@cID int,@name varchar(50),@certID varchar(50),@courseID varchar(50),@refID int,@t int,@payID int,@re int,@msg varchar(50),@SNo int,@mark int,@reexamine int,@pNo varchar(50),@certName varchar(60),@unit varchar(100),@job_status int,@education int,@mobile varchar(50),@email varchar(50),@address varchar(200),@today varchar(50),@signatureType int
-	declare @retireDay int, @hasLesson int
+	declare @retireDay int, @hasLesson int, @receipt0 varchar(50)
 
 	if @classID='' or @classID='null' set @classID=null
 	if @currDiplomaDate='' or @currDiplomaDate='null' set @currDiplomaDate=null
 	if @currDiplomaID='' or @currDiplomaID='null' set @currDiplomaID=null
-	select @re=0,@msg=iif(@ID=0,'报名成功。','保存成功。'),@hasLesson=0, @datePay=[dbo].[whenull](@datePay,null), @username=upper(@username), @host=[dbo].[whenull](@host,'')
+	select @re=0,@msg=iif(@ID=0,'报名成功。','保存成功。'),@hasLesson=0, @datePay=[dbo].[whenull](@datePay,null), @username=upper(@username), @host=[dbo].[whenull](@host,''), @receipt=[dbo].[whenull](@receipt,null),@receipt0=''
 	select @cID = ID, @signatureType=signatureType from classInfo where classID=@classID
 
 	if @ID=0	--新的报名
@@ -6028,8 +6035,8 @@ BEGIN
 			--select @title=(case when @title>'' then @title else invoice end) from ref_student_spc where username=@username and classID=@cID
 			--预报名表内人员自动确认：mark=0 , checked=1
 			--insert into studentCourseList(username,courseID,refID,reexamine,type,hours,closeDate,projectID,classID,SNo,checked,checkDate,checker,submited,submitDate,submiter,host,registerID) select @username,courseID,@refID,@reexamine,@t,hours,dateadd(d,period,getDate()),@projectID,@classID,@pNo,(case when @mark=0 then 1 else 0 end),(case when @mark=0 then getDate() else null end),(case when @mark=0 then 'system.' else null end),1,getDate(),@registerID,@host,@registerID from courseInfo where courseID=@courseID
-			insert into studentCourseList(username,courseID,refID,reexamine,payNow,needInvoice,title,pay_kindID,pay_type,pay_status,price,amount,noReceive,invoice,invoice_amount,dateInvoice,dateInvoicePick,datePay,pay_checker,pay_memo,type,hours,closeDate,projectID,classID,SNo,checked,checkDate,checker,submited,submitDate,submiter,currDiplomaID,currDiplomaDate,overdue,express,fromID,oldNo,signatureType,memo,host,registerID) 
-				select @username,courseID,@refID,@reexamine,@payNow,@needInvoice,@title,@kindID,@type,@status,@price,@amount,iif(@type=3 and @status=1,1,0),@invoice,@invoice_amount,[dbo].[whenull](@dateInvoice,null),[dbo].[whenull](@dateInvoicePick,null),iif(@datePay>'',@datePay,iif(@status=1,getDate(),null)),iif(@status=1,@registerID,null),@pay_memo,@t,hours,dateadd(d,period,getDate()),@projectID,@classID,@pNo,1,getDate(),'system.',1,getDate(),@registerID,@currDiplomaID,@currDiplomaDate,@overdue,@express,@fromID,@oldNo,@signatureType,@memo,@host,@registerID from courseInfo where courseID=@courseID
+			insert into studentCourseList(username,courseID,refID,reexamine,payNow,needInvoice,title,pay_kindID,pay_type,pay_status,price,amount,noReceive,invoice,receipt,invoice_amount,dateInvoice,dateInvoicePick,datePay,pay_checker,pay_memo,type,hours,closeDate,projectID,classID,SNo,checked,checkDate,checker,submited,submitDate,submiter,currDiplomaID,currDiplomaDate,overdue,express,fromID,oldNo,signatureType,memo,host,registerID) 
+				select @username,courseID,@refID,@reexamine,@payNow,@needInvoice,@title,@kindID,@type,@status,@price,@amount,iif(@type=3 and @status=1,1,0),@invoice,@receipt,@invoice_amount,[dbo].[whenull](@dateInvoice,null),[dbo].[whenull](@dateInvoicePick,null),iif(@datePay>'',@datePay,iif(@status=1,getDate(),null)),iif(@status=1,@registerID,null),@pay_memo,@t,hours,dateadd(d,period,getDate()),@projectID,@classID,@pNo,1,getDate(),'system.',1,getDate(),@registerID,@currDiplomaID,@currDiplomaDate,@overdue,@express,@fromID,@oldNo,@signatureType,@memo,@host,@registerID from courseInfo where courseID=@courseID
 			select @ID=max(ID) from studentCourseList where username=@username
 	
 			if @certID='C20' or @certID='C20A' or @certID='C21'	--消防员添加额外报名信息
@@ -6052,7 +6059,7 @@ BEGIN
 	else	--修改报名信息
 	begin
 		declare @oldClass varchar(50), @autoPay int
-		select @oldClass=classID, @pNo=SNo, @autoPay=autoPay,@courseID=courseID from studentCourseList where ID=@ID
+		select @oldClass=classID, @pNo=SNo, @autoPay=autoPay,@courseID=courseID, @receipt0=isnull(receipt,'') from studentCourseList where ID=@ID
 		
 		if @classID>'' and (@classID <> @oldClass or @pNo='0')
 		begin
@@ -6065,16 +6072,19 @@ BEGIN
 		begin
 			if @dateInvoice>'' and @invoice>'' and exists(select 1 from studentCourseList where ID=@ID and (dateInvoice is null or dateInvoice=''))
 				update studentCourseList set dateInvoice=@dateInvoice where invoice=@invoice and ID<>@ID	--团体发票更新开票日期
-			update studentCourseList set host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),classID=@classID,SNo=@pNo,noReceive=iif(@type=3 and @status=1,1,0),checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),pay_memo=@pay_memo,signatureType=@signatureType,payNow=@payNow,needInvoice=@needInvoice,title=@title,pay_kindID=@kindID,pay_type=@type,pay_status=@status,price=@price,amount=@amount,invoice=@invoice,invoice_amount=@invoice_amount,dateInvoice=[dbo].[whenull](@dateInvoice,null),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),datePay=iif(@datePay>'' and @status>0,@datePay,iif(@status=1 and pay_status=0 and datePay is null,getDate(),datePay)),pay_checker=iif(@status=1 and pay_status=0 and pay_checker is null,@registerID,pay_checker),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
+			update studentCourseList set host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),classID=@classID,SNo=@pNo,noReceive=iif(@type=3 and @status=1,1,0),checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),pay_memo=@pay_memo,signatureType=@signatureType,payNow=@payNow,needInvoice=@needInvoice,title=@title,pay_kindID=@kindID,pay_type=@type,pay_status=@status,price=@price,amount=@amount,invoice=@invoice,receipt=@receipt,invoice_amount=@invoice_amount,dateInvoice=[dbo].[whenull](@dateInvoice,null),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),datePay=iif(@datePay>'' and @status>0,@datePay,iif(@status=1 and pay_status=0 and datePay is null,getDate(),datePay)),pay_checker=iif(@status=1 and pay_status=0 and pay_checker is null,@registerID,pay_checker),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
 		end
 		else
-			update studentCourseList set host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),classID=@classID,SNo=@pNo,checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),signatureType=@signatureType,needInvoice=@needInvoice,title=iif(autoInvoice=0,@title,title),invoice=iif(autoInvoice=0,@invoice,invoice),invoice_amount=iif(autoInvoice=0,@invoice_amount,invoice_amount),dateInvoice=iif(autoInvoice=0,[dbo].[whenull](@dateInvoice,null),dateInvoice),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
+			update studentCourseList set host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),classID=@classID,SNo=@pNo,checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),signatureType=@signatureType,needInvoice=@needInvoice,title=iif(autoInvoice=0,@title,title),invoice=iif(autoInvoice=0,@invoice,invoice),receipt=@receipt,invoice_amount=iif(autoInvoice=0,@invoice_amount,invoice_amount),dateInvoice=iif(autoInvoice=0,[dbo].[whenull](@dateInvoice,null),dateInvoice),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
 		select @event='修改报名信息',@mem=''
 		exec writeOpLog '',@event,'enter',@registerID,@mem,@username
 
 		if exists(select 1 from studentLessonList where refID=@ID)
 			select @hasLesson = 1
 	end
+
+	if @ID>0 and @receipt>'' and @receipt0=''	  -- 保存最后收据号码
+		update dictionaryDoc set item=@receipt where kind='receipt' and ID='0'
 
 	if @ID>0 and @hasLesson = 0	  -- 添加课表信息
 	begin
@@ -10081,7 +10091,7 @@ GO
 --根据给定日期，列出收费-发票明细
 --@startDate 收费日期  @startDate1 开票日期  @receivalbe: 应收款
 ALTER PROCEDURE [dbo].[getPayInvoiceRpt]
-	@startDate varchar(50), @endDate varchar(50), @startDate1 varchar(50), @endDate1 varchar(50), @host varchar(50), @autoPay int, @autoInvoice int, @receivable int
+	@startDate varchar(50), @endDate varchar(50), @startDate1 varchar(50), @endDate1 varchar(50), @host varchar(50), @autoPay int, @autoInvoice int, @receivable int, @received int
 AS
 BEGIN
 	declare @sql nvarchar(max), @where varchar(500)
@@ -10103,6 +10113,8 @@ BEGIN
 		select @sql = @sql + 'dateInvoice>=''' + @startDate1 + ''' and dateInvoice<=''' + @endDate1 + '''' + @where
 	if @receivable=1
 		select @sql = @sql + 'noReceive=1 and amount>0' + @where
+	if @received=1
+		select @sql = @sql + 'noReceive=2 and amount>0' + @where
 
 	SET @sql = N'
 	declare @tb table(ID int,autoPay int,autoInvoice int,[客户订单号] varchar(50),username varchar(50), name nvarchar(50), [金额] int, datePay varchar(50), pay_typeName nvarchar(50), shortName nvarchar(50),noReceive int,[发票号码] varchar(50),dateInvoice varchar(50), title nvarchar(200), pay_memo nvarchar(500),invoicePDF varchar(2000))
@@ -10349,12 +10361,12 @@ ALTER PROCEDURE [dbo].[getDailyRptTotal]
 	@startDate varchar(50), @host varchar(50), @mark varchar(50)
 AS
 BEGIN
-	declare @tb table(enterID int,kindID int,mark nvarchar(50) default(''),autoPay int,autoInvoice int,username varchar(50) default(''), name nvarchar(50) default(''), price int, amount int, datePay varchar(50) default(''), pay_type int, pay_typeName nvarchar(50) default(''), shortName nvarchar(50) default(''),noReceive int,invoice varchar(50) default(''),dateInvoice varchar(50) default(''), title nvarchar(200) default(''), autoPayName nvarchar(50), autoInvoiceName nvarchar(50), pay_memo nvarchar(500) default(''),invoicePDF varchar(2000) default(''))
-	
+	declare @tb table(enterID int,kindID float,mark nvarchar(50) default(''),autoPay int,autoInvoice int,username varchar(50) default(''), name nvarchar(50) default(''), price int, amount int, datePay varchar(50) default(''), pay_type int, pay_typeName nvarchar(50) default(''), shortName nvarchar(50) default(''),noReceive int,invoice varchar(50) default(''),dateInvoice varchar(50) default(''), title nvarchar(200) default(''), autoPayName nvarchar(50), autoInvoiceName nvarchar(50), pay_memo nvarchar(500) default(''),invoicePDF varchar(2000) default(''))
+	declare @tamount int
 	--当天收费记录
-	insert into @tb select ID,0,'',autoPay,autoInvoice,username, name, price, amount, datePay, pay_type, pay_typeName, shortName,noReceive,invoice,dateInvoice, dbo.getInvoiceTitle(title), '', '',pay_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where datePay=@startDate and amount>0 and pay_status>0 and host in('znxf','spc','shm')
+	insert into @tb select ID,0,'',autoPay,autoInvoice,username, name, price, amount, datePay, pay_type, pay_typeName, shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, dbo.getInvoiceTitle(title), '', '',pay_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where datePay=@startDate and amount>0 and pay_status>0 and host in('znxf','spc','shm')
 	--当天退款记录
-	insert into @tb select ID,2,'退款',0,0,username, name, -refund_amount, -refund_amount, dateRefund, 0, '退款', shortName,noReceive,invoice,dateInvoice, dbo.getInvoiceTitle(title), '', '', refund_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateRefund=@startDate and refund_amount>0 and host in('znxf','spc','shm')
+	insert into @tb select ID,2,'退款',0,0,username, name, -refund_amount, -refund_amount, dateRefund, 0, '退款', shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, dbo.getInvoiceTitle(title), '', '', refund_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateRefund=@startDate and refund_amount>0 and host in('znxf','spc','shm')
 	--以前付款今天开票记录(预收开票)
 	insert into @tb select ID,3,'预收开票',autoPay,autoInvoice,username, name, price, invoice_amount, datePay, pay_type, iif(amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, dbo.getInvoiceTitle(title), '', '','',[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateInvoice=@startDate and datePay<@startDate and invoice>'' and amount>0 and host in('znxf','spc','shm')
 	--今天开票转入历史库的记录
@@ -10363,6 +10375,20 @@ BEGIN
 	update @tb set autoPayName=iif(autoPay=1,'线上','线下'), autoInvoiceName=iif(autoInvoice=1,'线上',iif(invoice>'','线下','')) where kindID in(0,3)
 	--更新未开票标识
 	update @tb set mark='未开票', kindID=1 where kindID=0 and invoice=''
+	--插入空行
+	insert into @tb(enterID,kindID,datePay) select 0,1.1,''
+	--插入空行
+	insert into @tb(enterID,kindID,datePay) select 0,1.2,'线上未开票'
+	--区分线上未开票标识
+	update @tb set kindID=1.5 where kindID=1 and invoice='' and autoPay=1
+	--更新未开票标识
+	update @tb set mark='未开票', kindID=1 where kindID=0 and invoice=''
+	--插入空行
+	insert into @tb(enterID,kindID,datePay) select 0,3.1,''
+	--插入空行
+	insert into @tb(enterID,kindID,datePay) select 0,3.2,'线上预收开票'
+	--区分线上预收开票标识
+	update @tb set kindID=3.5 where kindID=3 and autoInvoice=1
 	--插入空行
 	insert into @tb(enterID,kindID) select 0,5
 	--插入合计
@@ -10381,6 +10407,17 @@ BEGIN
 	insert into @tb(enterID,kindID) select 0,8
 	--插入页脚
 	insert into @tb(enterID,kindID,invoice,shortName) select 1,8,'复核人：','制单人：'
+	--插入线上未开票小计
+	select @tamount=sum(amount) from @tb where kindID=1.5
+	insert into @tb(enterID,kindID,pay_typeName,amount,shortName) select 0,1.6,'微信',isnull(@tamount,0),'线上未开票小计'
+	--插入空行
+	insert into @tb(enterID,kindID) select 0,1.7
+	--插入线上未开票小计
+	select @tamount=0
+	select @tamount=sum(amount) from @tb where kindID=3.5
+	insert into @tb(enterID,kindID,amount,shortName) select 0,3.6,isnull(@tamount,0),'线上预收开票小计'
+	--插入空行
+	insert into @tb(enterID,kindID) select 0,3.7
 	
 	if @mark='data'
 		select iif(kindID<5,cast(ROW_NUMBER() OVER (ORDER BY kindID,enterID) as varchar),'') as 'No',* from @tb order by kindID,enterID,pay_type
