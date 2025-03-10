@@ -10,7 +10,7 @@ ALTER DATABASE elearning SET RECOVERY FULL
 --De0penl99O53!4N#~9.
 --set datefirst 1  --将星期一设为第一天
 
-select * from dictionaryDoc where kind like '%planStatus%' order by kind, ID
+select * from dictionaryDoc where kind like '%examResult%' order by kind, ID
 select * from dictionaryDoc where kind like '%payType%' order by kind, ID
 select * from dictionaryDoc where item like '%预备%' order by kind, ID
 --delete from dictionaryDoc where mID=1298
@@ -3719,8 +3719,8 @@ BEGIN
 		update studentQuestionList set answer=replace(answer,' ','') where refID=@paperID and charindex(' ',answer)>0
 		update studentQuestionList set score=(case when answer=myAnswer then scorePer else 0 end) where refID=@paperID
 		select @score=sum(score) from studentQuestionList where refID=@paperID
-		select @score=(case when @kind=1 and @score<@scorePass then ceiling(SQRT(@score)*10) else @score end)
-		select @score = (case when @score>100 then 88 else @score end)
+		--select @score=(case when @kind=1 and @score<@scorePass then ceiling(SQRT(@score)*10) else @score end)
+		--select @score = (case when @score>100 then 88 else @score end)
 		--交卷: 剩余时间清零
 		update studentExamList set status=2,endDate=getDate(),score=@score,secondRest=0 where paperID=@paperID
 		--将考试结果填写到相关表中
@@ -10094,8 +10094,8 @@ ALTER PROCEDURE [dbo].[getPayInvoiceRpt]
 	@startDate varchar(50), @endDate varchar(50), @startDate1 varchar(50), @endDate1 varchar(50), @host varchar(50), @autoPay int, @autoInvoice int, @receivable int, @received int
 AS
 BEGIN
-	declare @sql nvarchar(max), @where varchar(500)
-	select @endDate = iif(@endDate='',convert(varchar(20),getDate(),23),@endDate), @where = ''
+	declare @sql nvarchar(max), @sql0 nvarchar(max), @where varchar(500), @m int
+	select @endDate = iif(@endDate='',convert(varchar(20),getDate(),23),@endDate), @where = '', @m = 0
 	select @endDate1 = iif(@endDate1='',convert(varchar(20),getDate(),23),@endDate1)
 	if @autoPay= 1
 		select @where = ' and autoPay=1'
@@ -10103,18 +10103,20 @@ BEGIN
 		select @where = @where + ' and autoInvoice=1'
 	select @where = @where + ' and host in(''znxf'',''spc'',''shm'')'
 
-	select @sql='select ID,autoPay,autoInvoice,'''' as outorderno,username, name, amount, datePay, pay_typeName, shortName,noReceive,invoice,dateInvoice, title, pay_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where '
+	select @sql0='select ID,autoPay,autoInvoice,'''' as outorderno,username, name, amount, datePay, pay_typeName, shortName,noReceive,invoice,dateInvoice, title, pay_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where '
 	if @receivable=0 and @startDate>''
 	begin
-		select @sql = @sql + 'datePay>=''' + @startDate + ''' and datePay<=''' + @endDate + ''' and amount>0' + @where
+		select @sql = @sql0 + 'datePay>=''' + @startDate + ''' and datePay<=''' + @endDate + ''' and amount>0' + @where
 		select @sql=@sql+'union all select ID,0,0,'''',username, name, -refund_amount, dateRefund, ''退款'', shortName,noReceive,invoice,dateInvoice, title, refund_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateRefund>=''' + @startDate + ''' and dateRefund<=''' + @endDate + ''' and refund_amount>0'
 	end
 	if @receivable=0 and @startDate1>''
-		select @sql = @sql + 'dateInvoice>=''' + @startDate1 + ''' and dateInvoice<=''' + @endDate1 + '''' + @where
+		select @sql = @sql0 + 'dateInvoice>=''' + @startDate1 + ''' and dateInvoice<=''' + @endDate1 + '''' + @where
 	if @receivable=1
-		select @sql = @sql + 'noReceive=1 and amount>0' + @where
-	if @received=1
-		select @sql = @sql + 'noReceive=2 and amount>0' + @where
+		select @sql = @sql0 + 'noReceive=1 and amount>0' + @where
+	if @received=1 and @startDate>''
+		select @sql = @sql0 + 'datePay>=''' + @startDate + ''' and datePay<=''' + @endDate + ''' and amount>0' + @where
+	if @received=1 and @startDate1>''
+		select @sql = @sql0 + 'dateInvoice>=''' + @startDate1 + ''' and dateInvoice<=''' + @endDate1 + ''' and amount>0' + @where
 
 	SET @sql = N'
 	declare @tb table(ID int,autoPay int,autoInvoice int,[客户订单号] varchar(50),username varchar(50), name nvarchar(50), [金额] int, datePay varchar(50), pay_typeName nvarchar(50), shortName nvarchar(50),noReceive int,[发票号码] varchar(50),dateInvoice varchar(50), title nvarchar(200), pay_memo nvarchar(500),invoicePDF varchar(2000))
@@ -10656,3 +10658,24 @@ BEGIN
 	select @status as status, @msg as msg
 END
 GO
+
+-- CREATE DATE: 2025-03-05
+-- 登记消防操作员考试成绩
+-- refID: studentCertList.ID
+-- USE CASE: exec [saveExamScore] '120'
+ALTER PROCEDURE [dbo].[saveExamScore]
+	@refID int, @score varchar(50), @score2 varchar(50), @result int, @registerID varchar(50)
+AS
+BEGIN
+	declare @status int, @msg nvarchar(50)
+	select @status=0,@msg=''
+	select @score=[dbo].[whenull](@score,'0'), @score2=[dbo].[whenull](@score2,'0')
+	select @score=iif(PATINDEX('%[^0-9|.]%', @score)=0,@score,'0'), @score2=iif(PATINDEX('%[^0-9|.]%', @score2)=0,@score2,'0')
+	update studentCertList set score=@score,score1=@score,score2=@score2,result=@result where ID=@refID
+
+	-- 写操作日志
+	exec writeOpLog '', '修改考试成绩','saveExamScore',@registerID,@result,@refID
+	select 0 as status, '操作成功' as msg
+END
+GO
+

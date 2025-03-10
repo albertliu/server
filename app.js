@@ -32,7 +32,7 @@ var app = express();
 let checkMsg = '长时间未登录，已退出。';
 let backStatus = 401;
 
-var hosts = ['','znxf.','spc.','shm.','yuc.','lix.','jia.','jiah.','tai.','wen.','ding.','zich.'];
+var hosts = ['','znxf.','spc.','shm.','yuc.','lix.','jia.','jiah.','tai.','wen.','ding.','zich.','yous.'];
 //var hosts = ['','znxf.','spc.','shm.'];
 var ports = ['',':3000',':3003',':8082'];
 var orig = [];
