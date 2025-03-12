@@ -266,6 +266,10 @@ router.get('/getRptList', function(req, res) {
       sqlstr = "getDailyRptTotal";
       params = { host: req.query.host, startDate: req.query.startDate, mark: req.query.mark};
       break;
+    case "dailyTotalTrail":
+      sqlstr = "getDailyRptTotalTrail";
+      params = { host: req.query.host, startDate: req.query.startDate, mark: req.query.mark};
+      break;
     case "student":
       sqlstr = "p_rptStudentRegister";
       //@host varchar(50),@startDate varchar(50),@endDate varchar(50),@kindID varchar(20),@groupHost int,@groupDept1 int,@groupKindID int,@groupDate

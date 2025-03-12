@@ -10428,6 +10428,30 @@ BEGIN
 END
 GO
 
+
+--CREATE Date:2023-07-30
+--根据给定日期，列出线上未开票/线上预收开票明细
+--mark: 0 线上未开票  1 线上预收开票
+--结果中给出分类汇总数据
+CREATE PROCEDURE [dbo].[getDailyRptTotalTrail]
+	@startDate varchar(50), @host varchar(50), @mark int
+AS
+BEGIN
+	declare @tb table(enterID int,kindID float,mark nvarchar(50) default(''),username varchar(50) default(''), name nvarchar(50) default(''), price int, amount int, people int, datePay varchar(50) default(''), pay_type int, pay_typeName nvarchar(50) default(''), shortName nvarchar(50) default(''),noReceive int,invoice varchar(50) default(''),dateInvoice varchar(50) default(''), outOrderNo varchar(2000) default(''))
+	--当天收费线上未开票记录
+	if @mark=0	
+		insert into @tb select a.ID,0,'',username, name, price, a.amount, 1, datePay, a.pay_type, pay_typeName, shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, b.outOrderNo from v_studentCourseList a, autoPayInfo b where a.ID=b.enterID and b.kind=0 and a.datePay=@startDate and a.amount>0 and pay_status>0 and host in('znxf','spc','shm') and invoice='' and autoPay=1
+	--以前付款今天开票记录(预收开票)
+	if @mark=1	
+		insert into @tb select a.ID,0,'',username, name, price, a.invoice_amount, 1, datePay, a.pay_type, iif(a.amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, b.outOrderNo from v_studentCourseList a, autoPayInfo b where a.ID=b.enterID and b.kind=0 and dateInvoice=@startDate and datePay<@startDate and invoice>'' and a.amount>0 and host in('znxf','spc','shm')
+
+	--插入小计
+	insert into @tb(enterID,kindID,amount,people) select 0,1,isnull(sum(amount),0),count(*) from @tb
+	
+	select * from @tb order by kindID,enterID
+END
+GO
+
 -- CREATE DATE: 2024-10-15
 -- 查询班级课表
 -- USE CASE: exec [getClassScheduleList] '123'
