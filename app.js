@@ -43,6 +43,8 @@ for(var v of hosts){
     orig.push('http://www.shznxfxx.cn' + x);
   }
   orig.push('https://shznxfxx.cn');
+  orig.push('https://yous.shznxfxx.cn');
+  orig.push('https://zich.shznxfxx.cn');
 }
 //console.log("origin:",orig);
 var corsOptions = {
