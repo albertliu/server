@@ -3075,6 +3075,7 @@ GO
 -- CREATE Date: 2020-05-08
 -- Description:	学员选择给定的证书项目，将添加到数据库并同时添加相关的课程。
 -- mark: 0 证书项目  1 培训项目（只有课程）
+-- url: subdomain
 -- 公共证书项目报名时，不生成课程、课件和试卷，等编班后再分配
 -- Use Case:	exec addnewStudentCert '310....' 
 -- =============================================
@@ -3088,8 +3089,7 @@ BEGIN
 	if @currDiplomaID='' or @currDiplomaID='null' set @currDiplomaID=null
 	select @fromID=dbo.whenull(@fromID,null), @ID=0, @username=upper(@username)
 	--@fromID如果没有.后缀，添加上去。
-	--select @event='选择课程',@refID=0,@re=0,@host=host,@checked=0,@SNo=0,@dept1=dept1,@dept2=dept2,@payNow=0,@title='',@fromID=iif(dbo.whenull(@fromID,'')>'',iif(charindex('.',@fromID)>0,@fromID,@fromID+'.'),fromID) from studentInfo where username=@username
-	select @event='选择课程',@refID=0,@re=0,@host=host,@checked=0,@SNo=0,@dept1=dept1,@dept2=dept2,@payNow=0,@title='',@fromID=iif(charindex('.',@fromID)>0,@fromID,iif(@fromID>'',@fromID+'.',@fromID)) from studentInfo where username=@username
+	select @event='选择课程',@refID=0,@re=0,@host=iif(@url>'',@url,host),@checked=0,@SNo=0,@dept1=dept1,@dept2=dept2,@payNow=0,@title='',@fromID=iif(charindex('.',@fromID)>0,@fromID,iif(@fromID>'',@fromID+'.',@fromID)) from studentInfo where username=@username
 	if @host='spc'
 	begin
 		if exists(select 1 from deptInfo where deptID=@dept2)
@@ -3104,7 +3104,7 @@ BEGIN
 	begin
 		select top 1 @projectID = projectID,@price=[dbo].[getProjectPrice](projectID,@fromID) from projectInfo where host=@host and status=1 and certID=@certID and reexamine=@reexamine and (dept='' or [dbo].[pf_inStrArray](dept,',',@dept1)=1) order by projectID desc
 		if @projectID is null
-			return 2
+			select @re = 2, @msg = '没有找到合适的项目，不能报名。'
 	end
 	select @courseID=courseID from courseInfo where certID=@certID and reexamine=@reexamine
 	--select @classID=classID from classInfo where dbo.pf_inStrArray(projectID,',',@projectID)=1 and status=0
@@ -6026,9 +6026,11 @@ BEGIN
 			insert into studentCertList(username,certID,reexamine,host,registerID) values(@username,@certID,@reexamine,@host,@registerID)
 			select @refID=max(ID) from studentCertList where username=@username
 			select @t=type,@certName=certName,@today=convert(varchar(20),getDate(),23) from certificateInfo where certID=@certID
-			if @host not in('znxf','shm','spc') and @price=0
-				select @status=1	--合作单位默认已付
-
+			--if @host not in('znxf','shm','spc') and @price=0
+			--	select @status=1	--合作单位默认已付
+			--合作单位设为未付费、后付费
+			if @host not in('znxf','spc','shm')
+				select @payNow = 1, @status=0
 			--添加课程
 			--从预报名表里查找编号
 			exec lookRefSNo @cID, @username, @name, @pNo output, @mark output
@@ -7542,7 +7544,7 @@ ALTER PROCEDURE [dbo].[updateGenerateApplyInfo]
 AS
 BEGIN
 	declare @re int
-	select @re=@ID
+	select @re=@ID, @host=[dbo].[whenull](@host,'znxf')
 
 	if @ID=0	-- 新纪录
 	begin
@@ -9404,18 +9406,24 @@ GO
 
 --CREATE Date:2021-07-10
 --根据给定参数，返回当天课程列表
+--mark: 0 每天一次考勤  1 上下午分别考勤
+--drop FUNCTION [dbo].[getCurrScheduleList]
 ALTER FUNCTION [dbo].[getCurrScheduleList]
 (	
 	@host varchar(50)
 )
-RETURNS TABLE 
+RETURNS @tab TABLE (ID int, classID varchar(50),courseID varchar(50),title nvarchar(200),typeID int,qty varchar(100))
 AS
-RETURN 
-(
-	select a.ID,b.ID as classID,a.courseID,a.shortName as title, typeID, [dbo].[getCheckinQty](a.ID) as qty from v_classSchedule a, generateApplyInfo b where a.classID=b.ID and a.mark='A' and a.typeID=0 and a.online=0 and a.theDate=convert(varchar(20),getDate(),23)
+BEGIN 
+	declare @hour int
+	select @hour=DATEPART(HOUR, GETDATE())
+	insert into @tab
+	select a.ID,b.ID as classID,a.courseID,a.shortName + iif(checkinMark=1,a.typeName,'') as title, typeID, [dbo].[getCheckinQty](a.ID) as qty from v_classSchedule a, generateApplyInfo b where a.classID=b.ID and a.mark='A' and a.online=0 and a.typeID=iif(checkinMark=0 or @hour<12,0,1) and a.theDate=convert(varchar(20),getDate(),23) and b.host=iif(@host='','znxf',@host)
 	union
-	select a.ID,b.ID as classID,a.courseID,a.shortName as title, typeID, '0' from v_classSchedule a, classInfo b where a.classID=b.ID and a.mark='B' and a.online=0 and a.theDate=convert(varchar(20),getDate(),23)
-)
+	select a.ID,b.ID as classID,a.courseID,a.shortName + iif(checkinMark=1,a.typeName,'') as title, typeID, '0' from v_classSchedule a, classInfo b where a.classID=b.ID and a.mark='B' and a.online=0 and a.typeID=iif(checkinMark=0 or @hour<12,0,1) and a.theDate=convert(varchar(20),getDate(),23) and b.host=@host
+
+	return
+END
 GO
 
 -- =============================================
@@ -9761,7 +9769,7 @@ BEGIN
 	select @start=convert(varchar(20),dateadd(d,-180,min(theDate)),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) as refID from applyInfo where enterID=@enterID)
 
 	select @re=count(*) from 
-	(select ID from v_classSchedule where mark='A' and classID not in (select refID from applyInfo where enterID=@enterID) and theDate between @start and @end) a 
+	(select ID from v_classSchedule where mark='A' and online=0 and classID not in (select refID from applyInfo where enterID=@enterID) and theDate between @start and @end) a 
 	inner join 
 	(select c.refID from checkinInfo c, faceDetectInfo d where c.enterID=d.refID and c.refID=d.keyID and c.kindID=1 and d.kindID=2 and c.enterID in(select ID from studentCourseList where username=@username and courseID=@courseID)) b
 	on a.ID=b.refID
@@ -9918,7 +9926,7 @@ BEGIN
 	if @sales > ''
 		select @where=@where + ' and fromID=''' + @sales + ''''
 	if @where > ''
-		select @where = @where + ' and host in(''znxf'',''spc'',''shm'')'
+		select @where = @where -- + ' and host in(''znxf'',''spc'',''shm'')'
 
 	select @sql=',sum(iif(pay_type=1,amount,0)) as p1,sum(iif(pay_type=2,amount,0)) as p2,sum(iif(pay_type=3,amount,0)) as p3,sum(iif(pay_type=0,amount,0)) as p5,sum(iif(pay_type=9,amount,0)) as p6, 0 as p7 from v_studentCourseList where ' + @where + ' group by '
 	if @mark='D'
@@ -9936,7 +9944,7 @@ BEGIN
 	if @sales > ''
 		select @where1=@where1 + ' and fromID=''' + @sales + ''''
 	if @where1 > ''
-		select @where1 = @where1 + ' and host in(''znxf'',''spc'',''shm'')'
+		select @where1 = @where1 -- + ' and host in(''znxf'',''spc'',''shm'')'
 	if @mark='D'
 		select @sql= 'insert into #tbl select datePay, sum(isnull(p1,0)), sum(isnull(p2,0)), sum(isnull(p3,0)), sum(isnull(p5,0)), sum(isnull(p6,0)), sum(isnull(p7,0)), 0 from (' + @sql + ' union all select dateRefund,0,0,0,0,0,sum(refund_amount) from v_studentCourseList where ' + @where1 + ' group by dateRefund) a group by datePay'
 	if @mark='M'
@@ -9979,7 +9987,7 @@ BEGIN
 		if @sales > ''
 			select @where=@where + ' and fromID=''' + @sales + ''''
 		if @where > ''
-			select @where = @where + ' and host in(''znxf'',''spc'',''shm'')'
+			select @where = @where -- + ' and host in(''znxf'',''spc'',''shm'')'
 		if @key<>6	--有支付方式
 			select @where=@where + ' and pay_type=' + cast(@key as varchar)
 
@@ -10001,7 +10009,7 @@ BEGIN
 		if @sales > ''
 			select @where=@where + ' and fromID=''' + @sales + ''''
 		if @where > ''
-			select @where = @where + ' and host in(''znxf'',''spc'',''shm'')'
+			select @where = @where -- + ' and host in(''znxf'',''spc'',''shm'')'
 
 		select @sql='select username, name, -refund_amount, dateRefund, ''退款'', shortName as courseName, iif(unit>'''',unit,hostName+dept1Name) + '':'' + refund_memo as refund_memo from v_studentCourseList where ' + @where + ' and refund_amount>0'
 	end
@@ -10101,7 +10109,7 @@ BEGIN
 		select @where = ' and autoPay=1'
 	if @autoInvoice= 1
 		select @where = @where + ' and autoInvoice=1'
-	select @where = @where + ' and host in(''znxf'',''spc'',''shm'')'
+	select @where = @where -- + ' and (host in(''znxf'',''spc'',''shm'') or invoice>'''')'
 
 	select @sql0='select ID,autoPay,autoInvoice,'''' as outorderno,username, name, amount, datePay, pay_typeName, shortName,noReceive,invoice,dateInvoice, title, pay_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where '
 	if @receivable=0 and @startDate>''
@@ -10114,9 +10122,9 @@ BEGIN
 	if @receivable=1
 		select @sql = @sql0 + 'noReceive=1 and amount>0' + @where
 	if @received=1 and @startDate>''
-		select @sql = @sql0 + 'datePay>=''' + @startDate + ''' and datePay<=''' + @endDate + ''' and amount>0' + @where
+		select @sql = @sql0 + 'noReceive=2 and amount>0 and dateReceive>=''' + @startDate + ''' and dateReceive<=''' + @endDate + ''' and amount>0' + @where
 	if @received=1 and @startDate1>''
-		select @sql = @sql0 + 'dateInvoice>=''' + @startDate1 + ''' and dateInvoice<=''' + @endDate1 + ''' and amount>0' + @where
+		select @sql = @sql0 + 'noReceive=2 and amount>0 and dateInvoice>=''' + @startDate1 + ''' and dateInvoice<=''' + @endDate1 + ''' and amount>0' + @where
 
 	SET @sql = N'
 	declare @tb table(ID int,autoPay int,autoInvoice int,[客户订单号] varchar(50),username varchar(50), name nvarchar(50), [金额] int, datePay varchar(50), pay_typeName nvarchar(50), shortName nvarchar(50),noReceive int,[发票号码] varchar(50),dateInvoice varchar(50), title nvarchar(200), pay_memo nvarchar(500),invoicePDF varchar(2000))
@@ -10366,11 +10374,11 @@ BEGIN
 	declare @tb table(enterID int,kindID float,mark nvarchar(50) default(''),autoPay int,autoInvoice int,username varchar(50) default(''), name nvarchar(50) default(''), price int, amount int, datePay varchar(50) default(''), pay_type int, pay_typeName nvarchar(50) default(''), shortName nvarchar(50) default(''),noReceive int,invoice varchar(50) default(''),dateInvoice varchar(50) default(''), title nvarchar(200) default(''), autoPayName nvarchar(50), autoInvoiceName nvarchar(50), pay_memo nvarchar(500) default(''),invoicePDF varchar(2000) default(''))
 	declare @tamount int
 	--当天收费记录
-	insert into @tb select ID,0,'',autoPay,autoInvoice,username, name, price, amount, datePay, pay_type, pay_typeName, shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, dbo.getInvoiceTitle(title), '', '',pay_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where datePay=@startDate and amount>0 and pay_status>0 and host in('znxf','spc','shm')
+	insert into @tb select ID,0,'',autoPay,autoInvoice,username, name, price, amount, datePay, pay_type, pay_typeName, shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, dbo.getInvoiceTitle(title), '', '',pay_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where datePay=@startDate and amount>0 and pay_status>0 -- and host in('znxf','spc','shm')
 	--当天退款记录
-	insert into @tb select ID,2,'退款',0,0,username, name, -refund_amount, -refund_amount, dateRefund, 0, '退款', shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, dbo.getInvoiceTitle(title), '', '', refund_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateRefund=@startDate and refund_amount>0 and host in('znxf','spc','shm')
+	insert into @tb select ID,2,'退款',0,0,username, name, -refund_amount, -refund_amount, dateRefund, 0, '退款', shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, dbo.getInvoiceTitle(title), '', '', refund_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateRefund=@startDate and refund_amount>0 -- and host in('znxf','spc','shm')
 	--以前付款今天开票记录(预收开票)
-	insert into @tb select ID,3,'预收开票',autoPay,autoInvoice,username, name, price, invoice_amount, datePay, pay_type, iif(amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, dbo.getInvoiceTitle(title), '', '','',[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateInvoice=@startDate and datePay<@startDate and invoice>'' and amount>0 and host in('znxf','spc','shm')
+	insert into @tb select ID,3,'预收开票',autoPay,autoInvoice,username, name, price, invoice_amount, datePay, pay_type, iif(amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, dbo.getInvoiceTitle(title), '', '','',[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateInvoice=@startDate and datePay<@startDate and invoice>'' -- and amount>0 and host in('znxf','spc','shm')
 	--今天开票转入历史库的记录
 	insert into @tb select a.ID,4,'历史发票',b.autoPay,b.autoInvoice,username, name, b.amount, b.amount, a.datePay, b.payType, iif(b.amount<0,'红冲',pay_typeName), shortName,0,b.invCode,b.invDate, dbo.getInvoiceTitle(b.item), '', '','',b.memo as invoicePDF from v_studentCourseList a, v_invoiceInfo b where a.ID=b.enterID and b.invDate=@startDate
 	--更新自动收费、自动开票
@@ -10433,17 +10441,17 @@ GO
 --根据给定日期，列出线上未开票/线上预收开票明细
 --mark: 0 线上未开票  1 线上预收开票
 --结果中给出分类汇总数据
-CREATE PROCEDURE [dbo].[getDailyRptTotalTrail]
+ALTER PROCEDURE [dbo].[getDailyRptTotalTrail]
 	@startDate varchar(50), @host varchar(50), @mark int
 AS
 BEGIN
-	declare @tb table(enterID int,kindID float,mark nvarchar(50) default(''),username varchar(50) default(''), name nvarchar(50) default(''), price int, amount int, people int, datePay varchar(50) default(''), pay_type int, pay_typeName nvarchar(50) default(''), shortName nvarchar(50) default(''),noReceive int,invoice varchar(50) default(''),dateInvoice varchar(50) default(''), outOrderNo varchar(2000) default(''))
+	declare @tb table(enterID int,kindID float,mark nvarchar(50) default(''),username varchar(50) default(''), pname nvarchar(50) default(''), price int, amount int, people int, datePay varchar(50) default(''), pay_type int, pay_typeName nvarchar(50) default(''), shortName nvarchar(50) default(''),noReceive int,invoice varchar(50) default(''),dateInvoice varchar(50) default(''), outOrderNo varchar(2000) default(''))
 	--当天收费线上未开票记录
 	if @mark=0	
-		insert into @tb select a.ID,0,'',username, name, price, a.amount, 1, datePay, a.pay_type, pay_typeName, shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, b.outOrderNo from v_studentCourseList a, autoPayInfo b where a.ID=b.enterID and b.kind=0 and a.datePay=@startDate and a.amount>0 and pay_status>0 and host in('znxf','spc','shm') and invoice='' and autoPay=1
+		insert into @tb select a.ID,0,'',username, name, price, a.amount, 1, datePay, a.pay_type, pay_typeName, shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, b.outOrderNo from v_studentCourseList a, autoPayInfo b where a.ID=b.enterID and b.kind=0 and a.datePay=@startDate and a.amount>0 and pay_status>0 and (invoice='' or dateInvoice>@startDate) and autoPay=1 -- and host in('znxf','spc','shm')
 	--以前付款今天开票记录(预收开票)
 	if @mark=1	
-		insert into @tb select a.ID,0,'',username, name, price, a.invoice_amount, 1, datePay, a.pay_type, iif(a.amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, b.outOrderNo from v_studentCourseList a, autoPayInfo b where a.ID=b.enterID and b.kind=0 and dateInvoice=@startDate and datePay<@startDate and invoice>'' and a.amount>0 and host in('znxf','spc','shm')
+		insert into @tb select a.ID,0,'',username, name, price, a.invoice_amount, 1, datePay, a.pay_type, iif(a.amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, b.outOrderNo from v_studentCourseList a, autoPayInfo b where a.ID=b.enterID and b.kind=0 and dateInvoice=@startDate and datePay<@startDate and invoice>'' and a.amount>0 -- and host in('znxf','spc','shm')
 
 	--插入小计
 	insert into @tb(enterID,kindID,amount,people) select 0,1,isnull(sum(amount),0),count(*) from @tb
@@ -10561,7 +10569,7 @@ ALTER FUNCTION [dbo].[getNodeInfoArchive]
 RETURNS @tab TABLE (classID int, className nvarchar(50),applyID varchar(100),certName nvarchar(100),reexamineName nvarchar(50),startDate varchar(50), endDate varchar(50),qty int,qtyReturn int,qtyExam int,qtyPass int,summary nvarchar(2000),adviser nvarchar(50),attendanceRate decimal(18,2))
 AS
 BEGIN
-	declare @startDate varchar(50),@endDate varchar(50),@qtyPass int,@adviserName nvarchar(50)
+	declare @startDate varchar(50),@endDate varchar(50),@qtyPass int,@qtyExam int,@adviserName nvarchar(50)
 
 	if @kindID='B'	--培训班
 	begin
@@ -10572,9 +10580,10 @@ BEGIN
 	begin
 		select @startDate=isnull(convert(varchar(20),min(theDate),23),''),@endDate=isnull(convert(varchar(20),max(theDate),23),'') from classSchedule where classID=@classID and mark=@kindID
 		select @qtyPass=count(*) from applyInfo where refID=@classID and status=1
+		select @qtyExam=count(*) from applyInfo where refID=@classID and (status=1 or status=2)
 		select @adviserName=b.realName from generateApplyInfo a, userInfo b where a.adviserID=b.username and a.ID=@classID
 		INSERT INTO @tab
-		select ID,title,applyID,courseName,reexamineName,isnull(@startDate,''),isnull(@endDate,''),qty,0,qty,isnull(@qtyPass,0),summary,isnull(@adviserName,''),0 from v_generateApplyInfo where ID=@classID
+		select ID,title,applyID,courseName,reexamineName,isnull(@startDate,''),isnull(@endDate,''),qty,0,@qtyExam,isnull(@qtyPass,0),summary,isnull(@adviserName,''),0 from v_generateApplyInfo where ID=@classID
 	end
 
 	update @tab set attendanceRate=dbo.getClassAttendanceRate(@classID, @kindID)
