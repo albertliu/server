@@ -1245,8 +1245,30 @@ router.post('/postCommInfo', function (req, res, next) {
       console.log(err);
       return res.send({ "status": 9, "msg": "操作失败。" });
     }
-    let response = data.recordset || [];
-    // console.log(response);
+    let mark = req.query.mark || "data";
+    if(mark=="data"){
+      //return json data
+      response = data.recordset || [];  
+    }
+    if(mark=="file"){
+      //return excel file
+      if(data.recordset.length > 0){
+        let sheet = xlsx.utils.json_to_sheet(data.recordset);
+        let workBook = {
+          SheetNames: ['sheet1'],
+          Sheets: {
+            'sheet1': sheet
+          }
+        };
+        // 将workBook写入文件
+        let path = downloadHome + "temp/" + req.body.proc + Date.now() + ".xlsx";
+        xlsx.writeFile(workBook, path);
+        response = [path];
+      }else{
+        response = [];
+      }
+    }
+    //console.log(response);
     return res.send(response);
   });
 });
