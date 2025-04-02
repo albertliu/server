@@ -898,7 +898,8 @@ router.get('/generate_diploma_byCertID', function (req, res, next) {
 router.post('/generate_diploma_byUsername', function (req, res, next) {
   sqlstr = "generate_diploma_byUsername";
   params = { selList: req.body.selList, registerID: req.body.username };
-  db.excuteSQL(sqlstr, params, function (err, data1) {
+  console.log('params',params);
+  db.excuteProc(sqlstr, params, function (err, data1) {
     if (err) {
       console.log(err);
       response = [0];
