@@ -4654,6 +4654,34 @@ END
 GO
 
 -- =============================================
+-- CREATE Date: 2025-04-02
+-- Description:	根据给定的身份证列表，为其所属的有效证书重新生成证书，以更新内容（一般是单位变更）。
+-- @selList: 名单，用逗号分隔的username
+-- Use Case:	exec generate_diploma_byUsername '...','admin.'
+-- =============================================
+ALTER PROCEDURE [dbo].[generate_diploma_byUsername] 
+	@selList varchar(4000), @registerID varchar(50)
+AS
+BEGIN
+	--创建临时表
+	create table #temp(id varchar(50))
+	declare @n int, @j int
+	select @n=dbo.pf_getStrArrayLength(replace(replace(@selList,' ',''),'，',''),','), @j=0
+	while @n>@j
+	begin
+		insert into #temp values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
+		select @j = @j + 1
+	end
+
+	exec writeOpLog '','重做证书','generate_diploma_byUsername',@registerID,'',@selList
+
+	select a.* from v_diplomaInfo a, #temp b where a.username=b.ID and a.type=1 and a.status=0
+
+	drop table #temp
+END
+GO
+
+-- =============================================
 -- CREATE Date: 2020-10-02
 -- Description:	根据给定的证书项目编号，填写发放证书记录。
 -- @selList: 发放名单，用逗号分隔的ID in studentCertList
@@ -10473,25 +10501,34 @@ ALTER PROCEDURE [dbo].[getRptWorkload]
 AS
 BEGIN
 	select @endDate = dbo.whenull(@endDate,convert(varchar(20),getDate(),23))
-	declare @tb table(classID varchar(50) default(''),kindID float,className nvarchar(100) default(''), courseID varchar(50) default(''), courseName nvarchar(100) default(''), dateEnd varchar(50) default(''), classRoom nvarchar(50) default(''), qty int default(0), workDays decimal(18,1) default(0), workload int default(0), teacherName nvarchar(50) default(''), teacher varchar(50) default(''), memo nvarchar(500) default(''))
+	declare @tb table(classID varchar(50) default(''),kindID int,seq float,className nvarchar(100) default(''), courseID varchar(50) default(''), courseName nvarchar(100) default(''), dateEnd varchar(50) default(''), classRoom nvarchar(50) default(''), qty int default(0), workDays decimal(18,1) default(0), workload int default(0), teacherName nvarchar(50) default(''), teacher varchar(50) default(''), memo nvarchar(500) default(''))
 	if @opt=0	--教师
 	insert into @tb 
-		select a.ID,0,className, courseID, courseName, b.lastDate, classroom, a.qty, b.workDays, a.qty*b.workDays, b.teacherName, b.teacher, memo from v_classInfo a, v_classTeacherWorkload b where a.ID=b.classID and b.mark='B' and b.lastDate between @startDate and @endDate and pre=0 and agencyID>1 and a.qty>0
+		select a.ID,0,0,className, courseID, courseName, b.lastDate, classroom, a.qty, b.workDays, a.qty*b.workDays, b.teacherName, b.teacher, memo from v_classInfo a, v_classTeacherWorkload b where a.ID=b.classID and b.mark='B' and b.lastDate between @startDate and @endDate and pre=0 and agencyID>1 and a.qty>0
 		union
-		select a.ID,1,title, courseID, courseName, b.lastDate, classroom, a.qty, b.workDays, a.qty*b.workDays, b.teacherName, b.teacher, memo from v_generateApplyInfo a, v_classTeacherWorkload b where a.ID=b.classID and b.mark='A' and b.lastDate between @startDate and @endDate and a.qty>0
+		select a.ID,1,0,title, courseID, courseName, b.lastDate, classroom, a.qty, b.workDays, a.qty*b.workDays, b.teacherName, b.teacher, memo from v_generateApplyInfo a, v_classTeacherWorkload b where a.ID=b.classID and b.mark='A' and b.lastDate between @startDate and @endDate and a.qty>0
 	
 	if @opt=1	--班主任
 	insert into @tb 
-		select ID,0,className, courseID, courseName, dbo.getClassLastDate(ID,'B'), classroom, qty, dbo.getClassRealDays(ID,'B'), qty*dbo.getClassRealDays(ID,'B'), adviserName, adviserID, memo from v_classInfo where dbo.getClassLastDate(ID,'B') between @startDate and @endDate and pre=0 and agencyID>1 and qty>0
+		select ID,0,0,className, courseID, courseName, dbo.getClassLastDate(ID,'B'), classroom, qty, dbo.getClassRealDays(ID,'B'), qty*dbo.getClassRealDays(ID,'B'), adviserName, adviserID, memo from v_classInfo where dbo.getClassLastDate(ID,'B') between @startDate and @endDate and pre=0 and agencyID>1 and qty>0
 		union
-		select ID,1,title, courseID, courseName, dbo.getClassLastDate(ID,'A'), classroom, qty, dbo.getClassRealDays(ID,'A'), qty*dbo.getClassRealDays(ID,'A'), adviserName, adviserID, memo from v_generateApplyInfo where dbo.getClassLastDate(ID,'A') between @startDate and @endDate and qty>0
+		select ID,1,0,title, courseID, courseName, dbo.getClassLastDate(ID,'A'), classroom, qty, dbo.getClassRealDays(ID,'A'), qty*dbo.getClassRealDays(ID,'A'), adviserName, adviserID, memo from v_generateApplyInfo where dbo.getClassLastDate(ID,'A') between @startDate and @endDate and qty>0
+
+	--创建分组序列
+	declare @tbg table(ID varchar(50), seq int)
+	insert into @tbg select teacher, ROW_NUMBER() OVER (ORDER BY teacher) from @tb group by teacher
+	update @tb set seq=b.seq from @tb a, @tbg b where a.teacher=b.ID
 	
 	--创建合计
-	insert into @tb(kindID, teacherName, dateEnd, qty, workDays, workload) select 100,'合计',isnull(count(*),0),isnull(sum(qty),0), isnull(sum(workDays),0),isnull(sum(workload),0) from @tb
+	insert into @tb(kindID, seq, teacherName, dateEnd, qty, workDays, workload) select 100,100,'合计',isnull(count(*),0),isnull(sum(qty),0), isnull(sum(workDays),0),isnull(sum(workload),0) from @tb
+
+	--创建分组汇总
+	insert into @tb(kindID, seq, teacherName, dateEnd, qty, workDays, workload) select 1,max(b.seq)+0.5,'小计',isnull(count(*),0),isnull(sum(qty),0), isnull(sum(workDays),0),isnull(sum(workload),0) from @tb a, @tbg b where a.teacher=b.ID and a.kindID<100 group by a.teacher
+
 	if @mark='data'
-		select iif(classID>'',cast(ROW_NUMBER() OVER (ORDER BY kindID,courseID,classID) as varchar),'') as 'No',* from @tb order by kindID,courseID,classID
+		select iif(classID>'',cast(ROW_NUMBER() OVER (ORDER BY kindID,courseID,classID) as varchar),'') as 'No',* from @tb order by seq,courseID,classID
 	if @mark='file'
-		select iif(classID>'',cast(ROW_NUMBER() OVER (ORDER BY kindID,courseID,classID) as varchar),'') as 'No',teacherName as '项目',classID as '班级编号',className as '班级名称',courseName as '课程名称',dateEnd as '结课日期',classroom as '教室',qty as '人数', workDays as '天数', workload as '工作量',memo as '备注' from @tb order by kindID,courseID,classID
+		select iif(classID>'',cast(ROW_NUMBER() OVER (ORDER BY kindID,courseID,classID) as varchar),'') as 'No',teacherName as '项目',classID as '班级编号',className as '班级名称',courseName as '课程名称',dateEnd as '结课日期',classroom as '教室',qty as '人数', workDays as '天数', workload as '工作量',memo as '备注' from @tb order by seq,courseID,classID
 END
 GO
 
@@ -10521,7 +10558,7 @@ BEGIN
 	
 	if @opt=3	--课程
 	insert into @tb 
-		select ID,1,0,title, courseID, courseName, '', (qty), (qtyYes+qtyNo), (qtyYes), 0, courseName, courseID, memo from v_generateApplyInfo where importScoreDate between @startDate and @endDate and qty>0 and host='znxf'
+		select ID,1,0,title, courseID, courseName,importScoreDate, (qty), (qtyYes+qtyNo), (qtyYes), 0, courseName+' '+reexamineName, courseID, memo from v_generateApplyInfo where importScoreDate between @startDate and @endDate and qty>0 and host='znxf'
 
 	--创建分组序列
 	declare @tbg table(ID varchar(50), seq int)
