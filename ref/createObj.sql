@@ -4666,7 +4666,8 @@ BEGIN
 	--创建临时表
 	create table #temp(id varchar(50))
 	declare @n int, @j int
-	select @n=dbo.pf_getStrArrayLength(replace(replace(@selList,' ',''),'，',''),','), @j=0
+	select @selList=replace(replace(@selList,' ',''),'，',',')
+	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0
 	while @n>@j
 	begin
 		insert into #temp values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))

@@ -918,7 +918,7 @@ router.post('/generate_diploma_byUsername', function (req, res, next) {
       paths.push(path);
     }
     pdf.genPDF(pages, paths, '180mm', '120mm', '1', false, 1, false);
-    response = [i];
+    response = [1+parseInt(i)];
     return res.send(response);
   });
 });
