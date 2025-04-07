@@ -1261,7 +1261,7 @@ GO
 -- CREATE DATE: 2020-05-08
 -- 获取学员可选证书项目（去除已选项目及其他公司专属项目）
 -- status:0 准备  1 学习中  2 结束
--- 已取得证书在过期前60天不可再选
+-- 已取得证书在过期前180天不可再选
 -- USE CASE: select * from dbo.[getStudentCertRestList]('120107196604032113')
 ALTER FUNCTION [dbo].[getStudentCertRestList]
 (	
@@ -6035,7 +6035,7 @@ BEGIN
 	if @currDiplomaID='' or @currDiplomaID='null' set @currDiplomaID=null
 	select @re=0,@msg=iif(@ID=0,'报名成功。','保存成功。'),@hasLesson=0, @datePay=[dbo].[whenull](@datePay,null), @username=upper(@username), @host=[dbo].[whenull](@host,''), @receipt=[dbo].[whenull](@receipt,null),@receipt0='', @source=[dbo].[whenull](@source,null)
 	select @cID = ID, @signatureType=signatureType, @pre=pre from classInfo where classID=@classID
-	if @source is not null
+	if @source is null
 		select @source=title from hostInfo where hostNo=@host and @host<>'znxf'
 
 	if @ID=0	--新的报名
