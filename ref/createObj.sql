@@ -6117,7 +6117,7 @@ BEGIN
 		begin
 			if @dateInvoice>'' and @invoice>'' and exists(select 1 from studentCourseList where ID=@ID and (dateInvoice is null or dateInvoice=''))
 				update studentCourseList set dateInvoice=@dateInvoice where invoice=@invoice and ID<>@ID	--团体发票更新开票日期
-			update studentCourseList set source=@source,host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),classID=@classID,SNo=@pNo,noReceive=iif(@type=3 and @status=1,1,0),checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),pay_memo=@pay_memo,signatureType=@signatureType,payNow=@payNow,needInvoice=@needInvoice,title=@title,pay_kindID=@kindID,pay_type=@type,pay_status=@status,price=@price,amount=@amount,invoice=@invoice,receipt=@receipt,invoice_amount=@invoice_amount,dateInvoice=[dbo].[whenull](@dateInvoice,null),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),datePay=iif(@datePay>'' and @status>0,@datePay,iif(@status=1 and pay_status=0 and datePay is null,getDate(),datePay)),pay_checker=iif(@status=1 and pay_status=0 and pay_checker is null,@registerID,pay_checker),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
+			update studentCourseList set source=@source,host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),classID=@classID,SNo=@pNo,noReceive=iif(@type=3 and @status=1 and noReceive=0,1,noReceive),checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),pay_memo=@pay_memo,signatureType=@signatureType,payNow=@payNow,needInvoice=@needInvoice,title=@title,pay_kindID=@kindID,pay_type=@type,pay_status=@status,price=@price,amount=@amount,invoice=@invoice,receipt=@receipt,invoice_amount=@invoice_amount,dateInvoice=[dbo].[whenull](@dateInvoice,null),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),datePay=iif(@datePay>'' and @status>0,@datePay,iif(@status=1 and pay_status=0 and datePay is null,getDate(),datePay)),pay_checker=iif(@status=1 and pay_status=0 and pay_checker is null,@registerID,pay_checker),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
 		end
 		else
 			update studentCourseList set source=@source,host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),classID=@classID,SNo=@pNo,checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),signatureType=@signatureType,needInvoice=@needInvoice,title=iif(autoInvoice=0,@title,title),invoice=iif(autoInvoice=0,@invoice,invoice),receipt=@receipt,invoice_amount=iif(autoInvoice=0,@invoice_amount,invoice_amount),dateInvoice=iif(autoInvoice=0,[dbo].[whenull](@dateInvoice,null),dateInvoice),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
@@ -8467,10 +8467,10 @@ GO
 -- 根据给定的参数，更新可变信息
 -- USE CASE: exec [updateClassSchedule] 1,1,'xxxx'...
 ALTER PROCEDURE [dbo].[updateClassSchedule]
-	@ID int,@seq int,@kindID int,@typeID int,@online int,@hours int,@period varchar(50),@theDate varchar(50),@teacher varchar(50),@address nvarchar(100),@item nvarchar(100),@point int,@memo varchar(500),@registerID varchar(50)
+	@ID int, @classID varchar(50),@seq int,@kindID int,@typeID int,@online int,@hours int,@period varchar(50),@theDate varchar(50),@teacher varchar(50),@address nvarchar(100),@item nvarchar(100),@point int,@memo varchar(500),@registerID varchar(50)
 AS
 BEGIN
-	declare @re int, @msg nvarchar(100), @classID varchar(50), @mark varchar(20)
+	declare @re int, @msg nvarchar(100), @mark varchar(20)
 	set datefirst 1
 	select @classID=classID, @mark=mark from classSchedule where ID=@ID
 	--if @teacher > '' and exists(select 1 from v_classSchedule where theDate=@theDate and typeID=@typeID and teacher=@teacher and online=0 and ID<>@ID)
@@ -8479,6 +8479,12 @@ BEGIN
 	--if exists(select 1 from classSchedule where classID=@classID and typeID=@typeID and mark=@mark and @theDate=convert(varchar(20),theDate,23) and ID<>@ID)
 	--	select @re=2, @msg='日期有重复'
 	--else
+	if @ID=0
+	begin
+		insert into classSchedule(classID,seq,kindID,typeID,online,hours,period,theDate,teacher,address,item,point,memo,registerID) values(@classID,@seq,@kindID,@typeID,@online,@hours,@period,@theDate,@teacher,@address,@item,@point,@memo,@registerID)
+		select @ID=max(ID) from classSchedule where classID=@classID
+	end
+	else
 		update classSchedule set seq=@seq,kindID=@kindID,typeID=@typeID,online=@online,point=@point,item=@item,hours=@hours,period=@period,theDate=@theDate,theWeek=datepart(weekday,@theDate),teacher=@teacher,address=@address,memo=@memo,registerID=@registerID where ID=@ID
 
 	select isnull(@re,0) as status, isnull(@msg,'') as msg
@@ -10303,19 +10309,26 @@ GO
 -- mark: A apply, B class
 -- USE CASE: exec [getClassStudyOnline] 1
 ALTER PROCEDURE [dbo].[getClassStudyOnline]
-	@classID varchar(50), @mark varchar(50)
+	@classID varchar(50), @mark varchar(50), @theDate varchar(50)
 AS
 BEGIN
 	declare @hostName nvarchar(100), @fname varchar(200)
+	select @theDate=dbo.whenull(@theDate,convert(varchar(20),getDate(),23))
 	create table #temp(ID int,enterID int,username varchar(50),name nvarchar(50),mobile varchar(50),completion decimal(10,2) default(0),completion_hours decimal(10,2) default(0),result int,pOffline int default(0),
 		examTimes int default(0),goodTimes int default(0),goodRate decimal(10,2) default(0),examTimes1 int default(0),goodTimes1 int default(0),goodRate1 decimal(10,2) default(0)
-		,examTimesLast int default(0),goodTimesLast int default(0),goodRateLast decimal(10,2) default(0),examTimes1Last int default(0),goodTimes1Last int default(0),goodRate1Last decimal(10,2) default(0))
+		,examTimesLast int default(0),goodTimesLast int default(0),goodRateLast decimal(10,2) default(0),examTimes1Last int default(0),goodTimes1Last int default(0),goodRate1Last decimal(10,2) default(0),todayExamTimes int default(0),todayGoodTiems int default(0))
+	
+	--在线课程完成率
 	if @mark='A'
 		insert into #temp(ID,enterID,username,name,mobile,completion,completion_hours) select max(a.ID),b.ID,d.username,d.name,max(d.mobile),avg(c.completion),sum(c.completion*c.hours)/100.00 from applyInfo a, studentCourseList b, studentLessonList c, studentInfo d where a.enterID=b.ID and b.ID=c.refID and b.username=d.username and a.refID=@classID group by b.ID,d.username,d.name
 	else
 		insert into #temp(ID,enterID,username,name,mobile,completion,completion_hours) select cast(right(max(b.SNo),3) as int),b.ID,d.username,d.name,max(d.mobile),avg(c.completion),sum(c.completion*c.hours)/100.00 from studentCourseList b, studentLessonList c, studentInfo d where b.ID=c.refID and b.username=d.username and b.classID=@classID group by b.ID,d.username,d.name
 	
 	update #temp set examTimes=b.examTimes,goodTimes=b.goodTimes,examTimes1=b.examTimes1,goodTimes1=b.goodTimes1 from #temp a, (select c.enterID,sum(iif(e.kindID=0,1,0)) as examTimes,sum(iif(d.score>=d.scorePass and e.kindID=0,1,0)) as goodTimes,sum(iif(e.kindID=1,1,0)) as examTimes1,sum(iif(d.score>=d.scorePass and e.kindID=1,1,0)) as goodTimes1 from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID group by c.enterID) b where a.enterID=b.enterID
+	
+	--当天练习次数
+	update #temp set todayExamTimes=b.examTimes,todayGoodTiems=b.goodTimes from #temp a, (select c.enterID,count(*) as examTimes,sum(iif(d.score>=d.scorePass,1,0)) as goodTimes from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID and d.backDate between @theDate and @theDate + ' 23:59:59' group by c.enterID) b where a.enterID=b.enterID
+	
 	--最近5次应知练习
 	update #temp set examTimesLast=b.examTimes,goodTimesLast=b.goodTimes from #temp a, 
 	(select enterID,count(*) as examTimes,sum(iif(score>=scorePass,1,0)) as goodTimes 

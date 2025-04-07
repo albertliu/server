@@ -649,6 +649,8 @@ def enter_by_list8(elist, classID, courseName, reex):
             # search_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//img")[0]
             # search_btn.click()
             # 上传报名表
+            # 弹出窗口
+            div_dialog = driver.find_elements(By.XPATH, "//div[@id='app']/div/div[@class='el-dialog__wrapper')]")[0]
             # print(1)
             wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//input[@type='file']")))
             p = img_path + row[10]  # 照片
@@ -660,7 +662,7 @@ def enter_by_list8(elist, classID, courseName, reex):
             # 确定按钮
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确 认')]/..")))
             name_input.click()
-            while name_input.is_displayed() and name_input.is_enabled():    # 等待确认按钮消失
+            while div_dialog.is_displayed():    # 等待弹出窗口消失
                 pass
             # time.sleep(3)
             # print(3)
