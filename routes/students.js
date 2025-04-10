@@ -336,7 +336,7 @@ router.get('/get_student_diploma_list', function (req, res, next) {
     sqlstr = "select * from v_studentDiplomaList where username=@username and certID=@certID order by certID, endDate desc";
     params = { username: req.query.username, certID: req.query.certID };
   } else {
-    sqlstr = "select * from v_studentDiplomaList where username=@username order by certID, endDate desc";
+    sqlstr = "select * from [dbo].[getStudentDiplomaList](@username) order by certID, endDate desc";
     params = { username: req.query.username };
   }
   db.excuteSQL(sqlstr, params, function (err, data) {

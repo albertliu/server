@@ -1261,7 +1261,7 @@ GO
 -- CREATE DATE: 2020-05-08
 -- 获取学员可选证书项目（去除已选项目及其他公司专属项目）
 -- status:0 准备  1 学习中  2 结束
--- 已取得证书在过期前180天不可再选
+-- 已取得证书在过期前60天不可再选
 -- USE CASE: select * from dbo.[getStudentCertRestList]('120107196604032113')
 ALTER FUNCTION [dbo].[getStudentCertRestList]
 (	
@@ -1280,12 +1280,12 @@ BEGIN
 		INSERT INTO @tab
 		SELECT * FROM
 		(
-			SELECT a.ID,a.certID,a.certName,0 as mark,a.reexamine from v_certificateInfo a, projectInfo b where a.certID=b.certID and b.host=@host and b.status=1 and dbo.pf_inStrArray(b.dept,',',@deptID)=1 	--已开课外部认证项目
+			SELECT a.ID,a.certID,a.certName,0 as mark,a.reexamine from v_certificateInfo a, projectInfo b where a.certID=b.certID and b.host=@host and b.status=1 and (dbo.pf_inStrArray(b.dept,',',@deptID)=1 or @deptID='') 	--已开课外部认证项目
 			union
 			SELECT ID,certID,certName,0 as mark,reexamine from v_certificateInfo where host=@host and status=0 and kindID=0 and type=1 and (mark=0 or mark=1)	--所有内部认证项目（公共）
 			union
 			SELECT a.ID,a.certID,a.certName,0,a.reexamine from v_certificateInfo a, studentInfo b where a.status=0 and a.kindID=1 and b.username=@username and a.host=b.host and (a.mark=0 or a.mark=1)	--所有认证项目（专属）
-		) x where certID not in (select certID from v_studentCertList where username=@username and status<2 and diplomaID='' union select certID from diplomaInfo where username=@username and status=0 and datediff(d,getDate(),endDate)>180)
+		) x where certID not in (select certID from v_studentCertList where username=@username and status<2 and diplomaID='' union select certID from v_diplomaInfo where username=@username and status=0 and datediff(d,getDate(),endDate)>180)
 		union
 		SELECT * FROM
 		(
@@ -1302,7 +1302,7 @@ BEGIN
 			SELECT ID,certID,certName,0 as mark,reexamine from v_certificateInfo where host=@host and status=0 and kindID=0 and type=1 and (mark=0 or mark=2)
 			union
 			SELECT a.ID,a.certID,a.certName,0,a.reexamine from v_certificateInfo a, studentInfo b where a.status=0 and a.kindID=1 and b.username=@username and a.host=b.host and (a.mark=0 or a.mark=2)
-		) x where certID not in (select certID from v_studentCertList where username=@username and status<2 and diplomaID='' union select certID from diplomaInfo where username=@username and status=0 and datediff(d,getDate(),endDate)>180)
+		) x where certID not in (select certID from v_studentCertList where username=@username and status<2 and diplomaID='' union select certID from v_diplomaInfo where username=@username and status=0 and datediff(d,getDate(),endDate)>90)
 		union
 		SELECT * FROM
 		(
@@ -5628,15 +5628,16 @@ GO
 
 -- =============================================
 -- CREATE Date: 2024-10-28
--- Description:	给定的班级中选定的人员更改支付类型（预付费/后付费）。
+-- Description:	给定的班级中选定的人员更改支付类型（预付费/后付费,未付/已付）。
 -- @selList: 名单，用逗号分隔的username in studentCourseList in class
+-- @payNow: 由两位数字组成，第一位是预付费/后付费，第二位是未付/已付
 -- Use Case:	exec [pickStudents2Paynow] '1','124223xxx','122'
 -- =============================================
 ALTER PROCEDURE [dbo].[pickStudents2Paynow] 
 	@payNow varchar(50), @selList varchar(4000), @classID varchar(50), @registerID varchar(50)
 AS
 BEGIN
-	declare @re int
+	declare @re int, @logMemo nvarchar(500)
 
 	--将名单导入到临时表
 	create table #temp_studentCheck(id varchar(50))
@@ -5649,9 +5650,10 @@ BEGIN
 	end
 
 	select @re = count(*) from studentCourseList a, #temp_studentCheck b where a.username=b.id and a.classID=@classID and pay_status=0
-	update studentCourseList set payNow=@payNow from studentCourseList a, #temp_studentCheck b where a.username=b.id and a.classID=@classID and pay_status=0
+	update studentCourseList set payNow=left(@payNow,1), pay_status=right(@payNow,1) from studentCourseList a, #temp_studentCheck b where a.username=b.id and a.classID=@classID  and pay_status=0
 	-- 写操作日志
-	exec writeOpLog '','更改支付方式','pickStudents2Paynow',@registerID,@selList,@classID
+	select @logMemo=@selList + ':' + @payNow
+	exec writeOpLog '','更改支付方式','pickStudents2Paynow',@registerID,@logMemo,@classID
 
 	select @re as re
 END
@@ -10384,35 +10386,43 @@ BEGIN
 	--当天收费记录
 	insert into @tb select ID,0,'',autoPay,autoInvoice,username, name, price, amount, datePay, pay_type, pay_typeName, shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, dbo.getInvoiceTitle(title), '', '',pay_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where datePay=@startDate and amount>0 and pay_status>0 -- and host in('znxf','spc','shm')
 	--如果有当天开票被移除，将这张发票信息填回来
-	update @tb set invoice=b.invCode, dateInvoice=b.invDate from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate=@startDate
+	update @tb set invoice=b.invCode, dateInvoice=b.invDate from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate=@startDate  -- and a.invoice='' 
 	--开票日期如果大于当天，发票信息清除
 	--update @tb set invoice='', dateInvoice='' where dateInvoice>@startDate
 	--当天退款记录
 	insert into @tb select ID,2,'退款',0,0,username, name, -refund_amount, -refund_amount, dateRefund, 0, '退款', shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, dbo.getInvoiceTitle(title), '', '', refund_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateRefund=@startDate and refund_amount>0 -- and host in('znxf','spc','shm')
+	--今天付款今天红冲记录(红冲)
+	insert into @tb select ID,3.1,'红冲',autoPay,autoInvoice,username, name, price, invoice_amount, datePay, pay_type, '红冲', shortName,noReceive,invoice,dateInvoice, dbo.getInvoiceTitle(title), '', '','',[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateInvoice=@startDate and datePay=@startDate and invoice>'' and invoice_amount<0
 	--以前付款今天开票记录(预收开票)
-	insert into @tb select ID,3,'预收开票',autoPay,autoInvoice,username, name, price, invoice_amount, datePay, pay_type, iif(amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, dbo.getInvoiceTitle(title), '', '','',[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateInvoice=@startDate and datePay<@startDate and invoice>'' -- and amount>0 and host in('znxf','spc','shm')
+	insert into @tb select ID,3,'预收开票',autoPay,autoInvoice,username, name, price, invoice_amount, datePay, pay_type, iif(invoice_amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, dbo.getInvoiceTitle(title), '', '','',[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateInvoice=@startDate and datePay<@startDate and invoice>'' -- and amount>0 and host in('znxf','spc','shm')
 	--如果有之前开票被移除，那么这张发票应该是重开的
 	update @tb set mark='重开发票',kindID=3.1 from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate<=@startDate and a.kindID=3
-	--今天开票转入历史库的记录
-	insert into @tb select a.ID,4,'历史发票',b.autoPay,b.autoInvoice,username, name, b.amount, b.amount, a.datePay, b.payType, iif(b.amount<0,'红冲',pay_typeName), shortName,0,b.invCode,b.invDate, dbo.getInvoiceTitle(b.item), '', '','',b.memo as invoicePDF from v_studentCourseList a, v_invoiceInfo b where a.ID=b.enterID and b.invDate=@startDate
+	--今天开票转入历史库的记录，不包括已回填的发票
+	insert into @tb select a.ID,4,'历史发票',b.autoPay,b.autoInvoice,username, name, b.amount, b.amount, a.datePay, b.payType, iif(b.amount<0,'红冲',pay_typeName), shortName,0,b.invCode,b.invDate, dbo.getInvoiceTitle(b.item), '', '','',b.memo as invoicePDF from v_studentCourseList a, v_invoiceInfo b where a.ID=b.enterID and b.invDate=@startDate and b.invCode not in(select invoice from @tb)
 	--更新自动收费、自动开票
 	update @tb set autoPayName=iif(autoPay=1,'线上','线下'), autoInvoiceName=iif(autoInvoice=1,'线上',iif(invoice>'','线下','')) where kindID in(0,3)
 	--更新未开票标识
-	update @tb set mark='未开票', kindID=1 where kindID=0 and invoice=''
+	update @tb set mark='未开票', kindID=1, dateInvoice='' where kindID=0 and (dateInvoice='' or dateInvoice>@startDate)
 	--插入空行
-	insert into @tb(enterID,kindID,datePay) select 0,1.1,''
+	insert into @tb(enterID,kindID,invoice) select 0,1.1,''
 	--插入空行
-	insert into @tb(enterID,kindID,datePay) select 0,1.2,'线上未开票'
+	insert into @tb(enterID,kindID,invoice) select 0,1.2,'线上未开票'
 	--区分线上未开票标识
-	update @tb set kindID=1.5 where kindID=1 and invoice='' and autoPay=1
-	--更新未开票标识
-	update @tb set mark='未开票', kindID=1 where kindID=0 and invoice=''
+	update @tb set kindID=1.3 where kindID=1 and dateInvoice='' and autoPay=1
 	--插入空行
-	insert into @tb(enterID,kindID,datePay) select 0,3.2,''
+	insert into @tb(enterID,kindID,invoice) select 0,1.6,'线下未开票'
+	--区分线下未开票标识
+	update @tb set kindID=1.7 where kindID=1 and dateInvoice='' and autoPay=0
 	--插入空行
-	insert into @tb(enterID,kindID,datePay) select 0,3.3,'线上预收开票'
+	insert into @tb(enterID,kindID,invoice) select 0,3.2,''
+	--插入空行
+	insert into @tb(enterID,kindID,invoice) select 0,3.3,'线上预收开票'
 	--区分线上预收开票标识
 	update @tb set kindID=3.5 where kindID=3 and autoInvoice=1
+	--插入空行
+	insert into @tb(enterID,kindID,invoice) select 0,3.8,'线下预收开票'
+	--区分线上预收开票标识
+	update @tb set kindID=3.9 where kindID=3 and autoInvoice=0 and noReceive=0 and amount>0
 	--插入空行
 	insert into @tb(enterID,kindID) select 0,5
 	--插入合计
@@ -10432,16 +10442,27 @@ BEGIN
 	--插入页脚
 	insert into @tb(enterID,kindID,invoice,shortName) select 1,8,'复核人：','制单人：'
 	--插入线上未开票小计
-	select @tamount=sum(amount) from @tb where kindID=1.5
-	insert into @tb(enterID,kindID,pay_typeName,amount,shortName) select 0,1.6,'微信',isnull(@tamount,0),'线上未开票小计'
+	select @tamount=sum(amount) from @tb where kindID=1.3
+	insert into @tb(enterID,kindID,pay_typeName,amount,invoice) select 0,1.4,'微信',isnull(@tamount,0),'线上未开票小计'
 	--插入空行
-	insert into @tb(enterID,kindID) select 0,1.7
+	insert into @tb(enterID,kindID) select 0,1.5
+	--插入线下未开票小计
+	select @tamount=sum(amount) from @tb where kindID=1.7
+	insert into @tb(enterID,kindID,pay_typeName,amount,invoice) select 0,1.8,'',isnull(@tamount,0),'线下未开票小计'
+	--插入空行
+	insert into @tb(enterID,kindID) select 0,1.9
 	--插入线上未开票小计
 	select @tamount=0
 	select @tamount=sum(amount) from @tb where kindID=3.5
-	insert into @tb(enterID,kindID,amount,shortName) select 0,3.6,isnull(@tamount,0),'线上预收开票小计'
+	insert into @tb(enterID,kindID,amount,invoice) select 0,3.6,isnull(@tamount,0),'线上预收开票小计'
 	--插入空行
 	insert into @tb(enterID,kindID) select 0,3.7
+	--插入线下未开票小计
+	select @tamount=0
+	select @tamount=sum(amount) from @tb where kindID=3.9
+	insert into @tb(enterID,kindID,amount,invoice) select 0,3.91,isnull(@tamount,0),'线下预收开票小计'
+	--插入空行
+	insert into @tb(enterID,kindID) select 0,3.92
 	
 	if @mark='data'
 		select iif(kindID<5,cast(ROW_NUMBER() OVER (ORDER BY kindID,enterID) as varchar),'') as 'No',* from @tb order by kindID,enterID,pay_type
@@ -10453,7 +10474,7 @@ GO
 
 --CREATE Date:2023-07-30
 --根据给定日期，列出线上未开票/线上预收开票明细
---mark: 0 线上未开票  1 线上预收开票
+--mark: 0 线上未开票  1 线上预收开票  3 线下未开票  4 线下预收开票
 --结果中给出分类汇总数据
 ALTER PROCEDURE [dbo].[getDailyRptTotalTrail]
 	@startDate varchar(50), @host varchar(50), @mark int
@@ -10470,7 +10491,21 @@ BEGIN
 	--以前付款今天开票记录(预收开票)
 	if @mark=1	
 	begin
-		insert into @tb select a.ID,0,'',username, name, price, a.invoice_amount, 1, datePay, a.pay_type, iif(a.amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, b.outOrderNo from v_studentCourseList a, autoPayInfo b where a.ID=b.enterID and b.kind=0 and dateInvoice=@startDate and datePay<@startDate and invoice>'' and a.amount>0 -- and host in('znxf','spc','shm')
+		insert into @tb select a.ID,0,'',username, name, price, a.invoice_amount, 1, datePay, a.pay_type, iif(a.amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, b.outOrderNo from v_studentCourseList a, autoPayInfo b where a.ID=b.enterID and b.kind=0 and dateInvoice=@startDate and datePay<@startDate and invoice>'' and a.amount>0 -- and a.autoInvoice=1 and host in('znxf','spc','shm')
+		--如果有之前开票被移除，那么这张发票应该是重开的，移除掉
+		delete from @tb where enterID in(select a.enterID from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate<=@startDate)
+	end
+	--当天收费线下未开票记录
+	if @mark=3
+	begin
+		insert into @tb select a.ID,0,'',username, name, price, a.amount, 1, datePay, a.pay_type, pay_typeName, shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, '' from v_studentCourseList a where a.datePay=@startDate and a.amount>0 and pay_status>0 and (invoice='' or dateInvoice>@startDate) and autoPay=0 -- and host in('znxf','spc','shm')
+		--如果有当天开票被移除，将这条记录移除
+		delete from @tb where enterID in(select a.enterID from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate=@startDate)
+	end
+	--以前付款今天开票记录(预收开票)
+	if @mark=4	
+	begin
+		insert into @tb select a.ID,0,'',username, name, price, a.invoice_amount, 1, datePay, a.pay_type, iif(a.amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, '' from v_studentCourseList a where dateInvoice=@startDate and datePay<@startDate and invoice>'' and a.amount>0 and autoPay=0 and noReceive=0 and a.autoInvoice=0 -- and host in('znxf','spc','shm')
 		--如果有之前开票被移除，那么这张发票应该是重开的，移除掉
 		delete from @tb where enterID in(select a.enterID from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate<=@startDate)
 	end
