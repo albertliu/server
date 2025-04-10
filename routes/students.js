@@ -266,7 +266,7 @@ router.get('/getStudentExamInfo', function (req, res, next) {
 router.get('/getStudentQuestionList', function (req, res, next) {
   //firstly check the paper has its questions, if has not, create them now.
   // params = { paperID: req.query.paperID, mark: req.query.mark };
-  params = { paperID: req.query.paperID, mark: req.query.mark || 0, pkind: req.query.pkind, examID: req.query.pkind==2 ? req.query.examID : '', kindID:req.query.kind, page: req.query.page, pageSize: req.query.pageSize };
+  params = { paperID: req.query.paperID, mark: req.query.mark || 0, pkind: req.query.pkind, examID: req.query.pkind==2 ? req.query.examID : '', kindID:req.query.kind, page: req.query.page, pageSize: req.query.pageSize, onlyWrong:req.query.onlyWrong || 0 };
   //sqlstr = "exec writeStudentLoginLog @username, @host, @cid";
   sqlstr = "addQuestions4StudentExam";
   db.excuteProc(sqlstr, params, function (err, data) {

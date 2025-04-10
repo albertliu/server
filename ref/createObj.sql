@@ -3568,10 +3568,11 @@ GO*/
 -- pkind:0 模拟/正式考试  1 错题集  2 总题库  3 收藏夹  4 章节练习
 -- kindID: when pkind=2  questionInfo.kindID   when pkind=4  questionInfo.chapterID
 -- paperID: pkind 0 - paperID; pkind>0 - enterID
+-- onlyWrong: 0 all  1 only wrong answer of 判断题
 -- Use Case:	exec addQuestions4StudentExam 1,1
 -- =============================================
 ALTER PROCEDURE [dbo].[addQuestions4StudentExam] 
-	@paperID int, @mark int, @pkind int, @examID varchar(50), @kindID int, @page int, @pageSize int
+	@paperID int, @mark int, @pkind int, @examID varchar(50), @kindID int, @page int, @pageSize int, @onlyWrong int
 AS
 BEGIN
 	declare @kp varchar(50),@type int, @qty int,@scorePer decimal(18, 2),@sql nvarchar(1000), @n int,@q int
@@ -3633,9 +3634,14 @@ BEGIN
 	if @pkind=2
 	begin
 		select @courseID=a.courseID, @certID=b.certID from studentCourseList a, courseInfo b where a.courseID=b.courseID and a.ID=@paperID
-		insert into #temp
-		select ID,questionID,kindID,0,0,answer,'',questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName,memo
-		from v_questionInfo where [knowPointID] in(select [knowPointID] from examRuleInfo where examID=@examID) and status=0 and kindID=@kindID order by [knowPointID],kindID,ID
+		if @kindID=3 and @onlyWrong=1	--only wrong answer questions
+			insert into #temp
+			select ID,questionID,kindID,0,0,answer,'',questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName,memo
+			from v_questionInfo where [knowPointID] in(select [knowPointID] from examRuleInfo where examID=@examID) and status=0 and kindID=@kindID and answer='B' order by [knowPointID],kindID,ID
+		else
+			insert into #temp
+			select ID,questionID,kindID,0,0,answer,'',questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName,memo
+			from v_questionInfo where [knowPointID] in(select [knowPointID] from examRuleInfo where examID=@examID) and status=0 and kindID=@kindID order by [knowPointID],kindID,ID
 	end
 
 	-- 收藏夹
@@ -10978,3 +10984,28 @@ BEGIN
 	end
 END
 GO
+
+
+-- CREATE DATE: 2025-04-10
+-- 获取学员已有证书信息
+-- USE CASE: select * from dbo.[getStudentCertList]('120107196604032113')
+CREATE FUNCTION [dbo].[getStudentDiplomaList]
+(	
+	@username varchar(50)
+)
+RETURNS TABLE 
+AS
+RETURN 
+(
+	SELECT    dbo.v_diplomaInfo.ID, dbo.v_diplomaInfo.diplomaID, dbo.v_diplomaInfo.username, dbo.v_diplomaInfo.certID, dbo.v_diplomaInfo.status, dbo.v_diplomaInfo.score, dbo.v_diplomaInfo.term, 
+               dbo.v_diplomaInfo.startDate, dbo.v_diplomaInfo.endDate, dbo.v_diplomaInfo.filename, dbo.v_diplomaInfo.memo, dbo.v_diplomaInfo.regDate, dbo.v_diplomaInfo.registerID, 
+               dbo.v_diplomaInfo.name, dbo.v_diplomaInfo.sex, dbo.v_diplomaInfo.age, dbo.v_diplomaInfo.host, dbo.v_diplomaInfo.dept1, dbo.v_diplomaInfo.dept2, dbo.v_diplomaInfo.mobile, 
+               dbo.v_diplomaInfo.email, dbo.v_diplomaInfo.hostName, dbo.v_diplomaInfo.dept1Name, dbo.v_diplomaInfo.dept2Name, dbo.v_diplomaInfo.sexName, dbo.v_diplomaInfo.kindName, 
+               dbo.v_diplomaInfo.kindID, dbo.v_diplomaInfo.certName, dbo.v_diplomaInfo.agencyName, dbo.v_diplomaInfo.agencyID, dbo.v_diplomaInfo.statusName, 
+               dbo.v_diplomaInfo.registerName
+	FROM       dbo.v_studentDiplomaGroupExt ,
+               dbo.v_diplomaInfo where dbo.v_diplomaInfo.username=@username and dbo.v_studentDiplomaGroupExt.username=@username and dbo.v_studentDiplomaGroupExt.diplomaID = dbo.v_diplomaInfo.diplomaID
+
+)
+GO
+
