@@ -60,7 +60,6 @@ CREATE TABLE [dbo].[questionOther](
 	[mark] [varchar](50) NULL,
 	[regDate] [datetime] DEFAULT (getdate())
 ) ON [PRIMARY]
-
 GO
 CREATE TABLE [dbo].[deptInfo_model](
 	[deptID] [int] IDENTITY(1,1) NOT NULL,
@@ -77,7 +76,24 @@ CREATE TABLE [dbo].[deptInfo_model](
 	[regDate] [datetime] NULL DEFAULT (getdate()),
 	[registerID] [varchar](50) NULL
 ) ON [PRIMARY]
+GO
 
+CREATE TABLE [dbo].[unitInfo](
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[unitName] [nvarchar](100) NOT NULL,
+	[taxNo] [varchar](50) NULL,
+	[sales] [varchar](50) NULL,
+	[kindID] [int] NULL DEFAULT ((0)),	--school/person
+	[linker] [nvarchar](500) NULL,
+	[phone] [nvarchar](100) NULL,
+	[address] [nvarchar](100) NULL,
+	[email] [nvarchar](100) NULL,
+	[status] [int] NULL DEFAULT ((0)),
+	[memo] [nvarchar](2000) NULL,
+	[host] [varchar](50) NULL,
+	[regDate] [datetime] NULL DEFAULT (getdate()),
+	[registerID] [varchar](50) NULL
+) ON [PRIMARY]
 GO
 
 CREATE TABLE [dbo].[roleUserList_model](
@@ -95,7 +111,12 @@ CREATE TABLE [dbo].[roleUserList_model](
 	[userID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
+GO
 
+CREATE TABLE [dbo].[import_question_memo](
+	[questionID] [varchar](50) NULL,
+	[memo] [nvarchar](500) NULL
+) ON [PRIMARY]
 GO
 
 CREATE TABLE [dbo].[userInfo_model](
@@ -115,7 +136,6 @@ CREATE TABLE [dbo].[userInfo_model](
 	[regDate] [smalldatetime] NULL DEFAULT (getDate()),
 	[registerID] [varchar](50) NULL
 ) ON [PRIMARY]
-
 GO
 
 CREATE TABLE [dbo].[permissionInfo](
@@ -1155,6 +1175,19 @@ GO
 CREATE TABLE [dbo].[sourceInfo](
 	[ID] int IDENTITY(1,1) NOT NULL,
 	[source] nvarchar(50) NOT NULL,	
+	[status] [int] NULL default(0),
+	[regDate] [datetime] NULL default(getDate()),
+	[registerID] [varchar](50) NULL default('admin.')
+) ON [PRIMARY]
+GO
+
+--用户可以查看的班级
+--mark: A generateApply   B classInfo
+CREATE TABLE [dbo].[user_class_list](
+	[ID] int IDENTITY(1,1) NOT NULL,
+	[username] varchar(50) NOT NULL,
+	[classID] int NOT NULL,	--mark: A generateApply.ID   B classInfo.ID
+	[mark] varchar(50) NOT NULL default('A'),
 	[status] [int] NULL default(0),
 	[regDate] [datetime] NULL default(getDate()),
 	[registerID] [varchar](50) NULL default('admin.')
@@ -3109,10 +3142,10 @@ BEGIN
 				select @title=item from dictionaryDoc where kind='SPCtitle'	--报账类型的部门，选取石化公司统一开票信息
 		end
 	end
-	select @type=type from certificateInfo where certID=@certID
+	select @type=type, @fromID=iif(@fromID='arma.','amra.',@fromID) from certificateInfo where certID=@certID
 	if @type=0	--非石化项目
 	begin
-		select top 1 @projectID = projectID,@price=[dbo].[getProjectPrice](projectID,@fromID) from projectInfo where host=@host and status=1 and certID=@certID and reexamine=@reexamine and (dept='' or [dbo].[pf_inStrArray](dept,',',@dept1)=1) order by projectID desc
+		select top 1 @projectID = projectID,@price=[dbo].[getProjectPrice](projectID,@fromID) from projectInfo where host=@host and status=1 and certID=@certID and reexamine=@reexamine order by projectID desc -- and (dept='' or [dbo].[pf_inStrArray](dept,',',@dept1)=1)
 		if @projectID is null
 			select @re = 2, @msg = '没有找到合适的项目，不能报名。'
 	end
@@ -3138,17 +3171,18 @@ BEGIN
 				select @re = 2, @msg = '应复训日期临近，无法满足申报要求。'
 			else
 			begin
-				--合作单位设为未付费、后付费
-				if @host not in('znxf','spc','shm')
-					select @payNow = 1
 				select @source=title from hostInfo where hostNo=@host and @host<>'znxf'
 				--添加证书项目
 				insert into studentCertList(username,certID,reexamine,host,registerID,memo) values(@username,@certID,@reexamine,@host,@username,@url)
 				select @refID=max(ID) from studentCertList where registerID=@username and certID=@certID
 				select @type=type from v_studentCertList where ID=@refID
+				--合作单位或石化内部项目，设为未付费、后付费
+				if @host not in('znxf','spc','shm') or @type=1
+					select @payNow = 1
+				
 
-				--添加课程
-				insert into studentCourseList(username,courseID,refID,payNow,title,price,type,hours,closeDate,projectID,classID,SNo,reexamine,checked,checkDate,checker,currDiplomaID,currDiplomaDate,fromID,source,host,registerID) select @username,courseID,@refID,@payNow,@title,@price,@type,hours,dateadd(d,period,getDate()),@projectID,@classID,@SNo,@reexamine,@checked,@checkDate,@checker,@currDiplomaID,@currDiplomaDate,@fromID,@source,@host,@username from courseInfo where courseID=@courseID
+				--添加课程  石化内部项目，设为不签名
+				insert into studentCourseList(username,courseID,refID,payNow,title,price,type,signatureType,hours,closeDate,projectID,classID,SNo,reexamine,checked,checkDate,checker,currDiplomaID,currDiplomaDate,fromID,source,host,registerID) select @username,courseID,@refID,@payNow,@title,@price,@type,iif(@type=1,0,1),hours,dateadd(d,period,getDate()),@projectID,@classID,@SNo,@reexamine,@checked,@checkDate,@checker,@currDiplomaID,@currDiplomaDate,@fromID,@source,@host,@username from courseInfo where courseID=@courseID
 				select @ID=max(ID) from studentCourseList where refID=@refID
 
 				if @type=1	--公司内部项目
@@ -3671,17 +3705,18 @@ GO
 
 -- =============================================
 -- CREATE Date: 2020-05-11
--- Description:	根据给定的数据，更新学员考试答案。
+-- Description:	根据给定的数据，更新学员考试答案。返回已答题数量
 -- Use Case:	exec update_student_question_answer 101,'A'
 -- =============================================
 ALTER PROCEDURE [dbo].[update_student_question_answer] 
 	@ID int, @answer varchar(50)
 AS
 BEGIN
+	declare @re int, @paperID int
 	update studentQuestionList set myAnswer=@answer,answerDate=getDate() where ID=@ID
-	return 0
+	select @re=count(*) from studentQuestionList where refID=(select refID from studentQuestionList where ID=@ID) and myAnswer>''
+	return isnull(@re,0)
 END
-
 GO
 
 -- =============================================
@@ -6371,7 +6406,7 @@ GO
 -- 根据给定的参数，添加或者更新考试信息
 -- USE CASE: exec updateGeneratePasscardInfo1 1,'P1','xxxx'...
 ALTER PROCEDURE [dbo].[updateGeneratePasscardInfo1]
-	@ID int,@certID varchar(50),@title nvarchar(100),@startNo int,@kindID int,@startDate varchar(100),@startTime varchar(100),@address nvarchar(100),@notes nvarchar(500),@sync int,@memo nvarchar(500),@registerID varchar(50)
+	@ID int,@certID varchar(50),@title nvarchar(100),@startNo int,@kindID int,@startDate varchar(100),@startTime varchar(100),@address nvarchar(100),@notes nvarchar(500),@sync int,@sniper varchar(50),@memo nvarchar(500),@registerID varchar(50)
 AS
 BEGIN
 	declare @re int, @event varchar(100),@logMemo varchar(500)
@@ -6380,12 +6415,12 @@ BEGIN
 	if @ID=0	-- 新纪录
 	begin
 		--填写生成记录
-		insert into generatePasscardInfo(certID,title,startNo,kindID,startDate,startTime,address,notes,sync,memo,registerID) values(@certID,@title,@startNo,@kindID,@startDate,@startTime,@address,@notes,@sync,@memo,@registerID)
+		insert into generatePasscardInfo(certID,title,startNo,kindID,startDate,startTime,address,notes,sync,sniper,memo,registerID) values(@certID,@title,@startNo,@kindID,@startDate,@startTime,@address,@notes,@sync,@sniper,@memo,@registerID)
 		select @re=max(ID),@event='添加考试' from generatePasscardInfo where registerID=@registerID
 	end
 	if @ID>0	-- 保存信息
 	begin
-		update generatePasscardInfo set title=@title,kindID=@kindID,startDate=@startDate,startTime=@startTime,address=@address,notes=@notes,sync=@sync,memo=@memo where ID=@ID
+		update generatePasscardInfo set title=@title,kindID=@kindID,startDate=@startDate,startTime=@startTime,address=@address,notes=@notes,sync=@sync,sniper=@sniper,memo=@memo where ID=@ID
 		select @event='修改考试'
 	end
 	-- 写操作日志
@@ -8475,12 +8510,13 @@ GO
 -- 根据给定的参数，更新可变信息
 -- USE CASE: exec [updateClassSchedule] 1,1,'xxxx'...
 ALTER PROCEDURE [dbo].[updateClassSchedule]
-	@ID int, @classID varchar(50),@seq int,@kindID int,@typeID int,@online int,@hours int,@period varchar(50),@theDate varchar(50),@teacher varchar(50),@address nvarchar(100),@item nvarchar(100),@point int,@memo varchar(500),@registerID varchar(50)
+	@ID int, @classID varchar(50),@seq int,@kindID int,@typeID int,@online int,@hours int,@period varchar(50),@theDate varchar(50),@teacher varchar(50),@address nvarchar(100),@item nvarchar(100),@point int,@std int,@memo varchar(500),@registerID varchar(50)
 AS
 BEGIN
-	declare @re int, @msg nvarchar(100), @mark varchar(20)
+	declare @re int, @msg nvarchar(100), @mark varchar(20), @courseID varchar(20)
 	set datefirst 1
-	select @classID=classID, @mark=mark from classSchedule where ID=@ID
+
+	--select @classID=classID, @mark=mark from classSchedule where ID=@ID
 	--if @teacher > '' and exists(select 1 from v_classSchedule where theDate=@theDate and typeID=@typeID and teacher=@teacher and online=0 and ID<>@ID)
 	--	select @re=1,@msg=b.className from v_classSchedule a, classInfo b where a.classID=b.ID and a.theDate=@theDate and a.typeID=@typeID and a.teacher=@teacher and online=0 and a.ID<>@ID
 	--else
@@ -8489,11 +8525,12 @@ BEGIN
 	--else
 	if @ID=0
 	begin
-		insert into classSchedule(classID,seq,kindID,typeID,online,hours,period,theDate,teacher,address,item,point,memo,registerID) values(@classID,@seq,@kindID,@typeID,@online,@hours,@period,@theDate,@teacher,@address,@item,@point,@memo,@registerID)
+		select @courseID=max(courseID) from classSchedule where classID=@classID
+		insert into classSchedule(classID,courseID,seq,kindID,typeID,online,hours,period,theDate,theWeek,teacher,address,item,point,std,memo,registerID) values(@classID,@courseID,@seq,@kindID,@typeID,@online,@hours,@period,@theDate,datepart(weekday,@theDate),@teacher,@address,@item,@point,@std,@memo,@registerID)
 		select @ID=max(ID) from classSchedule where classID=@classID
 	end
 	else
-		update classSchedule set seq=@seq,kindID=@kindID,typeID=@typeID,online=@online,point=@point,item=@item,hours=@hours,period=@period,theDate=@theDate,theWeek=datepart(weekday,@theDate),teacher=@teacher,address=@address,memo=@memo,registerID=@registerID where ID=@ID
+		update classSchedule set seq=@seq,kindID=@kindID,typeID=@typeID,online=@online,point=@point,std=@std,item=@item,hours=@hours,period=@period,theDate=@theDate,theWeek=datepart(weekday,@theDate),teacher=@teacher,address=@address,memo=@memo,registerID=@registerID where ID=@ID
 
 	select isnull(@re,0) as status, isnull(@msg,'') as msg
 END
@@ -8930,7 +8967,7 @@ GO
 -- Create date: 2023-03-28
 -- Description:	对某场考试，设置相同的试卷题目及顺序
 -- =============================================
-ALTER PROCEDURE syncPaper4Exam 
+ALTER PROCEDURE [dbo].[syncPaper4Exam] 
 	@batchID int
 AS
 BEGIN
@@ -8940,7 +8977,7 @@ BEGIN
 	declare @paperID int, @n int
     --先找一个人配置题目
 	select @paperID=min(a.paperID), @n=count(*) from studentExamList a, passcardInfo b where a.refID=b.ID and b.refID=@batchID 
-	exec addQuestions4StudentExam @paperID,1,0,'',0,1,20	--强制重新生成题目
+	exec addQuestions4StudentExam @paperID,1,0,'',0,1,20,0	--强制重新生成题目
 	--将其复制给其他人
 	if @n>1 and @paperID>0
 	begin
@@ -9497,6 +9534,22 @@ BEGIN
 	delete from schedule where ID=@ID
 	-- 写操作日志
 	exec writeOpLog '','删除课表','delStandardSchedule',@registerID,@memo,@ID
+END
+
+GO
+
+-- =============================================
+-- CREATE Date: 2021-03-24
+-- Description:	删除课表。
+-- Use Case:	exec [delSchedule] 1
+-- =============================================
+CREATE PROCEDURE [dbo].[delSchedule] 
+	@ID varchar(50), @memo nvarchar(50), @registerID varchar(50)
+AS
+BEGIN
+	delete from classSchedule where ID=@ID
+	-- 写操作日志
+	exec writeOpLog '','删除班级课表明细','delStandardSchedule',@registerID,@memo,@ID
 END
 
 GO
@@ -10303,7 +10356,7 @@ AS
 BEGIN
 	declare @hostName nvarchar(100), @fname varchar(200), @startDate varchar(50)
 	if @classID=0
-		select @classID=refID from applyInfo where enterID=@enterID
+		select @classID=max(refID) from applyInfo where enterID=@enterID
 	select @host=host, @fname='' from studentCourseList where ID=@enterID
 	select @hostName=hostName from hostInfo where hostNo=@host
 	select @fname=filename, @startDate=isnull(convert(varchar(20),startDate,23),'') from generateApplyInfo where ID=@classID
@@ -10324,7 +10377,7 @@ BEGIN
 	select @theDate=dbo.whenull(@theDate,convert(varchar(20),getDate(),23))
 	create table #temp(ID int,enterID int,username varchar(50),name nvarchar(50),mobile varchar(50),completion decimal(10,2) default(0),completion_hours decimal(10,2) default(0),result int,pOffline int default(0),
 		examTimes int default(0),goodTimes int default(0),goodRate decimal(10,2) default(0),examTimes1 int default(0),goodTimes1 int default(0),goodRate1 decimal(10,2) default(0)
-		,examTimesLast int default(0),goodTimesLast int default(0),goodRateLast decimal(10,2) default(0),examTimes1Last int default(0),goodTimes1Last int default(0),goodRate1Last decimal(10,2) default(0),todayExamTimes int default(0),todayGoodTiems int default(0))
+		,examTimesLast int default(0),goodTimesLast int default(0),goodRateLast decimal(10,2) default(0),examTimes1Last int default(0),goodTimes1Last int default(0),goodRate1Last decimal(10,2) default(0),todayExamTimes int default(0),todayGoodTimes int default(0),bestScore int default(0),todayBestScore int default(0))
 	
 	--在线课程完成率
 	if @mark='A'
@@ -10332,10 +10385,10 @@ BEGIN
 	else
 		insert into #temp(ID,enterID,username,name,mobile,completion,completion_hours) select cast(right(max(b.SNo),3) as int),b.ID,d.username,d.name,max(d.mobile),avg(c.completion),sum(c.completion*c.hours)/100.00 from studentCourseList b, studentLessonList c, studentInfo d where b.ID=c.refID and b.username=d.username and b.classID=@classID group by b.ID,d.username,d.name
 	
-	update #temp set examTimes=b.examTimes,goodTimes=b.goodTimes,examTimes1=b.examTimes1,goodTimes1=b.goodTimes1 from #temp a, (select c.enterID,sum(iif(e.kindID=0,1,0)) as examTimes,sum(iif(d.score>=d.scorePass and e.kindID=0,1,0)) as goodTimes,sum(iif(e.kindID=1,1,0)) as examTimes1,sum(iif(d.score>=d.scorePass and e.kindID=1,1,0)) as goodTimes1 from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID group by c.enterID) b where a.enterID=b.enterID
+	update #temp set examTimes=b.examTimes,goodTimes=b.goodTimes,examTimes1=b.examTimes1,goodTimes1=b.goodTimes1,bestScore=b.bestScore from #temp a, (select c.enterID,sum(iif(e.kindID=0,1,0)) as examTimes,sum(iif(d.score>=d.scorePass and e.kindID=0,1,0)) as goodTimes,sum(iif(e.kindID=1,1,0)) as examTimes1,sum(iif(d.score>=d.scorePass and e.kindID=1,1,0)) as goodTimes1, max(d.score) as bestScore from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID group by c.enterID) b where a.enterID=b.enterID
 	
 	--当天练习次数
-	update #temp set todayExamTimes=b.examTimes,todayGoodTiems=b.goodTimes from #temp a, (select c.enterID,count(*) as examTimes,sum(iif(d.score>=d.scorePass,1,0)) as goodTimes from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID and d.backDate between @theDate and @theDate + ' 23:59:59' group by c.enterID) b where a.enterID=b.enterID
+	update #temp set todayExamTimes=b.examTimes,todayGoodTimes=b.goodTimes,todayBestScore=b.bestScore from #temp a, (select c.enterID,count(*) as examTimes,sum(iif(d.score>=d.scorePass,1,0)) as goodTimes, max(d.score) as bestScore from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID and d.backDate between @theDate and @theDate + ' 23:59:59' group by c.enterID) b where a.enterID=b.enterID
 	
 	--最近5次应知练习
 	update #temp set examTimesLast=b.examTimes,goodTimesLast=b.goodTimes from #temp a, 
@@ -10473,7 +10526,7 @@ BEGIN
 	if @mark='data'
 		select iif(kindID<5,cast(ROW_NUMBER() OVER (ORDER BY kindID,enterID) as varchar),'') as 'No',* from @tb order by kindID,enterID,pay_type
 	if @mark='file'
-		select iif(kindID<5,cast(ROW_NUMBER() OVER (ORDER BY kindID,enterID) as varchar),'') as 'No',name as '姓名',datePay as '付款日期',autoPayName as '付款类型',dateInvoice as '开票日期',autoInvoiceName as '开票类型',invoice as '数电票号',title as '开票抬头',shortName as '项目',pay_typeName as '付款方式',price as '单价',iif(kindID<4,1,null) as '人数',amount as '金额',mark as '标识',pay_memo as '备注' from @tb order by kindID,enterID,pay_type
+		select iif(kindID<5,cast(ROW_NUMBER() OVER (ORDER BY kindID,enterID) as varchar),'') as 'No',name as '姓名',enterID as '报名号',datePay as '付款日期',autoPayName as '付款类型',dateInvoice as '开票日期',autoInvoiceName as '开票类型',invoice as '数电票号',title as '开票抬头',shortName as '项目',pay_typeName as '付款方式',price as '单价',iif(kindID<4,1,null) as '人数',amount as '金额',mark as '标识',pay_memo as '备注' from @tb order by kindID,enterID,pay_type
 END
 GO
 
@@ -10504,14 +10557,14 @@ BEGIN
 	--当天收费线下未开票记录
 	if @mark=3
 	begin
-		insert into @tb select a.ID,0,'',username, name, price, a.amount, 1, datePay, a.pay_type, pay_typeName, shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, '' from v_studentCourseList a where a.datePay=@startDate and a.amount>0 and pay_status>0 and (invoice='' or dateInvoice>@startDate) and autoPay=0 -- and host in('znxf','spc','shm')
+		insert into @tb select a.ID,0,'',username, name, price, a.amount, 1, datePay, a.pay_type, pay_typeName, shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, a.ID from v_studentCourseList a where a.datePay=@startDate and a.amount>0 and pay_status>0 and (invoice='' or dateInvoice>@startDate) and autoPay=0 -- and host in('znxf','spc','shm')
 		--如果有当天开票被移除，将这条记录移除
 		delete from @tb where enterID in(select a.enterID from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate=@startDate)
 	end
 	--以前付款今天开票记录(预收开票)
 	if @mark=4	
 	begin
-		insert into @tb select a.ID,0,'',username, name, price, a.invoice_amount, 1, datePay, a.pay_type, iif(a.amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, '' from v_studentCourseList a where dateInvoice=@startDate and datePay<@startDate and invoice>'' and a.amount>0 and autoPay=0 and noReceive=0 and a.autoInvoice=0 -- and host in('znxf','spc','shm')
+		insert into @tb select a.ID,0,'',username, name, price, a.invoice_amount, 1, datePay, a.pay_type, iif(a.amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, a.ID from v_studentCourseList a where dateInvoice=@startDate and datePay<@startDate and invoice>'' and a.amount>0 and autoPay=0 and noReceive=0 and a.autoInvoice=0 -- and host in('znxf','spc','shm')
 		--如果有之前开票被移除，那么这张发票应该是重开的，移除掉
 		delete from @tb where enterID in(select a.enterID from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate<=@startDate)
 	end
@@ -10643,7 +10696,7 @@ ALTER PROCEDURE [dbo].[getClassScheduleList]
 	@applyID varchar(50)
 AS
 BEGIN
-	select a.ID, a.theDate, a.typeID, item, isnull(a.teacherName,'未知') as teacherName from v_classSchedule a, generateApplyInfo b where a.classID=b.ID and a.mark='A' and a.status=0 and b.applyID=@applyID order by a.seq
+	select a.ID, a.theDate, a.typeID, item, isnull(a.teacherName,'未知') as teacherName from v_classSchedule a, generateApplyInfo b where a.classID=b.ID and a.mark='A' and a.status=0 and b.applyID=@applyID and a.std=1 order by a.seq
 END
 GO
 
@@ -10897,14 +10950,14 @@ GO
 -- refID: studentCertList.ID
 -- USE CASE: exec [saveExamScore] '120'
 ALTER PROCEDURE [dbo].[saveExamScore]
-	@refID int, @score varchar(50), @score2 varchar(50), @result int, @registerID varchar(50)
+	@refID int, @score varchar(50), @score2 varchar(50), @result int, @examDate varchar(50), @registerID varchar(50)
 AS
 BEGIN
 	declare @status int, @msg nvarchar(50)
 	select @status=0,@msg=''
 	select @score=[dbo].[whenull](@score,'0'), @score2=[dbo].[whenull](@score2,'0')
 	select @score=iif(PATINDEX('%[^0-9|.]%', @score)=0,@score,'0'), @score2=iif(PATINDEX('%[^0-9|.]%', @score2)=0,@score2,'0')
-	update studentCertList set score=@score,score1=@score,score2=@score2,result=@result where ID=@refID
+	update studentCertList set score=@score,score1=@score,score2=@score2,result=@result,examDate=dbo.whenull(@examDate,null) where ID=@refID
 
 	-- 写操作日志
 	exec writeOpLog '', '修改考试成绩','saveExamScore',@registerID,@result,@refID
@@ -11007,5 +11060,102 @@ RETURN
                dbo.v_diplomaInfo where dbo.v_diplomaInfo.username=@username and dbo.v_studentDiplomaGroupExt.username=@username and dbo.v_studentDiplomaGroupExt.diplomaID = dbo.v_diplomaInfo.diplomaID
 
 )
+GO
+
+-- CREATE DATE: 2025-04-17
+-- 变更考勤记录，从一个课程/班级转到另一个课程/班级
+-- USE CASE: exec [changeCheckin4newClass] 1693, 1716, 0, 141904, 'L17'
+-- @enterID0/@courseID0 must give one
+ALTER PROCEDURE [dbo].[changeCheckin4newClass]
+	@classID0 int, @classID1 int, @enterID0 int, @enterID1 int, @courseID0 varchar(50)
+AS
+BEGIN
+	-- change check list from an old class and course to a new class and course
+	-- the date will auto fill by order
+	-- declare @classID0 int, @classID1 int, @enterID1 int, @enterID0 int, @courseID0 varchar(50)
+	--if old enter had been deleted, find it in histroy record
+	if @enterID0=0
+		select @enterID0=max(ID) from del_studentCourseList where username=(select username from studentCourseList where ID=@enterID1) and courseID=@courseID0 and applyID>0
+	--replace old check in with new records
+	if @classID0 = @classID1
+		update checkinInfo set enterID=@enterID1 where enterID=@enterID0
+	else
+		update checkinInfo set enterID=@enterID1, refID=d.refID from checkinInfo c, 
+		(select e.ID,f.ID as refID from
+			--find old class checkin records
+			(select a.*,RANK() over(order by a.ID) as rank1 from checkinInfo a, classSchedule b where a.refID=b.ID and a.kindID=1 and b.classID=@classID0 and b.mark='A' and a.enterID=@enterID0) e,
+			--find new class checkin records
+			(select ID,RANK() over(order by ID) as rank1 from classSchedule where classID=@classID1 and mark='A' and online=0 and typeID=0) f
+			where e.rank1=f.rank1
+		) d where c.ID=d.ID
+
+	--replace old face detect records with new's
+	update [dbo].[faceDetectInfo] set refID=@enterID1, keyID=b.refID from [faceDetectInfo] a, 
+	(select c.ID,d.refID from
+		(select ID,RANK() over(order by ID) as rank1 from [faceDetectInfo] where refID=@enterID0 and kindID=2) c,
+		(select RANK() over(order by ID) as rank1, refID from checkinInfo where enterID=@enterID1) d
+		where c.rank1=d.rank1) b
+	where a.ID=b.ID
+END
+GO
+
+-- CREATE DATE: 2020-05-08
+-- 获取当前所有客户来源明细
+-- USE CASE: select * from dbo.[getCurrSourceList]()
+ALTER FUNCTION [dbo].[getCurrSourceList]()
+RETURNS TABLE 
+AS
+RETURN 
+(
+	SELECT source as ID, source as item FROM v_sourceInfo where status=0 union select title,title as item from hostInfo where status=0
+)
+GO
+
+-- CREATE DATE: 2020-05-08
+-- 获取当前所有课程
+-- USE CASE: select * from dbo.[getCurrCourseList]()
+ALTER FUNCTION [dbo].[getCurrCourseList]()
+RETURNS TABLE 
+AS
+RETURN 
+(
+	SELECT courseID as ID, shortName as item FROM v_courseInfo where status=0 and type=0
+)
+GO
+
+--CREATE Date:2023-07-30
+--根据给定日期，列出招生人数对比统计: 指定日期范围招生人数(不包含退课的)、上年同期、同比%、上年全年、前年全年
+--@startDate 开始日期  @endDate 截止日期  @kind: 0 按课程  1 按客户来源  @mark: data/file
+ALTER PROCEDURE [dbo].[getYOYRpt]
+	@startDate varchar(50), @endDate varchar(50), @kind int, @mark varchar(50)
+AS
+BEGIN
+	declare @sql nvarchar(max), @key varchar(500)
+	select @endDate = iif(@endDate='',convert(varchar(20),getDate(),23),@endDate), @key = iif(@kind=0,'courseID','source')
+
+	SET @sql = N'
+	declare @tb table(ID nvarchar(50),item nvarchar(50) default(''''),thisYear int default 0,YOY int default 0,rate decimal(18,2) default 0,lastYear int default 0, blastYear int default 0)
+	declare @mark varchar(50)
+	select @mark=''' + @mark + '''
+	--填写基本项目
+	insert into @tb(ID,item) select ID,item from ' + iif(@kind=0,'dbo.[getCurrCourseList]()','dbo.[getCurrSourceList]()') + ' 
+	--查找今年数据
+	update @tb set thisYear=b.count from @tb a, (select ' + @key + ' as ID, count(*) as count from studentCourseList where status<3 and regDate between ''' + @startDate + ''' and ''' + @endDate + ''' group by ' + @key + ') b where a.ID=b.ID
+	--查找上年同期数据
+	update @tb set YOY=b.count from @tb a, (select ' + @key + ' as ID, count(*) as count from studentCourseList where status<3 and regDate between ''' + convert(varchar(20),dateadd(yy,-1,@startDate),23) + ''' and ''' + convert(varchar(20),dateadd(yy,-1,@endDate),23) + ''' group by ' + @key + ') b where a.ID=b.ID
+	--查找上年全年数据
+	update @tb set lastYear=b.count from @tb a, (select ' + @key + ' as ID, count(*) as count from studentCourseList where status<3 and regDate between ''' + cast(year(dateadd(yy,-1,@startDate)) as varchar) + '-01-01' + ''' and ''' + cast(year(dateadd(yy,-1,@startDate)) as varchar) + '-12-31' + ''' group by ' + @key + ') b where a.ID=b.ID
+	--查找前年全年数据
+	update @tb set blastYear=b.count from @tb a, (select ' + @key + ' as ID, count(*) as count from studentCourseList where status<3 and regDate between ''' + cast(year(dateadd(yy,-2,@startDate)) as varchar) + '-01-01' + ''' and ''' + cast(year(dateadd(yy,-2,@startDate)) as varchar) + '-12-31' + ''' group by ' + @key + ') b where a.ID=b.ID
+	--计算同比
+	update @tb set rate=iif(YOY=0,0,(thisYear-YOY)*100.00/YOY)
+
+	if @mark=''data''
+		select cast(ROW_NUMBER() OVER (ORDER BY ID) as varchar) as No,* from @tb 
+	if @mark=''file''
+		select cast(ROW_NUMBER() OVER (ORDER BY ID) as varchar) as No,item as 项目,thisYear as [' + replace(@startDate,'-','') + '-' + replace(@endDate,'-','') + '], YOY as 上年同期, rate as 同比增长, lastYear as 上年全年, blastYear as 前年全年 from @tb '
+	
+	EXECUTE (@sql)
+END
 GO
 
