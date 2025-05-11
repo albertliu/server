@@ -155,7 +155,7 @@ def enter_by_list0(elist, kindID, refID):
                 pass
 
         except Exception as e:
-            print(e)
+            # print(e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
             pass
