@@ -959,15 +959,15 @@ router.post('/generate_diploma_byClassID', function (req, res, next) {
         let pH2 = '297mm';
         let pages = [];
         let paths = [];
-        certID = data1.recordset[0]["certID"];
-        if (certID == "C2" || certID == "C30" || certID == "C31" || certID == "C35" || certID == "C18" || certID == "C19") {
+        let _certID = data1.recordset[0]["certID"];
+        if (["C2","C30","C31","C35","C18","C19"].includes(_certID)) {
           certID = "C2";
         } else {
           pW1 = '280mm';
           pH1 = '180mm';
           pW2 = '178mm';
           pH2 = '123mm';
-          if(certID == "C20" || certID == "C20A" || certID == "C21"){
+          if(["C20","C20A","C21"].includes(_certID)){
             certID = "C20";
             pW1 = '190mm';
             pH1 = '135mm';

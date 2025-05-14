@@ -3120,7 +3120,7 @@ GO
 -- mark: 0 证书项目  1 培训项目（只有课程）
 -- url: subdomain
 -- 公共证书项目报名时，不生成课程、课件和试卷，等编班后再分配
--- Use Case:	exec addnewStudentCert '310....' 
+-- Use Case:	exec addStudentCert '310....' 
 -- =============================================
 ALTER PROCEDURE [dbo].[addStudentCert] 
 	@username varchar(50),@mark int,@certID varchar(50),@reexamine int,@currDiplomaID varchar(50),@currDiplomaDate varchar(50),@fromID varchar(50),@url varchar(500)
@@ -3132,7 +3132,7 @@ BEGIN
 	if @currDiplomaID='' or @currDiplomaID='null' set @currDiplomaID=null
 	select @fromID=dbo.whenull(@fromID,null), @ID=0, @username=upper(@username), @source=null
 	--@fromID如果没有.后缀，添加上去。
-	select @event='选择课程',@refID=0,@re=0,@host=iif(@url>'',@url,host),@checked=0,@SNo=0,@dept1=dept1,@dept2=dept2,@payNow=0,@title='',@fromID=iif(charindex('.',@fromID)>0,@fromID,iif(@fromID>'',@fromID+'.',@fromID)) from studentInfo where username=@username
+	select @event='在线报名',@refID=0,@re=0,@host=iif(@url>'',@url,host),@checked=0,@SNo=0,@dept1=dept1,@dept2=dept2,@payNow=0,@title='',@fromID=iif(charindex('.',@fromID)>0,@fromID,iif(@fromID>'',@fromID+'.',@fromID)) from studentInfo where username=@username
 	if @host='spc'
 	begin
 		if exists(select 1 from deptInfo where deptID=@dept2)
@@ -3233,7 +3233,8 @@ BEGIN
 		--exec updatePayAmount @payID
 
 		--写日志
-		--exec writeEventTrace @host,@username,'studentCert',@refID,0,@event,''
+		select @logMemo=@certID + ':' + @fromID
+		exec writeOpLog '',@event,'addStudentCert',@username,@logMemo,@ID
 	end
 	else
 		select @re = 1, @msg = '已有相同证书项目，不能重复报名。'
@@ -3827,7 +3828,7 @@ BEGIN
 		insert into ref_studentExamList(paperID,username,examID,refID,kindID,kind,status,minutes,secondRest,scoreTotal,scorePass,score,startDate,endDate,lastDate,mark,memo,regDate,registerID) select * from studentExamList where paperID=@paperID
 		select @id=max(seq) from ref_studentExamList where paperID=@paperID
 		--备份试题
-		insert into ref_studentQuestionList(ID,questionID,refID,kindID,status,scorePer,score,answer,answerDate,memo,regDate,registerID,seq) select ID,questionID,refID,kindID,status,scorePer,score,answer,answerDate,memo,regDate,registerID,@id from studentQuestionList where refID=@paperID
+		insert into ref_studentQuestionList(ID,questionID,refID,kindID,status,scorePer,score,answer,myAnswer,answerDate,memo,regDate,registerID,seq) select ID,questionID,refID,kindID,status,scorePer,score,answer,myAnswer,answerDate,memo,regDate,registerID,@id from studentQuestionList where refID=@paperID
 		--更新试题对错记录
 		--update studentQuestionUsed set myAnswer=b.myAnswer,status=(case when b.score>0 then 1 when b.score=0 and b.myAnswer is not null then 2 else studentQuestionUsed.status end) from studentQuestionList b where studentQuestionUsed.refID=b.refID and studentQuestionUsed.questionID=b.questionID and b.refID=@paperID
 	end
@@ -6137,7 +6138,7 @@ BEGIN
 			-- 写操作日志
 			--exec writeOpLog @host,@event,'user',@registerID,@memo,@refID
 			select @event='报名',@mem=@projectID
-			exec writeOpLog '',@event,'enter',@registerID,@mem,@username
+			exec writeOpLog '',@event,'enter',@registerID,@mem,@ID
 
 			--向HR系统发送数据
 			--exec eHR.[dbo].[updateResumeInfo1] @username,@name,'Z00001',0,@job_status,0,@unit,@education,@mobile,@email,'',@address,'','','','',0,'','system.'
@@ -6165,7 +6166,7 @@ BEGIN
 		else
 			update studentCourseList set source=@source,host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),classID=@classID,SNo=@pNo,checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),signatureType=@signatureType,needInvoice=@needInvoice,title=iif(autoInvoice=0,@title,title),invoice=iif(autoInvoice=0,@invoice,invoice),receipt=@receipt,invoice_amount=iif(autoInvoice=0,@invoice_amount,invoice_amount),dateInvoice=iif(autoInvoice=0,[dbo].[whenull](@dateInvoice,null),dateInvoice),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
 		select @event='修改报名信息',@mem=''
-		exec writeOpLog '',@event,'enter',@registerID,@mem,@username
+		exec writeOpLog '',@event,'enter',@registerID,@mem,@ID
 
 		if exists(select 1 from studentLessonList where refID=@ID)
 			select @hasLesson = 1
@@ -10290,7 +10291,7 @@ BEGIN
 			select @status=iif(@score1='缺考' and @score2='缺考',3,2)
 			if @score1='缺考'
 				select @score1 = 0, @score2=0
-			if @score1='缺考'
+			if @score2='缺考'
 				select @score2=0
 			select @score1 = dbo.whenull(@score1,0), @score2=dbo.whenull(@score2,0), @examDate=dbo.whenull(@examDate,null)
 			select @status=(case when @score1>=60.0 and @score2>=60.0 then 1 else @status end)
@@ -11123,7 +11124,7 @@ RETURN
 )
 GO
 
---CREATE Date:2023-07-30
+--CREATE Date:2025-05-11
 --根据给定日期，列出招生人数对比统计: 指定日期范围招生人数(不包含退课的)、上年同期、同比%、上年全年、前年全年
 --@startDate 开始日期  @endDate 截止日期  @kind: 0 按课程  1 按客户来源  @mark: data/file
 ALTER PROCEDURE [dbo].[getYOYRpt]
@@ -11134,7 +11135,7 @@ BEGIN
 	select @endDate = iif(@endDate='',convert(varchar(20),getDate(),23),@endDate), @key = iif(@kind=0,'courseID','source')
 
 	SET @sql = N'
-	declare @tb table(ID nvarchar(50),item nvarchar(50) default(''''),thisYear int default 0,YOY int default 0,rate decimal(18,2) default 0,lastYear int default 0, blastYear int default 0)
+	declare @tb table(kindID int default 0,ID nvarchar(50),item nvarchar(50) default(''''),thisYear int default 0,YOY int default 0,rate decimal(18,2) default 0,lastYear int default 0, blastYear int default 0)
 	declare @mark varchar(50)
 	select @mark=''' + @mark + '''
 	--填写基本项目
@@ -11147,13 +11148,15 @@ BEGIN
 	update @tb set lastYear=b.count from @tb a, (select ' + @key + ' as ID, count(*) as count from studentCourseList where status<3 and regDate between ''' + cast(year(dateadd(yy,-1,@startDate)) as varchar) + '-01-01' + ''' and ''' + cast(year(dateadd(yy,-1,@startDate)) as varchar) + '-12-31' + ''' group by ' + @key + ') b where a.ID=b.ID
 	--查找前年全年数据
 	update @tb set blastYear=b.count from @tb a, (select ' + @key + ' as ID, count(*) as count from studentCourseList where status<3 and regDate between ''' + cast(year(dateadd(yy,-2,@startDate)) as varchar) + '-01-01' + ''' and ''' + cast(year(dateadd(yy,-2,@startDate)) as varchar) + '-12-31' + ''' group by ' + @key + ') b where a.ID=b.ID
+	--添加合计
+	insert into @tb select 1,'''',''合计'',sum(thisYear),sum(YOY),0,sum(lastYear),sum(blastYear) from @tb
 	--计算同比
 	update @tb set rate=iif(YOY=0,0,(thisYear-YOY)*100.00/YOY)
 
 	if @mark=''data''
-		select cast(ROW_NUMBER() OVER (ORDER BY ID) as varchar) as No,* from @tb 
+		select iif(kindID=0,cast(ROW_NUMBER() OVER (ORDER BY kindID) as varchar),'''') as No,* from @tb order by kindID,ID
 	if @mark=''file''
-		select cast(ROW_NUMBER() OVER (ORDER BY ID) as varchar) as No,item as 项目,thisYear as [' + replace(@startDate,'-','') + '-' + replace(@endDate,'-','') + '], YOY as 上年同期, rate as 同比增长, lastYear as 上年全年, blastYear as 前年全年 from @tb '
+		select iif(kindID=0,cast(ROW_NUMBER() OVER (ORDER BY kindID) as varchar),'''') as No,item as 项目,thisYear as [' + replace(@startDate,'-','') + '-' + replace(@endDate,'-','') + '], YOY as 去年同期, rate as 同比增长, lastYear as 去年全年, blastYear as 前年全年 from @tb  order by kindID,ID'
 	
 	EXECUTE (@sql)
 END
