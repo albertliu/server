@@ -672,7 +672,7 @@ router.post('/submit_student_exam', function (req, res, next) {
 router.post('/add_student_certificate', function (req, res, next) {
   let msg = "";
   // let _host = req.body.host || req.session.user.host;
-  let _fromID = req.body.fromID || req.session.user.fromID;
+  let _fromID = req.body.fromID || '';
   sqlstr = "select status, msg from dbo.getStudentMaterialsOmit(@username,@certID,@mark,0)";
   params = { certID: req.body.certID, mark: req.body.mark, username: req.body.username };
   db.excuteSQL(sqlstr, params, function (err, data) {
