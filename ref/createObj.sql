@@ -6161,7 +6161,7 @@ BEGIN
 		begin
 			if @dateInvoice>'' and @invoice>'' and exists(select 1 from studentCourseList where ID=@ID and (dateInvoice is null or dateInvoice=''))
 				update studentCourseList set dateInvoice=@dateInvoice where invoice=@invoice and ID<>@ID	--团体发票更新开票日期
-			update studentCourseList set source=@source,host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),classID=@classID,SNo=@pNo,noReceive=iif(@type=3 and @status=1 and noReceive=0,1,noReceive),checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),pay_memo=@pay_memo,signatureType=@signatureType,payNow=@payNow,needInvoice=@needInvoice,title=@title,pay_kindID=@kindID,pay_type=@type,pay_status=@status,price=@price,amount=@amount,invoice=@invoice,receipt=@receipt,invoice_amount=@invoice_amount,dateInvoice=[dbo].[whenull](@dateInvoice,null),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),datePay=iif(@datePay>'' and @status>0,@datePay,iif(@status=1 and pay_status=0 and datePay is null,getDate(),datePay)),pay_checker=iif(@status=1 and pay_status=0 and pay_checker is null,@registerID,pay_checker),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
+			update studentCourseList set source=iif(@source>'',@source,source),host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),classID=@classID,SNo=@pNo,noReceive=iif(@type=3 and @status=1 and noReceive=0,1,noReceive),checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),pay_memo=@pay_memo,signatureType=@signatureType,payNow=@payNow,needInvoice=@needInvoice,title=@title,pay_kindID=@kindID,pay_type=@type,pay_status=@status,price=@price,amount=@amount,invoice=@invoice,receipt=@receipt,invoice_amount=@invoice_amount,dateInvoice=[dbo].[whenull](@dateInvoice,null),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),datePay=iif(@datePay>'' and @status>0,@datePay,iif(@status=1 and pay_status=0 and datePay is null,getDate(),datePay)),pay_checker=iif(@status=1 and pay_status=0 and pay_checker is null,@registerID,pay_checker),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
 		end
 		else
 			update studentCourseList set source=@source,host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),classID=@classID,SNo=@pNo,checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),signatureType=@signatureType,needInvoice=@needInvoice,title=iif(autoInvoice=0,@title,title),invoice=iif(autoInvoice=0,@invoice,invoice),receipt=@receipt,invoice_amount=iif(autoInvoice=0,@invoice_amount,invoice_amount),dateInvoice=iif(autoInvoice=0,[dbo].[whenull](@dateInvoice,null),dateInvoice),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
@@ -7317,6 +7317,66 @@ BEGIN
 END
 GO
 
+-- CREATE DATE: 2022-11-29
+-- 根据给定的参数，批量通知学员，登录系统并进行签名和付款
+-- batchID: classInfo.classID; selList: username list
+-- USE CASE: exec sendMsg4SubmitLogin 1
+CREATE PROCEDURE [dbo].[sendMsg4SubmitLogin]
+	@batchID varchar(50), @selList varchar(4000), @registerID varchar(50)
+AS
+BEGIN
+	declare @username varchar(50),@item varchar(500),@host varchar(50),@certName varchar(50)
+	--send system message
+	--将名单导入到临时表
+	create table #temp(username varchar(50),enterID int)
+	declare @n int, @j int
+	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0
+	while @n>@j
+	begin
+		insert into #temp(username) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
+		select @j = @j + 1
+	end
+
+	--send system message
+	if exists(select 1 from classInfo where classID=@batchID) and @n>0
+	begin
+		select @certName=shortName from v_classInfo where classID=@batchID
+		declare rc cursor for select b.username,b.name + '：欢迎到智能消防学校学习。在线操作步骤：扫描二维码登录，密码123456，完成电子签名、在线付费。' from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
+		open rc
+		fetch next from rc into @username,@item
+		While @@fetch_status=0 
+		Begin 
+			--0 回复 1 通知 2 其他
+			exec sendSysMessage @username,1,@item,@host,'system.'
+			fetch next from rc into @username,@item
+		End
+		Close rc 
+		Deallocate rc
+
+		--记录通知
+		update #temp set enterID=b.ID from #temp a, studentCourseList b where a.username=b.username and b.classID=@batchID
+		--取得enterID list 替换 username list
+		declare @list varchar(4000)
+		select @list=''
+		declare rc cursor for select enterID from #temp
+		open rc
+		fetch next from rc into @item
+		While @@fetch_status=0 
+		Begin 
+			select @list = @list + @item + ','
+			fetch next from rc into @item
+		End
+		Close rc 
+		Deallocate rc
+		select @list = left(@list,len(@list)-1)
+		exec sendAttections 1,@list,@registerID
+
+		--return students list for send mobile message
+		select b.name,b.username,b.mobile,@certName as certName, b.ID as enterID,b.name + '：欢迎到智能消防学校学习。在线操作步骤：扫描二维码登录，密码123456，完成电子签名、在线付费。' as item from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
+	end
+END
+GO
+
 -- =============================================
 -- CREATE Date: 2021-06-26
 -- Description:	将给定的数据添加到指定购物车。
@@ -7574,6 +7634,36 @@ END
 GO
 
 -- =============================================
+-- Author:		Albert
+-- Create date: 2025-05-28
+-- Description:	对某场考试，为每个考生创建不同试卷
+-- =============================================
+CREATE PROCEDURE [dbo].[createPaper4Exam] 
+	@batchID int
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+	declare @paperID int, @count int
+	select @count=count(*) from passcardInfo where refID=@batchID
+	if @count>0
+	begin
+		declare rc1 cursor for select a.paperID from studentExamList a, passcardInfo b where a.refID=b.ID and b.refID=@batchID and a.kind=1
+		open rc1
+		fetch next from rc1 into @paperID
+		While @@fetch_status=0 
+		Begin
+			exec addQuestions4StudentExam @paperID,1,0,'',0,1,20,0	--强制重新生成题目
+			fetch next from rc1 into @paperID
+		End
+		Close rc1
+		Deallocate rc1
+	end
+END
+GO
+
+-- =============================================
 -- CREATE Date: 2021-03-24
 -- Description:	为指定的考试制作准考证。
 -- Use Case:	exec [setPassNo4Exam] 1
@@ -7597,11 +7687,12 @@ BEGIN
 		--如果是同步试卷，进行同步处理
 		if @sync=1	
 			exec syncPaper4Exam @examID
+		else
+			exec createPaper4Exam @examID	--否则分别生成试卷
 	end
 	-- 写操作日志
 	exec writeOpLog '','准考证制作','setPassNo4Exam',@registerID,'',@examID
 END
-
 GO
 
 -- =============================================
@@ -8102,7 +8193,7 @@ AS
 BEGIN
 	declare @re int, @refID int,@certID varchar(50),@scorePass int, @enterID int,@score0 decimal(18,2)
 	select @certID=certID,@re=1 from generatePasscardInfo where ID=@ID
-	select @scorePass=isnull(scorePass,80) from examInfo where certID=@certID
+	select top 1 @scorePass=isnull(scorePass,80) from examInfo where certID=@certID and status=0 order by examID
 
 	--result:1 合格 2 不合格，结束课程
 	update passcardInfo set status=(case when score>=@scorePass then 1 else 2 end) where refID=@ID
@@ -8977,7 +9068,7 @@ BEGIN
 	SET NOCOUNT ON;
 	declare @paperID int, @n int
     --先找一个人配置题目
-	select @paperID=min(a.paperID), @n=count(*) from studentExamList a, passcardInfo b where a.refID=b.ID and b.refID=@batchID 
+	select @paperID=min(a.paperID), @n=count(*) from studentExamList a, passcardInfo b where a.refID=b.ID and b.refID=@batchID and a.kind=1
 	exec addQuestions4StudentExam @paperID,1,0,'',0,1,20,0	--强制重新生成题目
 	--将其复制给其他人
 	if @n>1 and @paperID>0
@@ -10445,8 +10536,9 @@ BEGIN
 	declare @tamount int
 	--当天收费记录
 	insert into @tb select ID,0,'',autoPay,autoInvoice,username, name, price, amount, datePay, pay_type, pay_typeName, shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, dbo.getInvoiceTitle(title), '', '',pay_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where datePay=@startDate and amount>0 and pay_status>0 -- and host in('znxf','spc','shm')
-	--如果有当天开票被移除，将这张发票信息填回来
-	update @tb set invoice=b.invCode, dateInvoice=b.invDate from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate=@startDate  -- and a.invoice='' 
+	--如果有当天开票被移除，将这张发票信息填回来（不包括红冲发票）
+	--update @tb set invoice=b.invCode, dateInvoice=b.invDate from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate=@startDate  -- and a.invoice='' 
+	insert into @tb select ID,0,'',b.autoPay,b.autoInvoice,a.username,a.name,price, b.amount, datePay, pay_type, pay_typeName,shortName,noReceive,b.invCode,b.invDate,b.item, '', '',pay_memo,invoicePDF from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate=@startDate and b.amount>0
 	--开票日期如果大于当天，发票信息清除
 	--update @tb set invoice='', dateInvoice='' where dateInvoice>@startDate
 	--当天退款记录
