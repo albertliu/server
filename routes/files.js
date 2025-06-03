@@ -109,6 +109,15 @@ var storage = multer.diskStorage({
       case "invoice_pdf":
         uploadFolder = "students/invoices/";
         break;
+      case "question_image":
+      case "question_imageA":
+      case "question_imageB":
+      case "question_imageC":
+      case "question_imageD":
+      case "question_imageE":
+      case "question_imageF":
+        uploadFolder = "questions/images/";
+        break;
       default:
         uploadFolder = "others/";
     }
@@ -205,6 +214,16 @@ var storage = multer.diskStorage({
         fn = req.query.username + '-' + Date.now();   //
         key = req.query.username;
         break;
+      case "question_image":
+      case "question_imageA":
+      case "question_imageB":
+      case "question_imageC":
+      case "question_imageD":
+      case "question_imageE":
+      case "question_imageF":
+        fn = file.originalname.substr(0, file.originalname.lastIndexOf("."));   //题目图片保留原始文件名
+        key = req.query.username;
+        break;
       default:
         fn = file.originalname;
         fn = fn.substr(0, fn.lastIndexOf(".")) + '-' + Date.now();
@@ -214,6 +233,7 @@ var storage = multer.diskStorage({
   }
 });
 
+var maxSize = 1 * 1000 * 1000;  // 最大上传文件字节1M
 var upload = multer({
   storage: storage
 });
@@ -272,6 +292,11 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     res.render({ "status": 0, msg: "上传文件不能为空！" });
     return;
   }
+  if (file.size > maxSize) {  //判断一下文件是否超过规定大小。
+    // console.log("Find MulterError: ", "上传文件大小不能超过1M！");
+    response = { "status": 0, msg: "文件大小不能超过1M！请处理后重新上传。", reDo: "" };
+    return res.send(response);
+  }
   //console.log('文件类型：%s', file.mimetype);
   //console.log('原始文件名：%s', file.originalname);
   //console.log('文件大小：%s', file.size);
@@ -280,6 +305,8 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
   //console.log("file:", file);
   response.file = file.path.substr(file.path.indexOf("\\"));
   response.count = 1;
+  response.reDo = "";
+  response.reList = [];
   sqlstr = "setUploadSingleFileLink";
   let register = key;
   if (currUser > "") {
@@ -301,6 +328,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     response.count = 1;
     response.status = data.returnValue;
     if (req.query.commMark != "studentList") {
+      response.reDo = response.file;
       return res.send(response);
     }
   });

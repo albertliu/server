@@ -3523,6 +3523,24 @@ BEGIN
 			--update payInfo set dateInvoice=getDate() where ID=(select payID from payDetailInfo where enterID=@key)
 			select @i=1, @event='上传发票'
 		end
+		if @i = 0 and @upID like 'question_image%'	--题目图片
+		begin
+			if @upID = 'question_image'
+				update questionInfo set [image]=@file where ID=@key
+			if @upID = 'question_imageA'
+				update questionInfo set imageA=@file where ID=@key
+			if @upID = 'question_imageB'
+				update questionInfo set imageB=@file where ID=@key
+			if @upID = 'question_imageC'
+				update questionInfo set imageC=@file where ID=@key
+			if @upID = 'question_imageD'
+				update questionInfo set imageD=@file where ID=@key
+			if @upID = 'question_imageE'
+				update questionInfo set imageE=@file where ID=@key
+			if @upID = 'question_imageF'
+				update questionInfo set imageF=@file where ID=@key
+			select @i=1, @event='题目图片'
+		end
 		--if @upID = 'project_brochure'	--招生简章
 		if @i=0
 		begin
@@ -4272,20 +4290,22 @@ END
 -- CREATE DATE: 2020-05-24
 -- 根据给定的参数，添加或者更新题目
 -- USE CASE: exec updateQuestionInfo 1,1,'xxxx'...
-CREATE PROCEDURE [dbo].[updateQuestionInfo]
-	@ID int,@questionID varchar(50),@questionName nvarchar(2000),@knowPointID varchar(50),@answer varchar(50),@A nvarchar(200),@B nvarchar(200),@C nvarchar(200),@D nvarchar(200),@E nvarchar(200),@kindID int,@status int,@memo nvarchar(500),@registerID varchar(50)
+ALTER PROCEDURE [dbo].[updateQuestionInfo]
+	@ID int,@questionID varchar(50),@questionName nvarchar(2000),@knowPointID varchar(50),@answer varchar(50),@A nvarchar(200),@B nvarchar(200),@C nvarchar(200),@D nvarchar(200),@E nvarchar(200),@F nvarchar(200),@kindID int,@status int,@memo nvarchar(500),@registerID varchar(50)
 AS
 BEGIN
 	declare @host varchar(20)
 	if @ID=0 and not exists(select 1 from questionInfo where questionID=@questionID)	-- 新纪录
 	begin
-		insert into questionInfo(questionID,questionName,knowPointID,answer,A,B,C,D,E,kindID,status,memo,registerID) values(@questionID,@questionName,@knowPointID,@answer,@A,@B,@C,@D,@E,@kindID,@status,@memo,@registerID)
+		insert into questionInfo(questionID,questionName,knowPointID,answer,A,B,C,D,E,F,kindID,status,memo,registerID) values(@questionID,@questionName,@knowPointID,replace(@answer,' ',''),@A,@B,@C,@D,@E,@F,@kindID,@status,@memo,@registerID)
 	end
 	else
 	begin
-		update questionInfo set questionID=@questionID,questionName=@questionName,knowPointID=@knowPointID,answer=@answer,A=@A,B=@B,C=@C,D=@D,E=@E,status=@status,kindID=@kindID,memo=@memo where ID=@ID
+		update questionInfo set questionID=@questionID,questionName=@questionName,knowPointID=@knowPointID,answer=replace(@answer,' ',''),A=@A,B=@B,C=@C,D=@D,E=@E,F=@F,status=@status,kindID=@kindID,memo=@memo where ID=@ID
 	end
+	exec writeOpLog '','更新题目','updateQuestion',@registerID,@questionName,@questionID
 END
+GO
 
 
 -- CREATE DATE: 2020-05-24
