@@ -233,7 +233,7 @@ var storage = multer.diskStorage({
   }
 });
 
-var maxSize = 1 * 1000 * 1000;  // 最大上传文件字节1M
+var maxSize = 5 * 1000 * 1000;  // 最大上传文件字节5M
 var upload = multer({
   storage: storage
 });
@@ -293,8 +293,8 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     return;
   }
   if (file.size > maxSize) {  //判断一下文件是否超过规定大小。
-    // console.log("Find MulterError: ", "上传文件大小不能超过1M！");
-    response = { "status": 0, msg: "文件大小不能超过1M！请处理后重新上传。", reDo: "" };
+    // console.log("Find MulterError: ", "上传文件大小不能超过5M！");
+    response = { "status": 0, msg: "文件大小不能超过5M！请处理后重新上传。", reDo: "" };
     return res.send(response);
   }
   //console.log('文件类型：%s', file.mimetype);
