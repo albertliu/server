@@ -292,11 +292,11 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     res.render({ "status": 0, msg: "上传文件不能为空！" });
     return;
   }
-  if (file.size > maxSize) {  //判断一下文件是否超过规定大小。
-    // console.log("Find MulterError: ", "上传文件大小不能超过5M！");
-    response = { "status": 0, msg: "文件大小不能超过5M！请处理后重新上传。", reDo: "" };
-    return res.send(response);
-  }
+  // if (file.size > maxSize) {  //判断一下文件是否超过规定大小。
+  //   // console.log("Find MulterError: ", "上传文件大小不能超过5M！");
+  //   response = { "status": 0, msg: "文件大小不能超过5M！请处理后重新上传。", reDo: "" };
+  //   return res.send(response);
+  // }
   //console.log('文件类型：%s', file.mimetype);
   //console.log('原始文件名：%s', file.originalname);
   //console.log('文件大小：%s', file.size);
