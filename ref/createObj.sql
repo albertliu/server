@@ -10,20 +10,24 @@ ALTER DATABASE elearning SET RECOVERY FULL
 --De0penl99O53!4N#~9.
 --set datefirst 1  --将星期一设为第一天
 
-select * from dictionaryDoc where kind like '%examResult%' order by kind, ID
+select * from dictionaryDoc where kind like '%education%' order by kind, ID
 select * from dictionaryDoc where kind like '%statusYes%' order by kind, ID
 select * from dictionaryDoc where item like '%预备%' order by kind, ID
 --delete from dictionaryDoc where mID=1298
-insert into dictionaryDoc(ID,item,kind,description,memo) values('0','541002','receipt','','')
-insert into dictionaryDoc(ID,item,kind,description,memo) values('0','每天一次','checkinMark','','')
-insert into dictionaryDoc(ID,item,kind,description,memo) values('1','每天两次','checkinMark','','')
+insert into dictionaryDoc(ID,item,kind,description,memo) values('3','接待','serviceType','','')
+insert into dictionaryDoc(ID,item,kind,description,memo) values('4','登门','serviceType','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('2','报账','accountKind','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('3','台胞证','IDkind','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('5','其他','IDkind','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('6','六','week','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('8','社保证明','material','student_social','')
-update dictionaryDoc set item='发票' where mID=1266
+update dictionaryDoc set item='研究生及以上' where mID=242
+update dictionaryDoc set item='本科或同等学历' where mID=241
 update dictionaryDoc set item='专科或同等学历' where mID=240
+update dictionaryDoc set item='中专或同等学历' where mID=239
+update dictionaryDoc set item='高中或同等学历' where mID=238
+delete from dictionaryDoc where mID=243
+update studentInfo set education=7 where education=8
 
 --questionType
 -- JOB
@@ -754,6 +758,7 @@ CREATE TABLE [dbo].[studentServiceInfo](
 	[mobile] [varchar](50) NULL,		--联系渠道（电话号码）
 	[item] [nvarchar](4000) NULL,		--服务内容
 	[refID] [int] NULL default(0),		--studentCourseList.ID
+	[vID] [int] NULL default(0),		--dictionaryDoc.ID where kind='material'
 	[kindID] [int] NULL default(0),		--服务类别:serviceKind:0 通知  1 回访  2 咨询  9 其他
 	[type] [int] NULL default(0),		--服务形式:serviceType:0 短信  1 电话  2 现场  9 其他
 	[status] [int] NULL default(0),		--statusService: 0 已经完成  1 继续跟进  2 等待反馈
@@ -5883,20 +5888,22 @@ GO
 -- 根据给定的参数，添加或者更新学员服务信息
 -- USE CASE: exec updateStudentServiceInfo 1,'P1','xxxx'...
 ALTER PROCEDURE [dbo].[updateStudentServiceInfo]
-	@ID int,@username varchar(50),@mobile varchar(50),@item nvarchar(4000),@refID int,@kindID int,@vID int,@type int,@emergency int,@backDate varchar(50),@feedback nvarchar(500),@serviceDate varchar(50),@host varchar(50),@memo varchar(2000),@registerID varchar(50)
+	@ID int,@username varchar(50),@item nvarchar(4000),@refID int,@type int,@serviceDate varchar(50),@memo varchar(2000),@registerID varchar(50)
 AS
 BEGIN
-	if @backDate='' set @backDate=null
-	if @serviceDate='' set @serviceDate=null
+	if @serviceDate='' set @serviceDate=convert(varchar(20),GETDATE(),23)
 	
 	if @ID=0	-- 新纪录
 	begin
-		insert into studentServiceInfo(username,mobile,item,refID,vID,kindID,type,emergency,backDate,feedback,serviceDate,memo,host,registerID) values(@username,@mobile,@item,@refID,@vID,@kindID,@type,@emergency,@backDate,@feedback,@serviceDate,@memo,@host,@registerID)
+		insert into studentServiceInfo(username,item,refID,type,serviceDate,memo,registerID) values(@username,@item,@refID,@type,@serviceDate,@memo,@registerID)
 	end
 	else
 	begin
-		update studentServiceInfo set mobile=@mobile,item=@item,kindID=@kindID,type=@type,emergency=@emergency,backDate=@backDate,feedback=@feedback,serviceDate=@serviceDate,memo=@memo where ID=@ID
+		update studentServiceInfo set item=@item,type=@type,serviceDate=@serviceDate,memo=@memo where ID=@ID
+		select @ID=max(ID) from studentServiceInfo where registerID=@registerID
 	end
+
+	select @ID as re
 END
 GO
 
@@ -6853,21 +6860,24 @@ BEGIN
 	begin
 		--提取名单
 		select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0,@i=0
+		while @n>@j
+		begin
+			insert into #temp(id) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
+			select @j = @j + 1
+		end
+		if @certID not in('C20','C20A','C21')
+			update #temp set courseID=b.ID from #temp a, studentCourseList b where a.id=b.refID
+		else
+			update #temp set courseID=b.ID, id=c.ID from #temp a, studentCourseList b, studentCertList c where a.id=b.username and b.refID=c.ID and c.certID=@certID
+		--禁止重复生成证书
+		delete from #temp where id in(select b.ID from #temp a, studentCertList b where a.id=b.ID and b.diplomaID>'')
+		select @n=count(*) from #temp
+		
 		--填写生成记录
 		insert into generateDiplomaInfo(certID,firstID,lastID,startDate,class_startDate,class_endDate,printed,printDate,delivery,deliveryDate,styleID,host,memo,registerID) values(@certID,@firstID,@lastID,@startDate,@class_startDate,@class_endDate,@printed,@printDate,@delivery,@deliveryDate,@styleID,@host,@memo,@registerID)
 		if @n>0
 		begin
 			select @re=max(ID) from generateDiplomaInfo where registerID=@registerID and certID=@certID
-
-			while @n>@j
-			begin
-				insert into #temp(id) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
-				select @j = @j + 1
-			end
-			if @certID not in('C20','C20A','C21')
-				update #temp set courseID=b.ID from #temp a, studentCourseList b where a.id=b.refID
-			else
-				update #temp set courseID=b.ID, id=c.ID from #temp a, studentCourseList b, studentCertList c where a.id=b.username and b.refID=c.ID and c.certID=@certID
 
 			--declare rc cursor for select b.id,username,ceiling(hours*1.00/8),submitDate,c.dateStart from v_studentCourseList a, #temp b, v_classInfo c where a.ID=b.courseID and a.classID=c.classID order by SNo
 			declare rc cursor for select b.id,a.ID,a.username from v_studentCourseList a, #temp b where a.ID=b.courseID order by SNo
@@ -10487,9 +10497,9 @@ AS
 BEGIN
 	declare @hostName nvarchar(100), @fname varchar(200)
 	select @theDate=dbo.whenull(@theDate,convert(varchar(20),getDate(),23))
-	create table #temp(ID int,enterID int,username varchar(50),name nvarchar(50),mobile varchar(50),completion decimal(10,2) default(0),completion_hours decimal(10,2) default(0),result int,pOffline int default(0),
+	create table #temp(ID int,enterID int,username varchar(50),name nvarchar(50),mobile varchar(50),completion decimal(10,2) default(0),completion_hours decimal(10,2) default(0),result int,score int default(0),score2 int default(0),pOffline int default(0),
 		examTimes int default(0),goodTimes int default(0),goodRate decimal(10,2) default(0),examTimes1 int default(0),goodTimes1 int default(0),goodRate1 decimal(10,2) default(0)
-		,examTimesLast int default(0),goodTimesLast int default(0),goodRateLast decimal(10,2) default(0),examTimes1Last int default(0),goodTimes1Last int default(0),goodRate1Last decimal(10,2) default(0),todayExamTimes int default(0),todayGoodTimes int default(0),bestScore int default(0),todayBestScore int default(0))
+		,examTimesLast int default(0),goodTimesLast int default(0),goodRateLast decimal(10,2) default(0),avgLast int default(0),predictedGrade int default(0),examTimes1Last int default(0),goodTimes1Last int default(0),goodRate1Last decimal(10,2) default(0),todayExamTimes int default(0),todayGoodTimes int default(0),bestScore int default(0),todayBestScore int default(0))
 	
 	--在线课程完成率
 	if @mark='A'
@@ -10503,8 +10513,8 @@ BEGIN
 	update #temp set todayExamTimes=b.examTimes,todayGoodTimes=b.goodTimes,todayBestScore=b.bestScore from #temp a, (select c.enterID,count(*) as examTimes,sum(iif(d.score>=d.scorePass,1,0)) as goodTimes, max(d.score) as bestScore from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID and d.backDate between @theDate and @theDate + ' 23:59:59' group by c.enterID) b where a.enterID=b.enterID
 	
 	--最近5次应知练习
-	update #temp set examTimesLast=b.examTimes,goodTimesLast=b.goodTimes from #temp a, 
-	(select enterID,count(*) as examTimes,sum(iif(score>=scorePass,1,0)) as goodTimes 
+	update #temp set examTimesLast=b.examTimes,goodTimesLast=b.goodTimes,avgLast=b.avgLast from #temp a, 
+	(select enterID,count(*) as examTimes,sum(iif(score>=scorePass,1,0)) as goodTimes, avg(score) as avgLast
 	FROM (
 		SELECT
 			c.enterID,e.kindID,d.score,d.scorePass,
@@ -10525,8 +10535,9 @@ BEGIN
 	) AS SubQuery
 	WHERE Rank <= 5 group by enterID) b where a.enterID=b.enterID
 
-	update #temp set goodRate=goodTimes*100.00/iif(examTimes=0,1,examTimes), goodRate1=goodTimes1*100.00/iif(examTimes1=0,1,examTimes1), goodRateLast=goodTimesLast*100.00/iif(examTimesLast=0,1,examTimesLast), goodRate1Last=goodTimes1Last*100.00/iif(examTimes1Last=0,1,examTimes1Last), completion=iif(completion>99,100,completion) where examTimes>0
-	update #temp set result=c.result from #temp a, studentCourseList b, studentCertList c where a.enterID=b.ID and b.refID=c.ID
+	--predictedGrade: 预估分数，以最后5次应知考试平均分为基数，适当提高一个系数。
+	update #temp set predictedGrade=avgLast+(100-avgLast)/2.3,goodRate=goodTimes*100.00/iif(examTimes=0,1,examTimes), goodRate1=goodTimes1*100.00/iif(examTimes1=0,1,examTimes1), goodRateLast=goodTimesLast*100.00/iif(examTimesLast=0,1,examTimesLast), goodRate1Last=goodTimes1Last*100.00/iif(examTimes1Last=0,1,examTimes1Last), completion=iif(completion>99,100,completion) where examTimes>0
+	update #temp set result=c.result,score=c.score,score2=c.score2 from #temp a, studentCourseList b, studentCertList c where a.enterID=b.ID and b.refID=c.ID
 	-- 线下考勤
 	update #temp set pOffline=b.p from #temp a, (select enterID,count(*) as p from classSchedule c, checkinInfo d where c.ID=d.refID and c.mark='A' and c.classID=@classID group by d.enterID) b where a.enterID=b.enterID
 	update #temp set pOffline=isnull(pOffline,0)+[dbo].[getEnterCheckinOutClassQty](enterID)
@@ -11196,10 +11207,10 @@ BEGIN
 		update checkinInfo set enterID=@enterID1, refID=d.refID from checkinInfo c, 
 		(select e.ID,f.ID as refID from
 			--find old class checkin records
-			(select a.*,RANK() over(order by a.ID) as rank1 from checkinInfo a, classSchedule b where a.refID=b.ID and a.kindID=1 and b.classID=@classID0 and b.mark='A' and a.enterID=@enterID0) e,
+			(select a.*,RANK() over(order by a.ID) as rank1,convert(varchar(20),b.theDate,23) as theDate1 from checkinInfo a, classSchedule b where a.refID=b.ID and a.kindID=1 and b.classID=@classID0 and b.mark='A' and a.enterID=@enterID0) e,
 			--find new class checkin records
-			(select ID,RANK() over(order by ID) as rank1 from classSchedule where classID=@classID1 and mark='A' and online=0 and typeID=0) f
-			where e.rank1=f.rank1
+			(select ID,RANK() over(order by ID) as rank1,convert(varchar(20),theDate,23) as theDate1 from classSchedule where classID=@classID1 and mark='A' and online=0 and typeID=0) f
+			where e.theDate1=f.theDate1 or e.rank1=f.rank1
 		) d where c.ID=d.ID
 
 	--replace old face detect records with new's
