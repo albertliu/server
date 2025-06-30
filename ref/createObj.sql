@@ -10,7 +10,7 @@ ALTER DATABASE elearning SET RECOVERY FULL
 --De0penl99O53!4N#~9.
 --set datefirst 1  --将星期一设为第一天
 
-select * from dictionaryDoc where kind like '%education%' order by kind, ID
+select * from dictionaryDoc where kind like '%serviceKind%' order by kind, ID
 select * from dictionaryDoc where kind like '%statusYes%' order by kind, ID
 select * from dictionaryDoc where item like '%预备%' order by kind, ID
 --delete from dictionaryDoc where mID=1298
@@ -21,13 +21,14 @@ insert into dictionaryDoc(ID,item,kind,description,memo) values('3','台胞证','ID
 insert into dictionaryDoc(ID,item,kind,description,memo) values('5','其他','IDkind','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('6','六','week','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('8','社保证明','material','student_social','')
+insert into dictionaryDoc(ID,item,kind,description,memo) values('0','个人','fromKind','','')
+insert into dictionaryDoc(ID,item,kind,description,memo) values('1','学校','fromKind','','')
 update dictionaryDoc set item='研究生及以上' where mID=242
 update dictionaryDoc set item='本科或同等学历' where mID=241
 update dictionaryDoc set item='专科或同等学历' where mID=240
 update dictionaryDoc set item='中专或同等学历' where mID=239
 update dictionaryDoc set item='高中或同等学历' where mID=238
 delete from dictionaryDoc where mID=243
-update studentInfo set education=7 where education=8
 
 --questionType
 -- JOB
@@ -86,12 +87,12 @@ CREATE TABLE [dbo].[unitInfo](
 	[ID] [int] IDENTITY(1,1) NOT NULL,
 	[unitName] [nvarchar](100) NOT NULL,
 	[taxNo] [varchar](50) NULL,
-	[sales] [varchar](50) NULL,
+	[saler] [varchar](50) NULL,
 	[kindID] [int] NULL DEFAULT ((0)),	--school/person
 	[linker] [nvarchar](500) NULL,
 	[phone] [nvarchar](100) NULL,
 	[address] [nvarchar](100) NULL,
-	[email] [nvarchar](100) NULL,
+	[email] [nvarchar](200) NULL,
 	[status] [int] NULL DEFAULT ((0)),
 	[memo] [nvarchar](2000) NULL,
 	[host] [varchar](50) NULL,
@@ -759,7 +760,7 @@ CREATE TABLE [dbo].[studentServiceInfo](
 	[item] [nvarchar](4000) NULL,		--服务内容
 	[refID] [int] NULL default(0),		--studentCourseList.ID
 	[vID] [int] NULL default(0),		--dictionaryDoc.ID where kind='material'
-	[kindID] [int] NULL default(0),		--服务类别:serviceKind:0 通知  1 回访  2 咨询  9 其他
+	[kindID] [int] NULL default(0),		--资源类别:serviceKind:0 个人  1 学校
 	[type] [int] NULL default(0),		--服务形式:serviceType:0 短信  1 电话  2 现场  9 其他
 	[status] [int] NULL default(0),		--statusService: 0 已经完成  1 继续跟进  2 等待反馈
 	[emergency] [int] NULL default(0),	--0 一般  1 紧急
@@ -2943,7 +2944,7 @@ GO
 -- return: 0 success; other error:1 the user already exist  2 the user not exist  3 the companyID wrong.
 -- USE CASE: exec updatestudentInfo 1,'xxxx'...
 ALTER PROCEDURE [dbo].[updateStudentInfo]
-	@mark int,@username varchar(50),@name nvarchar(50),@password varchar(50),@kindID int,@companyID varchar(50),@dept1 varchar(50),@dept1Name nvarchar(100),@dept2 varchar(50),@dept3 varchar(50),@job varchar(50),@linker varchar(50),@job_status varchar(50),@mobile nvarchar(50),@phone nvarchar(50),@email nvarchar(50),@address nvarchar(100),@limitDate varchar(50),@education varchar(50),@unit nvarchar(100),@dept nvarchar(100),@ethnicity nvarchar(50),@IDaddress nvarchar(100),@bureau nvarchar(50),@IDdateStart varchar(50),@IDdateEnd varchar(50),@experience nvarchar(500),@fromID varchar(50),@memo nvarchar(500),@host varchar(50),@registerID varchar(50)
+	@mark int,@username varchar(50),@name nvarchar(50),@password varchar(50),@kindID int,@companyID varchar(50),@dept1 varchar(50),@dept1Name nvarchar(100),@dept2 varchar(50),@dept3 varchar(50),@job varchar(50),@linker varchar(50),@job_status varchar(50),@mobile nvarchar(50),@phone nvarchar(50),@email nvarchar(50),@address nvarchar(100),@limitDate varchar(50),@education varchar(50),@unit nvarchar(100),@dept nvarchar(100),@ethnicity nvarchar(50),@IDaddress nvarchar(100),@bureau nvarchar(50),@IDdateStart varchar(50),@IDdateEnd varchar(50),@experience nvarchar(500),@fromID varchar(50),@fromKind varchar(50),@memo nvarchar(500),@host varchar(50),@registerID varchar(50)
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -2967,7 +2968,7 @@ BEGIN
 		set @IDdateStart = null
 	if @IDdateEnd = '' or @IDdateEnd = 'null' or @IDdateEnd= 'undefined' or ISDATE(@IDdateEnd)=0
 		set @IDdateEnd = null
-	--if @fromID = '' or @fromID = 'null' or @fromID= 'undefined'
+	if @fromID = '' or @fromID = 'null' or @fromID= 'undefined'
 		set @fromID = null
 	if @companyID>0 and not exists(select 1 from hostInfo where hostNo=@host and kindID=1)
 		select @host=host,@linker=(case when @linker>'' then @linker else linker end),@address=(case when @address>'' then @address else address end),@phone=(case when @phone>'' then @phone else phone end) from deptInfo where deptID=@companyID
@@ -2975,6 +2976,8 @@ BEGIN
 		set @education = 0
 	if @ethnicity = '' or @ethnicity = 'null' or @ethnicity= 'undefined'
 		set @ethnicity = '汉'
+	if @fromID>''
+		select @fromKind=kindID from unitInfo where saler=@fromID and unitName=@unit
 
 	if @mark=0	-- 新纪录
 	begin
@@ -2984,8 +2987,8 @@ BEGIN
 			set @re =  3   --error: the companyID wrong.
 		if @re = 0
 		begin
-			insert into studentInfo(host,userName,name,password,kindID,companyID,dept1,dept2,dept3,job,job_status,mobile,phone,email,address,education,unit,dept,ethnicity,IDaddress,bureau,IDdateStart,IDdateEnd,experience,memo,birthday,sex,age,linker,fromID,registerID) 
-				values(@host,upper(@username),@name,@password,@kindID,@companyID,@dept1,@dept2,@dept3,@job,@job_status,@mobile,@phone,@email,@address,@education,@unit,@dept,@ethnicity,@IDaddress,@bureau,@IDdateStart,@IDdateEnd,@experience,@memo,substring(@username,7,8),dbo.getSexfromID(@username),dbo.getAgefromID(@username),@linker,@fromID,@registerID)
+			insert into studentInfo(host,userName,name,password,kindID,companyID,dept1,dept2,dept3,job,job_status,mobile,phone,email,address,education,unit,dept,ethnicity,IDaddress,bureau,IDdateStart,IDdateEnd,experience,memo,birthday,sex,age,linker,fromID,fromKind,registerID) 
+				values(@host,upper(@username),@name,@password,@kindID,@companyID,@dept1,@dept2,@dept3,@job,@job_status,@mobile,@phone,@email,@address,@education,@unit,@dept,@ethnicity,@IDaddress,@bureau,@IDdateStart,@IDdateEnd,@experience,@memo,substring(@username,7,8),dbo.getSexfromID(@username),dbo.getAgefromID(@username),@linker,@fromID,@fromKind,@registerID)
 			select @userID=userID from studentInfo where username=@username
 			select @event = '新增'
 			exec writeEventTrace @host,@registerID,'user',@username,0,'登记',@username
@@ -3007,7 +3010,7 @@ BEGIN
 			--如果有密码输入，保存新密码，否则保持原来密码.
 			insert into [log_update_studentInfo] select *,@registerID,getDate() from studentInfo where username=@username
 			update studentInfo set kindID=@kindID,password=(case when @password>'' then @password else password end),companyID=@companyID,host=@host,dept1=@dept1,dept2=@dept2,dept3=@dept3,job=@job,job_status=@job_status,name=@name,mobile=@mobile,phone=@phone,email=@email,address=@address,limitDate=@limitDate,education=@education,unit=@unit,dept=@dept,@linker=(case when @linker>'' then @linker else linker end)
-			,ethnicity=(case when @ethnicity='' then ethnicity else @ethnicity end),IDaddress=(case when @IDaddress='' then IDaddress else @IDaddress end),bureau=(case when @bureau='' then bureau else @bureau end),IDdateStart=(case when @IDdateStart is null then IDdateStart else @IDdateStart end),IDdateEnd=(case when @IDdateStart is not null then @IDdateEnd else IDdateEnd end),experience=@experience,fromID=(case when @fromID is null then fromID else @fromID end),memo=@memo where username=@username
+			,ethnicity=(case when @ethnicity='' then ethnicity else @ethnicity end),IDaddress=(case when @IDaddress='' then IDaddress else @IDaddress end),bureau=(case when @bureau='' then bureau else @bureau end),IDdateStart=(case when @IDdateStart is null then IDdateStart else @IDdateStart end),IDdateEnd=(case when @IDdateStart is not null then @IDdateEnd else IDdateEnd end),experience=@experience,fromID=(case when @fromID is null then fromID else @fromID end),fromKind=@fromKind,memo=@memo where username=@username
 			select @event = '修改'
 			--如果由系统内变更为系统外，检查是否已经选了那些系统内课程(非第三方课程)，如果有则删除
 			if @kindID=1 and @kindID0=0 and exists(select 1 from v_studentCourseList where username=@username and mark=1)
@@ -3043,7 +3046,6 @@ BEGIN
 	end
 	return @re
 END
-
 GO
 
 -- CREATE DATE: 2021-11-15
@@ -3051,7 +3053,7 @@ GO
 -- return: 0 success; other error:1 the user already exist  2 the user not exist  3 the companyID wrong.
 -- USE CASE: exec updatestudentInfoTai 1,'xxxx'...
 ALTER PROCEDURE [dbo].[updateStudentInfoTai]
-	@username varchar(50),@name nvarchar(50),@sex int,@birthday varchar(50),@kindID int,@companyID varchar(50),@dept1 varchar(50),@dept1Name nvarchar(100),@dept2 varchar(50),@dept3 varchar(50),@job varchar(50),@linker varchar(50),@job_status varchar(50),@mobile nvarchar(50),@phone nvarchar(50),@email nvarchar(50),@address nvarchar(100),@limitDate varchar(50),@education int,@unit nvarchar(100),@dept nvarchar(100),@ethnicity nvarchar(50),@IDaddress nvarchar(100),@bureau nvarchar(50),@IDdateStart varchar(50),@IDdateEnd varchar(50),@experience nvarchar(500),@fromID varchar(50),@memo nvarchar(500),@host varchar(50),@registerID varchar(50)
+	@username varchar(50),@name nvarchar(50),@sex int,@birthday varchar(50),@kindID int,@companyID varchar(50),@dept1 varchar(50),@dept1Name nvarchar(100),@dept2 varchar(50),@dept3 varchar(50),@job varchar(50),@linker varchar(50),@job_status varchar(50),@mobile nvarchar(50),@phone nvarchar(50),@email nvarchar(50),@address nvarchar(100),@limitDate varchar(50),@education int,@unit nvarchar(100),@dept nvarchar(100),@ethnicity nvarchar(50),@IDaddress nvarchar(100),@bureau nvarchar(50),@IDdateStart varchar(50),@IDdateEnd varchar(50),@experience nvarchar(500),@fromID varchar(50),@fromKind varchar(50),@memo nvarchar(500),@host varchar(50),@registerID varchar(50)
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -3088,12 +3090,12 @@ BEGIN
 		set @re =  3   --error: the companyID wrong.
 
 	if exists(select 1 from studentInfo where username=@username)
-		update studentInfo set host=@host,name=@name,kindID=@kindID,companyID=@companyID,dept1=@dept1,dept2=@dept2,dept3=@dept3,job=@job,job_status=@job_status,mobile=@mobile,phone=@phone,email=@email,address=@address,education=@education,unit=@unit,dept=@dept,ethnicity=@ethnicity,IDaddress=@IDaddress,bureau=@bureau,IDdateStart=@IDdateStart,IDdateEnd=@IDdateEnd,experience=@experience,memo=@memo,birthday=@birthday,sex=@sex,age=@age,fromID=@fromID where username=@username
+		update studentInfo set host=@host,name=@name,kindID=@kindID,companyID=@companyID,dept1=@dept1,dept2=@dept2,dept3=@dept3,job=@job,job_status=@job_status,mobile=@mobile,phone=@phone,email=@email,address=@address,education=@education,unit=@unit,dept=@dept,ethnicity=@ethnicity,IDaddress=@IDaddress,bureau=@bureau,IDdateStart=@IDdateStart,IDdateEnd=@IDdateEnd,experience=@experience,memo=@memo,birthday=@birthday,sex=@sex,age=@age,fromID=@fromID,fromKind=@fromKind where username=@username
 	else
 		if @re = 0
 		begin
-			insert into studentInfo(host,userName,name,kindID,companyID,dept1,dept2,dept3,job,job_status,mobile,phone,email,address,education,unit,dept,ethnicity,IDaddress,bureau,IDdateStart,IDdateEnd,experience,memo,birthday,sex,age,linker,fromID,registerID) 
-				values(@host,upper(@username),@name,@kindID,@companyID,@dept1,@dept2,@dept3,@job,@job_status,@mobile,@phone,@email,@address,@education,@unit,@dept,@ethnicity,@IDaddress,@bureau,@IDdateStart,@IDdateEnd,@experience,@memo,@birthday,@sex,@age,@linker,@fromID,@registerID)
+			insert into studentInfo(host,userName,name,kindID,companyID,dept1,dept2,dept3,job,job_status,mobile,phone,email,address,education,unit,dept,ethnicity,IDaddress,bureau,IDdateStart,IDdateEnd,experience,memo,birthday,sex,age,linker,fromID,fromKind,registerID) 
+				values(@host,upper(@username),@name,@kindID,@companyID,@dept1,@dept2,@dept3,@job,@job_status,@mobile,@phone,@email,@address,@education,@unit,@dept,@ethnicity,@IDaddress,@bureau,@IDdateStart,@IDdateEnd,@experience,@memo,@birthday,@sex,@age,@linker,@fromID,@fromKind,@registerID)
 			select @userID=userID from studentInfo where username=@username
 			select @event = '新增'
 			exec writeEventTrace @host,@registerID,'user',@username,0,'登记',@username
@@ -3132,12 +3134,12 @@ ALTER PROCEDURE [dbo].[addStudentCert]
 AS
 BEGIN
 	DECLARE @logMemo varchar(500),@event varchar(50),@refID int,@host varchar(50),@dept1 int,@dept2 int,@kind int,@payNow int,@title nvarchar(500),@type int,@projectID varchar(50),@ID int,@classID varchar(50),@payID int,@price int,@checked int,@checkDate varchar(20),@checker varchar(50),@SNo int,@courseID varchar(50)
-	declare @re int, @msg nvarchar(50), @source nvarchar(50)
+	declare @re int, @msg nvarchar(50), @source nvarchar(50),@fromKind int
 	if @currDiplomaDate='' or @currDiplomaDate='null' set @currDiplomaDate=null
 	if @currDiplomaID='' or @currDiplomaID='null' set @currDiplomaID=null
 	select @fromID=dbo.whenull(@fromID,null), @ID=0, @username=upper(@username), @source=null
 	--@fromID如果没有.后缀，添加上去。
-	select @event='在线报名',@refID=0,@re=0,@host=iif(@url>'',@url,host),@checked=0,@SNo=0,@dept1=dept1,@dept2=dept2,@payNow=0,@title='',@fromID=iif(charindex('.',@fromID)>0,@fromID,iif(@fromID>'',@fromID+'.',@fromID)) from studentInfo where username=@username
+	select @event='在线报名',@refID=0,@re=0,@host=iif(@url>'',@url,host),@checked=0,@SNo=0,@dept1=dept1,@dept2=dept2,@payNow=0,@title='',@fromID=iif(charindex('.',@fromID)>0,@fromID,iif(@fromID>'',@fromID+'.',@fromID)),@fromKind=fromKind from studentInfo where username=@username
 	if @host='spc'
 	begin
 		if exists(select 1 from deptInfo where deptID=@dept2)
@@ -3187,7 +3189,7 @@ BEGIN
 				
 
 				--添加课程  石化内部项目，设为不签名
-				insert into studentCourseList(username,courseID,refID,payNow,title,price,type,signatureType,hours,closeDate,projectID,classID,SNo,reexamine,checked,checkDate,checker,currDiplomaID,currDiplomaDate,fromID,source,host,registerID) select @username,courseID,@refID,@payNow,@title,@price,@type,iif(@type=1,0,1),hours,dateadd(d,period,getDate()),@projectID,@classID,@SNo,@reexamine,@checked,@checkDate,@checker,@currDiplomaID,@currDiplomaDate,@fromID,@source,@host,@username from courseInfo where courseID=@courseID
+				insert into studentCourseList(username,courseID,refID,payNow,title,price,type,signatureType,hours,closeDate,projectID,classID,SNo,reexamine,checked,checkDate,checker,currDiplomaID,currDiplomaDate,fromID,fromKind,source,host,registerID) select @username,courseID,@refID,@payNow,@title,@price,@type,iif(@type=1,0,1),hours,dateadd(d,period,getDate()),@projectID,@classID,@SNo,@reexamine,@checked,@checkDate,@checker,@currDiplomaID,@currDiplomaDate,@fromID,@fromKind,@source,@host,@username from courseInfo where courseID=@courseID
 				select @ID=max(ID) from studentCourseList where refID=@refID
 
 				if @type=1	--公司内部项目
@@ -4071,11 +4073,14 @@ ALTER PROCEDURE [dbo].[resetStudentPwd]
 	@username varchar(50), @registerID varchar(50)
 AS
 BEGIN
-	update studentInfo set password='123456' where username=@username
+	declare @pwd varchar(50)
+	select @pwd = item from dictionaryDoc where kind='studentPasswd' and ID='0'
+	select @pwd=iif(host='spc','Sh123456',@pwd) from studentInfo where username=@username
+	update studentInfo set password=@pwd where username=@username
 	-- 写操作日志
-	exec writeOpLog '','重置密码','resetStudentPwd',@registerID,'',@username
+	exec writeOpLog '','重置密码','resetStudentPwd',@registerID,@pwd,@username
+	select @pwd as re
 END
-
 GO
 
 -- =============================================
@@ -4830,7 +4835,7 @@ BEGIN
 		if not exists(select 1 from studentInfo where username=@username)	-- 新纪录
 		begin
 				insert into studentInfo(host,userName,name,password,kindID,companyID,dept1,dept2,unit,job,mobile,address,education,memo,birthday,sex,age,registerID) 
-				values(@host,upper(@username),@name,@password,@kindID,@companyID,@dept1,@dept2,@unit,@job,@mobile,@address,@educationID,@memo,(case when @Tai=0 then substring(@username,7,8) else '2000-01-01' end),(case when @Tai=0 then dbo.getSexfromID(@username) else 0 end),(case when @Tai=0 then dbo.getAgefromID(@username) else '1' end),@registerID)
+				values(@host,upper(@username),@name,iif(@host<>'spc',@password,'Sh123456'),@kindID,@companyID,@dept1,@dept2,@unit,@job,@mobile,@address,@educationID,@memo,(case when @Tai=0 then substring(@username,7,8) else '2000-01-01' end),(case when @Tai=0 then dbo.getSexfromID(@username) else 0 end),(case when @Tai=0 then dbo.getAgefromID(@username) else '1' end),@registerID)
 		end
 		else
 		begin
@@ -4877,7 +4882,7 @@ BEGIN
 				--@ID,@username,@classID,@price,@amount,@invoice,@projectID,@title,@payNow,@needInvoice,@kindID,@type,@status,@datePay,@dateInvoice,@dateInvoicePick,@pay_memo,@currDiplomaID,@currDiplomaDate,@overdue,@fromID,@oldNo,@memo,@registerID
 				select @price=price from projectInfo where projectID=@projectID
 				if not exists(select 1 from studentCourseList where username=@username and courseID=@courseID and classID=@classID)
-					exec @enterID=doEnter 0,@username,@classID,@price,0,'','',0,@projectID,@title,@payNow,0,0,0,0,'','','','','',@currDiplomaDate,0,0,@fromID,'',@oldNo,@memo,@host,@registerID
+					exec @enterID=doEnter 0,@username,@classID,@price,0,'','',0,@projectID,@title,@payNow,0,0,0,0,'','','','','',@currDiplomaDate,0,0,@fromID,0,'',@oldNo,@memo,@host,@registerID
 				else
 					select @exist=1		--已在本班注册过
 			end
@@ -5380,17 +5385,18 @@ ALTER PROCEDURE [dbo].[reset_student_password]
 	@username varchar(50), @phone varchar(50)
 AS
 BEGIN
-	declare @re int, @passwd varchar(50)
-	select @re = 0, @passwd = item from dictionaryDoc where kind='studentPasswd' and ID='0'
+	declare @re int, @pwd varchar(50)
+	select @re = 0, @pwd = item from dictionaryDoc where kind='studentPasswd' and ID='0'
+	select @pwd=iif(host='spc','Sh123456',@pwd) from studentInfo where username=@username
 	if not exists(select 1 from studentInfo where username=@username)
 		set @re = 1
 	else
 		if not exists(select 1 from studentInfo where username=@username and mobile=@phone)
 			set @re = 2
 		else
-			update studentInfo set password=@passwd where username=@username
+			update studentInfo set password=@pwd where username=@username
 	
-	select @re as status, @passwd as password
+	select @re as status, @pwd as password
 END
 
 GO
@@ -5896,11 +5902,11 @@ BEGIN
 	if @ID=0	-- 新纪录
 	begin
 		insert into studentServiceInfo(username,item,refID,type,serviceDate,memo,registerID) values(@username,@item,@refID,@type,@serviceDate,@memo,@registerID)
+		select @ID=max(ID) from studentServiceInfo where registerID=@registerID
 	end
 	else
 	begin
 		update studentServiceInfo set item=@item,type=@type,serviceDate=@serviceDate,memo=@memo where ID=@ID
-		select @ID=max(ID) from studentServiceInfo where registerID=@registerID
 	end
 
 	select @ID as re
@@ -6095,7 +6101,7 @@ GO
 -- USE CASE: exec [doEnter] 'P-20-001', 'albert'
 -- =============================================
 ALTER PROCEDURE [dbo].[doEnter] 
-	@ID int,@username varchar(50),@classID varchar(50),@price int,@amount int,@invoice varchar(50),@receipt varchar(50),@invoice_amount int,@projectID varchar(50),@title nvarchar(100),@payNow int,@needInvoice int,@kindID varchar(50),@type int,@status int,@datePay varchar(50),@dateInvoice varchar(50),@dateInvoicePick varchar(50),@pay_memo varchar(500),@currDiplomaID varchar(50),@currDiplomaDate varchar(50),@overdue int,@express int,@fromID varchar(50),@source nvarchar(50),@oldNo int,@memo varchar(2000),@host varchar(50),@registerID varchar(50)
+	@ID int,@username varchar(50),@classID varchar(50),@price int,@amount int,@invoice varchar(50),@receipt varchar(50),@invoice_amount int,@projectID varchar(50),@title nvarchar(100),@payNow int,@needInvoice int,@kindID varchar(50),@type int,@status int,@datePay varchar(50),@dateInvoice varchar(50),@dateInvoicePick varchar(50),@pay_memo varchar(500),@currDiplomaID varchar(50),@currDiplomaDate varchar(50),@overdue int,@express int,@fromID varchar(50),@fromKind varchar(50),@source nvarchar(50),@oldNo int,@memo varchar(2000),@host varchar(50),@registerID varchar(50)
 AS
 BEGIN
 	declare @event varchar(50),@mem varchar(500),@cID int,@name varchar(50),@certID varchar(50),@courseID varchar(50),@refID int,@t int,@payID int,@re int,@msg varchar(50),@SNo int,@mark int,@reexamine int,@pNo varchar(50),@certName varchar(60),@unit varchar(100),@job_status int,@education int,@mobile varchar(50),@email varchar(50),@address varchar(200),@today varchar(50),@signatureType int
@@ -6151,8 +6157,8 @@ BEGIN
 			--select @title=(case when @title>'' then @title else invoice end) from ref_student_spc where username=@username and classID=@cID
 			--预报名表内人员自动确认：mark=0 , checked=1
 			--insert into studentCourseList(username,courseID,refID,reexamine,type,hours,closeDate,projectID,classID,SNo,checked,checkDate,checker,submited,submitDate,submiter,host,registerID) select @username,courseID,@refID,@reexamine,@t,hours,dateadd(d,period,getDate()),@projectID,@classID,@pNo,(case when @mark=0 then 1 else 0 end),(case when @mark=0 then getDate() else null end),(case when @mark=0 then 'system.' else null end),1,getDate(),@registerID,@host,@registerID from courseInfo where courseID=@courseID
-			insert into studentCourseList(username,courseID,refID,reexamine,payNow,needInvoice,title,pay_kindID,pay_type,pay_status,price,amount,noReceive,invoice,receipt,invoice_amount,dateInvoice,dateInvoicePick,datePay,pay_checker,pay_memo,type,hours,closeDate,projectID,classID,SNo,checked,checkDate,checker,submited,submitDate,submiter,currDiplomaID,currDiplomaDate,overdue,express,fromID,source,oldNo,signatureType,memo,host,registerID) 
-				select @username,courseID,@refID,@reexamine,@payNow,@needInvoice,@title,@kindID,@type,@status,@price,@amount,iif(@type=3 and @status=1,1,0),@invoice,@receipt,@invoice_amount,[dbo].[whenull](@dateInvoice,null),[dbo].[whenull](@dateInvoicePick,null),iif(@datePay>'',@datePay,iif(@status=1,getDate(),null)),iif(@status=1,@registerID,null),@pay_memo,@t,hours,dateadd(d,period,getDate()),@projectID,@classID,@pNo,1,getDate(),'system.',1,getDate(),@registerID,@currDiplomaID,@currDiplomaDate,@overdue,@express,@fromID,@source,@oldNo,@signatureType,@memo,@host,@registerID from courseInfo where courseID=@courseID
+			insert into studentCourseList(username,courseID,refID,reexamine,payNow,needInvoice,title,pay_kindID,pay_type,pay_status,price,amount,noReceive,invoice,receipt,invoice_amount,dateInvoice,dateInvoicePick,datePay,pay_checker,pay_memo,type,hours,closeDate,projectID,classID,SNo,checked,checkDate,checker,submited,submitDate,submiter,currDiplomaID,currDiplomaDate,overdue,express,fromID,fromKind,source,oldNo,signatureType,memo,host,registerID) 
+				select @username,courseID,@refID,@reexamine,@payNow,@needInvoice,@title,@kindID,@type,@status,@price,@amount,iif(@type=3 and @status=1,1,0),@invoice,@receipt,@invoice_amount,[dbo].[whenull](@dateInvoice,null),[dbo].[whenull](@dateInvoicePick,null),iif(@datePay>'',@datePay,iif(@status=1,getDate(),null)),iif(@status=1,@registerID,null),@pay_memo,@t,hours,dateadd(d,period,getDate()),@projectID,@classID,@pNo,1,getDate(),'system.',1,getDate(),@registerID,@currDiplomaID,@currDiplomaDate,@overdue,@express,@fromID,@fromKind,@source,@oldNo,@signatureType,@memo,@host,@registerID from courseInfo where courseID=@courseID
 			select @ID=max(ID) from studentCourseList where username=@username
 	
 			if @certID='C20' or @certID='C20A' or @certID='C21'	--消防员添加额外报名信息
@@ -6188,10 +6194,10 @@ BEGIN
 		begin
 			if @dateInvoice>'' and @invoice>'' and exists(select 1 from studentCourseList where ID=@ID and (dateInvoice is null or dateInvoice=''))
 				update studentCourseList set dateInvoice=@dateInvoice where invoice=@invoice and ID<>@ID	--团体发票更新开票日期
-			update studentCourseList set source=iif(@source>'',@source,source),host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),classID=@classID,SNo=@pNo,noReceive=iif(@type=3 and @status=1 and noReceive=0,1,noReceive),checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),pay_memo=@pay_memo,signatureType=@signatureType,payNow=@payNow,needInvoice=@needInvoice,title=@title,pay_kindID=@kindID,pay_type=@type,pay_status=@status,price=@price,amount=@amount,invoice=@invoice,receipt=@receipt,invoice_amount=@invoice_amount,dateInvoice=[dbo].[whenull](@dateInvoice,null),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),datePay=iif(@datePay>'' and @status>0,@datePay,iif(@status=1 and pay_status=0 and datePay is null,getDate(),datePay)),pay_checker=iif(@status=1 and pay_status=0 and pay_checker is null,@registerID,pay_checker),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
+			update studentCourseList set source=iif(@source>'',@source,source),host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),fromKind=@fromKind,classID=@classID,SNo=@pNo,noReceive=iif(@type=3 and @status=1 and noReceive=0,1,noReceive),checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),pay_memo=@pay_memo,signatureType=@signatureType,payNow=@payNow,needInvoice=@needInvoice,title=@title,pay_kindID=@kindID,pay_type=@type,pay_status=@status,price=@price,amount=@amount,invoice=@invoice,receipt=@receipt,invoice_amount=@invoice_amount,dateInvoice=[dbo].[whenull](@dateInvoice,null),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),datePay=iif(@datePay>'' and @status>0,@datePay,iif(@status=1 and pay_status=0 and datePay is null,getDate(),datePay)),pay_checker=iif(@status=1 and pay_status=0 and pay_checker is null,@registerID,pay_checker),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
 		end
 		else
-			update studentCourseList set source=@source,host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),classID=@classID,SNo=@pNo,checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),signatureType=@signatureType,needInvoice=@needInvoice,title=iif(autoInvoice=0,@title,title),invoice=iif(autoInvoice=0,@invoice,invoice),receipt=@receipt,invoice_amount=iif(autoInvoice=0,@invoice_amount,invoice_amount),dateInvoice=iif(autoInvoice=0,[dbo].[whenull](@dateInvoice,null),dateInvoice),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
+			update studentCourseList set source=@source,host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),fromKind=@fromKind,classID=@classID,SNo=@pNo,checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),signatureType=@signatureType,needInvoice=@needInvoice,title=iif(autoInvoice=0,@title,title),invoice=iif(autoInvoice=0,@invoice,invoice),receipt=@receipt,invoice_amount=iif(autoInvoice=0,@invoice_amount,invoice_amount),dateInvoice=iif(autoInvoice=0,[dbo].[whenull](@dateInvoice,null),dateInvoice),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
 		select @event='修改报名信息',@mem=''
 		exec writeOpLog '',@event,'enter',@registerID,@mem,@ID
 
@@ -10566,7 +10572,7 @@ BEGIN
 	declare @tb table(enterID int,kindID float,mark nvarchar(50) default(''),autoPay int,autoInvoice int,username varchar(50) default(''), name nvarchar(50) default(''), price int, amount int, datePay varchar(50) default(''), pay_type int, pay_typeName nvarchar(50) default(''), shortName nvarchar(50) default(''),noReceive int,invoice varchar(50) default(''),dateInvoice varchar(50) default(''), title nvarchar(200) default(''), autoPayName nvarchar(50), autoInvoiceName nvarchar(50), pay_memo nvarchar(500) default(''),invoicePDF varchar(2000) default(''))
 	declare @tamount int
 	--当天收费记录
-	insert into @tb select ID,0,'',autoPay,autoInvoice,username, name, price, amount, datePay, pay_type, pay_typeName, shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, dbo.getInvoiceTitle(title), '', '',pay_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where datePay=@startDate and amount>0 and pay_status>0 -- and host in('znxf','spc','shm')
+	insert into @tb select ID,0,iif(invoice>'' and datePay=dateInvoice,'已开票',''),autoPay,autoInvoice,username, name, price, amount, datePay, pay_type, pay_typeName, shortName,noReceive,iif(invoice>'',invoice,iif(receipt>'','收据号：'+receipt,'')),dateInvoice, dbo.getInvoiceTitle(title), '', '',pay_memo,[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where datePay=@startDate and amount>0 and pay_status>0 -- and host in('znxf','spc','shm')
 	--如果有当天开票被移除，将这张发票信息填回来（不包括红冲发票）
 	--update @tb set invoice=b.invCode, dateInvoice=b.invDate from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate=@startDate  -- and a.invoice='' 
 	insert into @tb select ID,0,'',b.autoPay,b.autoInvoice,a.username,a.name,price, b.amount, datePay, pay_type, pay_typeName,shortName,noReceive,b.invCode,b.invDate,b.item, '', '',pay_memo,invoicePDF from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate=@startDate and b.amount>0
@@ -10650,7 +10656,7 @@ BEGIN
 	if @mark='data'
 		select iif(kindID<5,cast(ROW_NUMBER() OVER (ORDER BY kindID,enterID) as varchar),'') as 'No',* from @tb order by kindID,enterID,pay_type
 	if @mark='file'
-		select iif(kindID<5,cast(ROW_NUMBER() OVER (ORDER BY kindID,enterID) as varchar),'') as 'No',name as '姓名',enterID as '报名号',datePay as '付款日期',autoPayName as '付款类型',dateInvoice as '开票日期',autoInvoiceName as '开票类型',invoice as '数电票号',title as '开票抬头',shortName as '项目',pay_typeName as '付款方式',price as '单价',iif(kindID<4,1,null) as '人数',amount as '金额',mark as '标识',pay_memo as '备注' from @tb order by kindID,enterID,pay_type
+		select iif(kindID<5,cast(ROW_NUMBER() OVER (ORDER BY kindID,enterID) as varchar),'') as 'No',enterID as '报名号',dateInvoice as '开票日期',datePay as '付款日期',name as '姓名',mark as '标识',invoice as '数电票号',title as '开票抬头',shortName as '项目',pay_typeName as '付款方式',price as '单价',iif(kindID<4,1,null) as '人数',amount as '金额',autoPayName as '付款类型',autoInvoiceName as '开票类型',pay_memo as '备注' from @tb order by kindID,enterID,pay_type
 END
 GO
 
@@ -11282,6 +11288,61 @@ BEGIN
 		select iif(kindID=0,cast(ROW_NUMBER() OVER (ORDER BY kindID) as varchar),'''') as No,item as 项目,thisYear as [' + replace(@startDate,'-','') + '-' + replace(@endDate,'-','') + '], YOY as 去年同期, rate as 同比增长, lastYear as 去年全年, blastYear as 前年全年 from @tb  order by kindID,ID'
 	
 	EXECUTE (@sql)
+END
+GO
+
+-- CREATE DATE: 2025-06-20
+-- 获取student list under one saler
+-- USE CASE: select * from dbo.[getStudentListBySaler]('panqingfeng.')
+CREATE FUNCTION [dbo].[getStudentListBySaler]
+(	
+	@saler varchar(50)
+)
+RETURNS TABLE 
+AS
+RETURN 
+(
+	SELECT * FROM v_studentInfo where fromID=@saler
+	UNION
+	SELECT * from v_studentInfo where username in(select distinct username from studentCourseList where fromID=@saler)
+)
+GO
+
+--CREATE Date:2020-05-18
+--返回学员在某个销售名下的课程数量
+CREATE FUNCTION [dbo].[getStudentSalerCourseCount](@username varchar(50), @saler varchar(50))
+RETURNS int
+AS
+BEGIN
+	declare @re int
+	select @re = 0
+	select @re = count(*) from studentCourseList where username=@username and fromID=@saler
+	return @re
+END
+GO
+
+-- CREATE DATE: 2025-06-25
+-- 根据给定的参数，添加或者更新企业客户信息
+-- USE CASE: exec updateSalerUnitInfo 1,'P1','xxxx'...
+ALTER PROCEDURE [dbo].[updateSalerUnitInfo]
+	@ID int,@unitName nvarchar(4000),@taxNo varchar(50),@saler varchar(50),@kindID int,@linker varchar(500),@phone varchar(200),@address varchar(200),@email varchar(200),@association varchar(50),@memo varchar(2000),@registerID varchar(50)
+AS
+BEGIN
+	declare @logMemo nvarchar(500)
+	if @ID=0	-- 新纪录
+	begin
+		insert into unitInfo(unitName,taxNo,saler,kindID,linker,phone,address,email,association,memo,registerID) values(@unitName,@taxNo,@saler,@kindID,@linker,@phone,@address,@email,@association,@memo,@registerID)
+		select @ID=max(ID) from unitInfo where registerID=@registerID
+	end
+	else
+	begin
+		update unitInfo set unitName=@unitName,taxNo=@taxNo,saler=@saler,kindID=@kindID,linker=@linker,phone=@phone,address=@address,email=@email,association=@association,memo=@memo where ID=@ID
+	end
+	
+	-- 写操作日志
+	select @logMemo = @unitName+'  '+@linker+'  '+@phone+'  '+@memo
+	exec writeOpLog '','企业客户信息','updateSalerUnitInfo',@registerID,@logMemo,@ID
+	select @ID as re
 END
 GO
 
