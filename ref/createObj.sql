@@ -1200,6 +1200,16 @@ CREATE TABLE [dbo].[user_class_list](
 ) ON [PRIMARY]
 GO
 
+--参考视频
+CREATE TABLE [dbo].[help_videoInfo](
+	[ID] int IDENTITY(1,1) NOT NULL,
+	[title] nvarchar(50) NOT NULL,
+	[seconds] int NULL,	
+	[vod] [varchar](500) NULL,
+	[status] [int] NULL default(0)
+) ON [PRIMARY]
+GO
+
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
 -- function
@@ -3635,18 +3645,22 @@ ALTER PROCEDURE [dbo].[addQuestions4StudentExam]
 	@paperID int, @mark int, @pkind int, @examID varchar(50), @kindID int, @page int, @pageSize int, @onlyWrong int
 AS
 BEGIN
-	declare @kp varchar(50),@type int, @qty int,@scorePer decimal(18, 2),@sql nvarchar(1000), @n int,@q int
+	declare @kp varchar(50),@type int, @qty int,@scorePer decimal(18, 2),@sql nvarchar(1000), @n int,@q int,@memo varchar(500)
 	declare @courseID varchar(50), @certID varchar(50)
-	select @mark = dbo.whenull(@mark,0), @page=dbo.whenull(@page,0), @pageSize=dbo.whenull(@pageSize,0)
+	select @mark = dbo.whenull(@mark,0), @page=dbo.whenull(@page,0), @pageSize=dbo.whenull(@pageSize,0),@memo='',@qty=0,@n=0
 	create table #temp(ID int,questionID varchar(50),kindID int,scorePer decimal(18,2),score decimal(18,2),answer varchar(50),myAnswer varchar(50),questionName nvarchar(2000),A nvarchar(200),B nvarchar(200),C nvarchar(200),D nvarchar(200),E nvarchar(200),F nvarchar(200),image varchar(200),imageA varchar(200),imageB varchar(200),imageC varchar(200),imageD varchar(200),imageE varchar(200),imageF varchar(200),knowPointID varchar(50),kindName varchar(50),memo nvarchar(2000))
+	if @examID=''
+		select @examID=examID from studentExamList where paperID=@paperID
 	
-	if @pkind=0 and @mark=0	
-		select @n = count(*) from studentQuestionList where refID=@paperID
+	if @pkind=0
+	begin
+		select @qty = count(*) from studentQuestionList where refID=@paperID
+		select @n=sum(qty) from examRuleInfo where examID=@examID and status=0
+	end
 
 	-- 模拟/正式考试
-	if @pkind=0 and (@n=0 or @mark=1)
+	if @pkind=0 and (@n<>@qty or @mark=1)
 	begin
-		select @examID=examID from studentExamList where paperID=@paperID
 		delete from studentQuestionList where refID=@paperID		--remove old records firstly
 		--initial exam paper status.
 		update studentExamList set secondRest=minutes*60,startDate=null,endDate=null,status=0,lastDate=null where paperID=@paperID
@@ -3658,19 +3672,22 @@ BEGIN
 		Begin 
 			--组卷时参照该试卷已使用过的题目情况，抽取使用次数较少的题目
 			set @sql='insert into studentQuestionList(questionID,refID,kindID,scorePer,answer) select top ' + cast(@qty as varchar) + ' a.questionID,' + cast(@paperID as varchar) + ',a.kindID,' + cast(@scorePer as varchar) + ',a.answer from questionInfo a left outer join studentQuestionUsed b on a.questionID=b.questionID and b.refID=' + cast(@paperID as varchar) + ' where a.knowPointID=''' + @kp + ''' and a.kindID=' + cast(@type as varchar) + ' and a.status=0 order by b.times,newid()'
+			/**
 			if exists(select 1 from v_studentQuestionList where refID=@paperID and knowPointID=@kp and kindID=@type)	--防止重复生成题目
 			begin
 				insert into look_exam_question_overflow(questionID,refID,kindID,knowPointID) select questionID,refID,kindID,@kp from studentQuestionList where refID=@paperID and kindID=@type
 				delete from studentQuestionList where ID in(select ID from v_studentQuestionList where refID=@paperID and knowPointID=@kp and kindID=@type)
 			end
+			**/
 			EXEC sp_executesql @sql		--随机获取题目
-
+			select @memo=@memo + @kp+'/'+cast(@type as varchar)+'/'+cast(@qty as varchar) + '; '
+			/**
 			if exists(select 1 from v_studentQuestionList where refID=@paperID and knowPointID=@kp and kindID=@type group by questionID having count(*)>1)	--检查重复题目
 			begin
 				delete from studentQuestionList where ID in(select ID from v_studentQuestionList where refID=@paperID and knowPointID=@kp and kindID=@type)
 				EXEC sp_executesql @sql		--随机获取题目
 			end
-
+			**/
 			fetch next from rc into @kp,@type,@qty,@scorePer
 		End
 		Close rc 
@@ -3682,8 +3699,15 @@ BEGIN
 	end
 
 	if @pkind=0
-		insert into #temp
-		select ID,questionID,kindID,scorePer,score,answer,myAnswer,questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName,memo from v_studentQuestionList where refID=@paperID order by kindID
+	begin
+		select @qty=count(*) from studentQuestionList where refID=@paperID
+		--select @n=sum(qty) from examRuleInfo where examID=@examID and status=0
+		if @qty<>@n
+			insert into temp_exam_question_qty(paperID,examID,qty,qty0,memo) values(@paperID,@examID,@qty,@n,@memo)
+		else
+			insert into #temp
+			select ID,questionID,kindID,scorePer,score,answer,myAnswer,questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName,memo from v_studentQuestionList where refID=@paperID order by kindID
+	end
 
 	-- 错题集
 	if @pkind=1
@@ -3831,7 +3855,51 @@ BEGIN
 	
 	return 0
 END
+GO
 
+-- =============================================
+-- CREATE Date: 2020-05-11
+-- Description:	学员考试交卷。
+-- Use Case:	exec submit_student_exam_pass 1
+-- =============================================
+CREATE PROCEDURE [dbo].[submit_student_exam_pass] 
+	@paperID int, @score int
+AS
+BEGIN
+	declare @refID int,@kindID int, @kind int, @times int, @type int, @scorePass int, @username varchar(50), @host varchar(50),@item nvarchar(500),@certName varchar(50),@ID int,@status int
+	select @refID=refID, @kindID=kindID, @kind=kind, @scorePass=scorePass, @status=status from studentExamList where paperID=@paperID
+	select @ID=refID  from studentCourseList where ID=@refID
+
+		update studentExamList set status=2,endDate=getDate(),score=@score,secondRest=0 where paperID=@paperID
+		--将考试结果填写到相关表中
+		if @kind=0 and @kindID=0		--证书模拟考试
+		begin
+			select @type = type,@username=username,@host=host,@certName=certName from v_studentCertList where ID=@ID
+			update studentCertList set examScore=@score where ID=@ID
+			update studentCourseList set examScore=@score where ID=@refID
+			if @type=1 and @score >= @scorePass
+			begin
+				--企业内部证书通过考试，自动结束课程
+				if exists(select 1 from studentCertList where ID=@ID and status<2)
+				begin
+					update studentCertList set result=1,status=2,closeDate=getDate() where ID=@ID
+					update studentCourseList set status=2,endDate=getDate(),startDate=(case when startDate is null then getDate() else startDate end) where ID=@refID
+					--发送消息  kindID：0 回复 1 通知
+					set @item ='祝贺考试合格[' + @certName + ']！请确保上传的证书照片为本人自拍像（身份证照片或报名照翻拍视为无效），并于1个工作日后在本平台查询电子证件。若无法查询到电子证的，请核对上传的照片符合要求。'
+					exec sendSysMessage @username,1,@item,@host,'system.'
+				end
+			end
+			--备份试卷试题
+			--exec backupExam @paperID
+		end
+		if @kind=0 and @kindID=1		--课程模拟考试
+			update studentCourseList set examScore=(case when examScore<@score then @score else examScore end) where ID=@refID
+		if @kind=1		--在线考试
+			update passcardInfo set score=@score where ID=@refID
+
+	
+	return 0
+END
 GO
 
 
@@ -9868,7 +9936,7 @@ BEGIN
 		  FOR [theDate]
 		  IN (' + @ListToPivot + ')
 		) AS PivotTable; 
-		update @tb set qty=dbo.getEnterCheckinOutClassQty(enterID);
+		update @tb set qty=dbo.getEnterCheckinOutClassQty(enterID,' + @classID + ');
 		'
 		 + @updates + '
 
@@ -10001,7 +10069,7 @@ GO
 -- 查找学员在本班课表之外的线下课程考勤次数（只统计到本班开班之前180天-本班课程结束时间段）
 -- USE CASE: select [dbo].[getEnterCheckinOutClassQty] 1
 ALTER FUNCTION [dbo].[getEnterCheckinOutClassQty]
-	(@enterID int)
+	(@enterID int,@classID varchar(50))
 RETURNS int
 AS
 BEGIN
@@ -10010,7 +10078,7 @@ BEGIN
 	select @start=convert(varchar(20),dateadd(d,-180,min(theDate)),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) as refID from applyInfo where enterID=@enterID)
 
 	select @re=count(*) from 
-	(select ID from v_classSchedule where mark='A' and online=0 and classID not in (select refID from applyInfo where enterID=@enterID) and theDate between @start and @end) a 
+	(select ID from v_classSchedule where mark='A' and online=0 and classID not in (select refID from applyInfo where enterID=@enterID and refID=@classID) and theDate between @start and @end) a 
 	inner join 
 	(select c.refID from checkinInfo c, faceDetectInfo d where c.enterID=d.refID and c.refID=d.keyID and c.kindID=1 and d.kindID=2 and c.enterID in(select ID from studentCourseList where username=@username and courseID=@courseID)) b
 	on a.ID=b.refID
@@ -10232,7 +10300,7 @@ BEGIN
 
 	--标记团体发票相关学员已付款
 	update #temp_receive_check set invoice=b.invoice from #temp_receive_check a, studentCourseList b where a.id=b.id
-	update studentCourseList set pay_status=1 from studentCourseList a, #temp_receive_check b where a.invoice=b.invoice and a.id<>b.id
+	update studentCourseList set pay_status=1 from studentCourseList a, #temp_receive_check b where a.invoice=b.invoice and a.id<>b.id and a.invoice>''
 
 	declare @event varchar(50), @logMemo nvarchar(500)
 	select @event='确认应收款到账', @logMemo = @theDate + ':' + @selList
@@ -10546,7 +10614,7 @@ BEGIN
 	update #temp set result=c.result,score=c.score,score2=c.score2 from #temp a, studentCourseList b, studentCertList c where a.enterID=b.ID and b.refID=c.ID
 	-- 线下考勤
 	update #temp set pOffline=b.p from #temp a, (select enterID,count(*) as p from classSchedule c, checkinInfo d where c.ID=d.refID and c.mark='A' and c.classID=@classID group by d.enterID) b where a.enterID=b.enterID
-	update #temp set pOffline=isnull(pOffline,0)+[dbo].[getEnterCheckinOutClassQty](enterID)
+	update #temp set pOffline=isnull(pOffline,0)+[dbo].[getEnterCheckinOutClassQty](enterID,@classID)
 
 	select * from #temp order by ID
 END
@@ -11027,7 +11095,7 @@ BEGIN
 	if @kindID='A'		--申报班
 	begin
 		-- 在线考勤
-		select @re=avg(dbo.getCourseCompletion(a.ID)), @r=sum(dbo.getEnterCheckinOutClassQty(a.ID)), @studentCount=count(*) from dbo.studentCourseList a, applyInfo b where a.ID=b.enterID and b.refID=@classID
+		select @re=avg(dbo.getCourseCompletion(a.ID)), @r=sum(dbo.getEnterCheckinOutClassQty(a.ID,@classID)), @studentCount=count(*) from dbo.studentCourseList a, applyInfo b where a.ID=b.enterID and b.refID=@classID
 		-- 线下考勤
 		select @r=@r+count(*) from classSchedule c, checkinInfo d where c.ID=d.refID and c.mark='A' and c.typeID=0 and c.classID=@classID
 		select @scheduleCount=count(*) from classSchedule where mark='A' and typeID=0 and online=0 and classID=@classID

@@ -80,7 +80,7 @@ router.get('/getStudentCourseList', function (req, res, next) {
     sqlstr = "select * from dbo.getCourseListByTeacher(@teacher,@username)";
     params = {"teacher": req.session.user.teacher, "username": req.session.user.username};
   }else{
-    sqlstr = "select ID,username,classID,file4,courseName,reexamineName,reexamine,type,checkName,status,statusName,completion,hours,startDate,endDate,pre,signatureType,signature,agencyID,regDate,payNow,pay_status,invoice,autoPay,examScore,examTimes,[dbo].[getPassCondition](ID) as pass_condition,dbo.getCoursePaperID(ID, refID) AS paperID from v_studentCourseList where username='" + req.query.username + "' and status<2" + " order by status";
+    sqlstr = "select ID,username,classID,file4,courseName,reexamineName,reexamine,type,checkName,status,statusName,completion,hours,startDate,endDate,pre,signatureType,signature,agencyID,regDate,payNow,pay_status,invoice,autoPay,examScore,examTimes,[dbo].[getPassCondition](ID) as pass_condition,dbo.getCoursePaperID(ID, refID) AS paperID,dbo.getCourseHelps(ID) AS helps from v_studentCourseList where username='" + req.query.username + "' and status<2" + " order by status";
     params = {};
   }
   
