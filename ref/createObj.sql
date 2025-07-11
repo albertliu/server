@@ -1668,6 +1668,32 @@ BEGIN
 END
 GO
 
+--CREATE Date:2025-07-05
+--根据给定的学员课程ID，查找其课程包含的帮助视频
+ALTER FUNCTION [dbo].[getCourseHelps](@enterID int)
+RETURNS varchar(4000)
+AS
+BEGIN
+	declare @re nvarchar(max), @p int, @item nvarchar(100),@i int, @certID varchar(50), @vod varchar(500)
+	select @re = '',@i=0
+	declare rc cursor for select a.ID,isnull(a.title,'') title,a.vod from [dbo].[help_videoInfo] a, studentCourseList b, courseInfo c where b.ID=@enterID and b.courseID=c.courseID and a.certID=c.certID and a.status=0 order by a.seq
+	open rc
+	fetch next from rc into @p,@item,@vod
+	While @@fetch_status=0 
+	Begin 
+		select @re = @re + '{"ID":' + cast(@p as varchar) + ',"title":"' + @item + '","vod":"' + @vod + '"},'
+		select @i=@i+1
+		fetch next from rc into @p,@item,@vod
+	End
+	Close rc 
+	Deallocate rc
+
+	if @re>''
+		select @re = '[' + left(@re,len(@re)-1) + ']'
+	return @re
+END
+GO
+
 -- =============================================
 -- CREATE DATE: 2025-01-09
 -- 获取考试信息  pkind:0 模拟/正式考试  1 错题集  2 总题库  3 收藏夹  4 章节练习
@@ -3932,6 +3958,8 @@ BEGIN
 	insert into studentQuestionWrong(enterID,questionID) select @refID,questionID from studentQuestionList where refID=@paperID and score=0 and questionID not in(select questionID from studentQuestionWrong where enterID=@refID)
 	-- 将正确题目从错题库删除
 	delete from studentQuestionWrong where enterID=@refID and questionID in(select questionID from studentQuestionList where refID=@paperID and score>0)
+	-- 将错题的已用数量设置为1，使得这些错题在后续的试卷中优先抽取。
+	update studentQuestionUsed set times=1 from studentQuestionUsed a, studentQuestionWrong b where a.refID=@paperID and b.enterID=@refID and a.questionID=b.questionID
 	return 0
 END
 
