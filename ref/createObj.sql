@@ -8102,6 +8102,27 @@ BEGIN
 END
 GO
 
+------------------
+-- CREATE DATE: 2025-08-12
+-- 根据给定的参数，添加或者更新导入申报结果信息(安监自动下载)
+-- USE CASE: exec generateApply1 1,1,'xxxx'...
+CREATE PROCEDURE [dbo].[generateApply1]
+	@ID int,@passNo varchar(50),@examDate varchar(50),@registerID varchar(50)
+
+AS
+BEGIN
+	declare @batchID int
+	select @batchID=refID from applyInfo where ID=@ID
+
+	--更新申报信息
+	if @examDate>''
+	begin
+		update applyInfo set applyNo=@passNo,examDate=@examDate,statusApply=1 from applyInfo where ID=@ID
+		update generateApplyInfo set importApplyDate=getDate() where ID=@batchID and importApplyDate is null
+	end
+END
+GO
+
 -- CREATE DATE: 2022-11-28
 -- 证书失效，将证书状态设为过期，截止日期设为昨天
 -- USE CASE: exec cancelDiploma
