@@ -14,8 +14,8 @@ select * from dictionaryDoc where kind like '%serviceKind%' order by kind, ID
 select * from dictionaryDoc where kind like '%statusYes%' order by kind, ID
 select * from dictionaryDoc where item like '%预备%' order by kind, ID
 --delete from dictionaryDoc where mID=1298
-insert into dictionaryDoc(ID,item,kind,description,memo) values('3','接待','serviceType','','')
-insert into dictionaryDoc(ID,item,kind,description,memo) values('4','登门','serviceType','','')
+insert into dictionaryDoc(ID,item,kind,description,memo) values('0','公开','servicePrivate','','')
+insert into dictionaryDoc(ID,item,kind,description,memo) values('1','私有','servicePrivate','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('2','报账','accountKind','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('3','台胞证','IDkind','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('5','其他','IDkind','','')
@@ -763,7 +763,7 @@ CREATE TABLE [dbo].[studentServiceInfo](
 	[kindID] [int] NULL default(0),		--资源类别:serviceKind:0 个人  1 学校
 	[type] [int] NULL default(0),		--服务形式:serviceType:0 短信  1 电话  2 现场  9 其他
 	[status] [int] NULL default(0),		--statusService: 0 已经完成  1 继续跟进  2 等待反馈
-	[emergency] [int] NULL default(0),	--0 一般  1 紧急
+	[private] [int] NULL default(0),	--0 公开  1 私有
 	[backDate] [datetime] NULL,			--反馈日期
 	[feedback] [nvarchar](500) NULL,	--反馈内容
 	[serviceDate] [datetime] NULL default(getDate()),
@@ -2995,7 +2995,7 @@ BEGIN
 	if @dept3 = '' or @dept3 = 'null' or @dept3= 'undefined' or @dept3= '0'
 		set @dept3 = null
 	if @password = '' or @password = 'null' or @password= 'undefined'
-		set @password = null
+		select @password = item,@kindID=0 from dictionaryDoc where kind='studentPasswd'
 	if @unit = '' or @unit = 'null' or @unit= 'undefined'
 		set @unit = null
 	if @dept = '' or @dept = 'null' or @dept= 'undefined'
@@ -3046,7 +3046,7 @@ BEGIN
 			--如果有密码输入，保存新密码，否则保持原来密码.
 			insert into [log_update_studentInfo] select *,@registerID,getDate() from studentInfo where username=@username
 			update studentInfo set kindID=@kindID,password=(case when @password>'' then @password else password end),companyID=@companyID,host=@host,dept1=@dept1,dept2=@dept2,dept3=@dept3,job=@job,job_status=@job_status,name=@name,mobile=@mobile,phone=@phone,email=@email,address=@address,limitDate=@limitDate,education=@education,unit=@unit,dept=@dept,@linker=(case when @linker>'' then @linker else linker end)
-			,ethnicity=(case when @ethnicity='' then ethnicity else @ethnicity end),IDaddress=(case when @IDaddress='' then IDaddress else @IDaddress end),bureau=(case when @bureau='' then bureau else @bureau end),IDdateStart=(case when @IDdateStart is null then IDdateStart else @IDdateStart end),IDdateEnd=(case when @IDdateStart is not null then @IDdateEnd else IDdateEnd end),experience=@experience,fromID=(case when @fromID is null then fromID else @fromID end),fromKind=@fromKind,memo=@memo where username=@username
+			,ethnicity=(case when @ethnicity='' then ethnicity else @ethnicity end),IDaddress=(case when @IDaddress='' then IDaddress else @IDaddress end),bureau=(case when @bureau='' then bureau else @bureau end),IDdateStart=(case when @IDdateStart is null then IDdateStart else @IDdateStart end),IDdateEnd=(case when @IDdateStart is not null then @IDdateEnd else IDdateEnd end),experience=@experience,fromID=@fromID,fromKind=@fromKind,memo=@memo where username=@username
 			select @event = '修改'
 			--如果由系统内变更为系统外，检查是否已经选了那些系统内课程(非第三方课程)，如果有则删除
 			if @kindID=1 and @kindID0=0 and exists(select 1 from v_studentCourseList where username=@username and mark=1)
@@ -5990,19 +5990,19 @@ GO
 -- 根据给定的参数，添加或者更新学员服务信息
 -- USE CASE: exec updateStudentServiceInfo 1,'P1','xxxx'...
 ALTER PROCEDURE [dbo].[updateStudentServiceInfo]
-	@ID int,@username varchar(50),@item nvarchar(4000),@refID int,@type int,@serviceDate varchar(50),@memo varchar(2000),@registerID varchar(50)
+	@ID int,@username varchar(50),@item nvarchar(4000),@refID int,@type int,@serviceDate varchar(50),@private int,@memo varchar(2000),@registerID varchar(50)
 AS
 BEGIN
 	if @serviceDate='' set @serviceDate=convert(varchar(20),GETDATE(),23)
 	
 	if @ID=0	-- 新纪录
 	begin
-		insert into studentServiceInfo(username,item,refID,type,serviceDate,memo,registerID) values(@username,@item,@refID,@type,@serviceDate,@memo,@registerID)
+		insert into studentServiceInfo(username,item,refID,type,serviceDate,private,memo,registerID) values(@username,@item,@refID,@type,@serviceDate,@private,@memo,@registerID)
 		select @ID=max(ID) from studentServiceInfo where registerID=@registerID
 	end
 	else
 	begin
-		update studentServiceInfo set item=@item,type=@type,serviceDate=@serviceDate,memo=@memo where ID=@ID
+		update studentServiceInfo set item=@item,type=@type,serviceDate=@serviceDate,private=@private,memo=@memo where ID=@ID
 	end
 
 	select @ID as re
@@ -7129,7 +7129,7 @@ BEGIN
 	if exists(select 1 from classInfo where classID=@batchID) and @n>0
 	begin
 		select @startDate=dateStart,@endDate=dateEnd,@address=classRoom,@certName=shortName,@kindID=kindID from v_classInfo where classID=@batchID
-		declare rc cursor for select b.username,b.name + '：请于' + @startDate + '参加' + @certName + (case when @kindID=0 then '培训，地点为' + @address + '。请携带身份证和1张彩色照片。' else '在线培训。注意在规定时间内完成课程学习，在模拟考试中取得良好成绩，否则将影响考试和取证。' end) from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
+		declare rc cursor for select b.username,b.name + '：请于' + @startDate + '参加' + @certName + (case when @kindID=0 then '培训，' + @address + ',携带身份证原件、笔记本和笔。' else '在线培训。注意在规定时间内完成课程学习，在模拟考试中取得良好成绩，否则将影响考试和取证。' end) from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
 		open rc
 		fetch next from rc into @username,@item
 		While @@fetch_status=0 
@@ -7142,7 +7142,7 @@ BEGIN
 		Deallocate rc
 		update classInfo set send = send + 1,sendDate=getDate(),sender=@registerID where classID=@batchID
 		--return students list for send mobile message
-		select b.name,b.username,b.mobile,@certName as certName, b.ID as enterID, @startDate as dt,@address as address,b.name + '：请于' + @startDate + '至' + @endDate + '参加' + @certName + (case when @kindID=0 then '培训，地点为' + @address + '。请携带身份证和1张彩色照片。' else '在线培训。注意在规定时间内完成课程学习，在模拟考试中取得良好成绩，否则将影响考试和取证。' end) as item, @kindID as kindID from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
+		select b.name,b.username,b.mobile,@certName as certName, b.ID as enterID, @startDate as dt,@address as address,b.name + '：请于' + @startDate + '至' + @endDate + '参加' + @certName + (case when @kindID=0 then '培训，' + @address + '。携带身份证原件、笔记本和笔。' else '在线培训。注意在规定时间内完成课程学习，在模拟考试中取得良好成绩，否则将影响考试和取证。' end) as item, @kindID as kindID from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
 	end
 END
 GO
@@ -7270,7 +7270,7 @@ BEGIN
 	--send system message
 	if exists(select 1 from generateApplyInfo where ID=@batchID)
 	begin
-		declare rc cursor for select username,a.name + '：您已通过' + a.courseName + '考试，请到黄兴路158号D103领取证书。',a.host from v_applyInfo a, #temp_diploma c where a.ID=c.id and a.status=1
+		declare rc cursor for select username,a.name + '：您已通过' + a.courseName + '考试，请持身份证到黄兴路158号D103领取证书(工作日8:30-16:00)。',a.host from v_applyInfo a, #temp_diploma c where a.ID=c.id and a.status=1
 		open rc
 		fetch next from rc into @username,@item,@host
 		While @@fetch_status=0 
@@ -7284,7 +7284,7 @@ BEGIN
 		update generateApplyInfo set sendScore = sendScore + 1,sendScoreDate=getDate(),senderScore=@registerID where ID=@batchID
 	end
 	--return students list for send mobile message
-	select name,username,mobile,a.courseName as certName, a.enterID, '黄兴路158号D103' as address,a.name + '：您已通过' + a.courseName + '考试，请到黄兴路158号D103领取证书。' as item from v_applyInfo a, #temp_diploma c where a.ID=c.id and a.status=1
+	select name,username,mobile,a.courseName as certName, a.enterID, '黄兴路158号D103' as address,a.name + '：您已通过' + a.courseName + '考试，请持身份证到黄兴路158号D103领取证书(工作日8:30-16:00)。' as item from v_applyInfo a, #temp_diploma c where a.ID=c.id and a.status=1
 END
 GO
 
@@ -9802,7 +9802,7 @@ GO
 -- @selList: classSchedule.ID with split ','
 -- USE CASE: exec [setFaceCheckin] 1
 ALTER PROCEDURE [dbo].[setFaceCheckin]
-	@username varchar(50), @file1 varchar(500), @selList varchar(4000), @confidence float, @host varchar(50)
+	@username varchar(50), @file1 varchar(500), @selList varchar(4000), @confidence float
 AS
 BEGIN
 	--将名单导入到临时表
@@ -9818,7 +9818,7 @@ BEGIN
 	declare @re int, @msg varchar(50), @enterID int, @file2 varchar(200), @name nvarchar(50), @refID int
 
 	select @enterID=0, @name=name from studentInfo where username=@username
-	select @enterID=d.ID, @refID=c.id from applyInfo a, classSchedule b, #temp c, studentCourseList d where b.ID=c.id and b.classID=a.refID and a.enterID=d.ID and b.mark='A' and d.host=@host and d.username=@username
+	select @enterID=d.ID, @refID=c.id from applyInfo a, classSchedule b, #temp c, studentCourseList d where b.ID=c.id and b.classID=a.refID and a.enterID=d.ID and b.mark='A' and d.username=@username
 
 	if @enterID=0
 	begin
@@ -9827,7 +9827,7 @@ BEGIN
 		fetch next from rc into @refID
 		While @@fetch_status=0 and @j>0
 		Begin
-			if exists(select 1 from studentCourseList where username=@username and status<2 and host=@host and courseID=(select courseID from classSchedule where ID=@refID))
+			if exists(select 1 from studentCourseList where username=@username and status<2 and courseID=(select courseID from classSchedule where ID=@refID))
 			begin
 				select @enterID=max(ID) from studentCourseList where username=@username and status<2 and courseID=(select courseID from classSchedule where ID=@refID)
 				select @j=0
@@ -9850,11 +9850,7 @@ BEGIN
 			insert into faceDetectInfo(refID,keyID,kindID,file1,file2,status,confidence) values(@enterID,@refID,2,@file1,@file2,0,@confidence)
 			--标记照片
 			update studentInfo set scanPhoto=1 where username=@username
-
 			select @re=0, @msg='签到成功'
-			--检查本校项目是否可以考试
-			if exists(select 1 from studentCourseList a, courseInfo b, certificateInfo c where a.courseID=b.courseID and b.certID=c.certID and c.mark=1 and a.ID=@enterID)
-				exec [checkAllowExam] @enterID
 		end
 		else
 			select @re=2, @msg='重复签到'
@@ -10191,7 +10187,7 @@ BEGIN
 END
 GO
 
---CREATE Date:2023-07-30
+--CREATE Date:2023-07-30  last edit:2025-08-08
 --根据给定日期范围，统计收费情况，不包括合作单位
 --mark: D 日报  M 月报
 ALTER PROCEDURE [dbo].[getIncomeRpt]
@@ -10213,7 +10209,7 @@ BEGIN
 	if @where > ''
 		select @where = @where -- + ' and host in(''znxf'',''spc'',''shm'')'
 
-	select @sql=',sum(iif(pay_type=1,amount,0)) as p1,sum(iif(pay_type=2,amount,0)) as p2,sum(iif(pay_type=3,amount,0)) as p3,sum(iif(pay_type=0,amount,0)) as p5,sum(iif(pay_type=9,amount,0)) as p6, 0 as p7 from v_studentCourseList where ' + @where + ' group by '
+	select @sql=',sum(iif(pay_type=1,amount,0)) as p1,sum(iif(pay_type=2,amount,0)) as p2,sum(iif(pay_type=3,amount,0)) as p3,sum(iif(pay_type=3 and noReceive=1,amount,0)) as p5,sum(iif(pay_type=9,amount,0)) as p6, 0 as p7 from v_studentCourseList where ' + @where + ' group by '
 	if @mark='D'
 		select @sql = 'select datePay' + @sql + 'datePay'
 	if @mark='M'
@@ -10237,23 +10233,24 @@ BEGIN
 
 	EXECUTE (@sql)
 
-	update #tbl set p = p1+p2+p3+p5+p6
+	update #tbl set p = p1+p2+p3+p6
 	insert into #tbl select '合计',sum(p1),sum(p2),sum(p3),sum(p5),sum(p6),sum(p7),sum(p) from #tbl
-	select datePay as 日期, p1 as 支付宝, p2 as 微信, p3 as 转账, p5 as 现金, p6 as 其他, p as 收款小计, p7 as 退款, p-p7 as 合计 from #tbl where datePay>'' order by datePay	-- pp 合计
+	select datePay as 日期, p1 as 支付宝, p2 as 微信, p3 as 转账, p5 as 其中未到账, p6 as 其他, p as 收款小计, p7 as 退款, p-p7 as 合计 from #tbl where datePay>'' order by datePay	-- pp 合计
 END
 GO
 
 
---CREATE Date:2023-07-30
+--CREATE Date:2023-07-30  last edit:2025-08-08
 --根据给定日期(日/月)，统计收费情况明细
 --mark: D 日报  M 月报
---key: 1-7: 支付宝收款, 微信收款, 银行转账, 现金收款, 其他, 收款小计, 退款
+--key: 1-7: 支付宝收款, 微信收款, 银行转账, 未到账, 其他, 收款小计, 退款
 ALTER PROCEDURE [dbo].[getIncomeRptDetail]
 	@thisDate varchar(50), @startDate varchar(50), @endDate varchar(50), @courseID varchar(50), @sales varchar(50), @mark varchar(50), @key int
 AS
 BEGIN
-	declare @sql nvarchar(4000), @where varchar(500)
-	select @key=(case when @key=4 then 0 when @key=5 then 9 else @key end)
+	declare @sql nvarchar(4000), @where varchar(500), @noreceive int
+	select @noreceive=iif(@key=4,1,0)
+	select @key=(case when @key=4 then 3 when @key=5 then 9 else @key end)
 
 	if @key<>7
 	begin
@@ -10274,7 +10271,7 @@ BEGIN
 		if @where > ''
 			select @where = @where -- + ' and host in(''znxf'',''spc'',''shm'')'
 		if @key<>6	--有支付方式
-			select @where=@where + ' and pay_type=' + cast(@key as varchar)
+			select @where=@where + ' and pay_type=' + cast(@key as varchar) + iif(@noreceive=0,'',' and noReceive=1')
 
 		select @sql='select username, name, amount, datePay, pay_typeName, shortName as courseName, iif(unit>'''',unit,hostName+dept1Name) + '':'' + pay_memo as pay_memo from v_studentCourseList where ' + @where
 	end
@@ -10679,7 +10676,7 @@ BEGIN
 	--今天付款今天红冲记录(红冲)
 	insert into @tb select ID,3.1,'红冲',autoPay,autoInvoice,username, name, price, invoice_amount, datePay, pay_type, '红冲', shortName,noReceive,invoice,dateInvoice, dbo.getInvoiceTitle(title), '', '','',[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateInvoice=@startDate and datePay=@startDate and invoice>'' and invoice_amount<0
 	--以前付款今天开票记录(预收开票)
-	insert into @tb select ID,3,'预收开票',autoPay,autoInvoice,username, name, price, invoice_amount, datePay, pay_type, iif(invoice_amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, dbo.getInvoiceTitle(title), '', '','',[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateInvoice=@startDate and datePay<@startDate and invoice>'' -- and amount>0 and host in('znxf','spc','shm')
+	insert into @tb select ID,3,'预收开票',autoPay,autoInvoice,username, name, price, invoice_amount, datePay, pay_type, iif(invoice_amount<0,'红冲',pay_typeName), shortName,noReceive,invoice,dateInvoice, dbo.getInvoiceTitle(title), '', '','',[dbo].[getCourseInvoice](ID) as invoicePDF from v_studentCourseList where dateInvoice=@startDate and datePay<@startDate and invoice>'' and invoice_amount>0 -- and amount>0 and host in('znxf','spc','shm')
 	--如果有之前开票被移除，那么这张发票应该是重开的
 	update @tb set mark='重开发票',kindID=3.1 from @tb a, v_invoiceInfo b where a.enterID=b.enterID and b.invDate<=@startDate and a.kindID=3
 	--今天开票转入历史库的记录，不包括已回填的发票
@@ -11016,9 +11013,9 @@ AS
 BEGIN
 	--将名单导入到临时表
 	create table #temp(id varchar(50))
-	declare @n int, @j int, @event nvarchar(50), @date varchar(50)
+	declare @n int, @j int, @event nvarchar(50), @date varchar(50), @qty as int
 	select @date=dateInvoice from studentCourseList where invoice=@invoice and amount>0
-	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0
+	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0, @qty=0
 	while @n>@j
 	begin
 		insert into #temp(id) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
@@ -11026,14 +11023,15 @@ BEGIN
 	end
 
 	if @kind='A'
-		update studentCourseList set invoice=@invoice,dateInvoice=@date from studentCourseList a, #temp b, applyInfo c where b.id=c.id and a.id=c.enterID
+		update studentCourseList set invoice=@invoice,dateInvoice=@date from studentCourseList a, #temp b, applyInfo c where b.id=c.id and a.id=c.enterID and (a.invoice='' or a.invoice is null)
 	if @kind='B'
-		update studentCourseList set invoice=@invoice,dateInvoice=@date from studentCourseList a, #temp b where a.username=b.id and a.classID=@classID
+		update studentCourseList set invoice=@invoice,dateInvoice=@date from studentCourseList a, #temp b where a.username=b.id and a.classID=@classID and (a.invoice='' or a.invoice is null)
+	SELECT @qty=@@ROWCOUNT
 
 	-- 写操作日志
 	select @event='设置/取消免签'
 	exec writeOpLog '', @event,'setInvoiceGroup',@registerID,@selList,@invoice
-	select 0 as status, '操作成功' as msg
+	select 0 as status, '操作成功' as msg, @qty as qty
 END
 GO
 

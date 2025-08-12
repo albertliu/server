@@ -637,6 +637,7 @@ def enter_by_list8(elist, classID, courseName, reex):
             # 身份证输查找
             if row[10] == "":   # 照片文件
                 result["count_e"] += 1
+                d_list.remove(str(row[13]))     # 从列表中删除无照片数据
                 continue
             if driver.find_elements(By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/img"):
                 # wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/img")))
@@ -672,7 +673,7 @@ def enter_by_list8(elist, classID, courseName, reex):
             sql = "exec setApplyPhotoUpload " + str(row[13])
             execSQL(sql)
             d_list.remove(str(row[13]))     # 从列表中删除已成功数据
-            time.sleep(1)
+            time.sleep(3)
 
         except Exception as e:
             # print("exceptZ:", e)
@@ -749,6 +750,7 @@ def enter_by_list9(elist, classID, courseName, reex):
             # 身份证输查找
             if row[14] == "":   # 报名表文件
                 result["count_e"] += 1
+                d_list.remove(str(row[13]))     # 从列表中删除无文件数据
                 continue
             wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div[contains(@title, '点击上传考核申请材料')]/div")))
             # search_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div[contains(@title, '点击上传考核申请材料')]/div")[0]
