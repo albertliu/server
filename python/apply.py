@@ -3,7 +3,7 @@ from selenium.webdriver.common.by import By
 import time
 import numpy as np
 import base64
-import cv2
+import cv2  # pip install opencv-python
 import os
 import sys
 import tempfile
@@ -927,7 +927,7 @@ def enter_by_list11(elist, classID, courseName, reex):
     original_window = driver.current_window_handle
     # 切换新窗口
     driver.switch_to.window(driver.window_handles[-1])
-    wait.until(EC.presence_of_element_located((By.XPATH, "//td/font[contains(text(),'" + classID + "')]")))
+    wait.until(EC.presence_of_element_located((By.XPATH, "//td/font/span[contains(text(),'" + classID + "')]")))
     rs = cursor.fetchall()
     # print(len(rs))
     reexStr = ''
@@ -937,8 +937,8 @@ def enter_by_list11(elist, classID, courseName, reex):
         try:
             # 身份证查找
             # search_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//table/tr/td/font[contains(text(), '" + row[3] + "')]/..")))
-            applyNo = wait.until(EC.presence_of_element_located((By.XPATH, "//table/tr/td[contains(text(), '" + row[3] + "')]/../following-sibling::td"))).text
-            examDate = wait.until(EC.presence_of_element_located((By.XPATH, "//table/tr/td[contains(text(), '" + row[3] + "')]/../following-sibling::td[3]"))).text
+            applyNo = wait.until(EC.presence_of_element_located((By.XPATH, "//table/tr/td[contains(text(), '" + row[3] + "')]/following-sibling::td"))).text
+            examDate = wait.until(EC.presence_of_element_located((By.XPATH, "//table/tr/td[contains(text(), '" + row[3] + "')]/following-sibling::td[3]"))).text
             # 保存结果
             if examDate > "":
                 result["count_s"] += 1
@@ -1024,16 +1024,16 @@ if __name__ == '__main__':
     # username = "13651648767"
     # password = "Pqf1823797198"
     # register = "desk."
-    # d_list = '9506'.split(',')    # 需要处理的数据列表
-    # # courseName = "危险化学品经营单位安全生产管理人员"  # 课程名称
-    # courseName = "低压电工作业"  # 课程名称
+    # d_list = '9507'.split(',')    # 需要处理的数据列表
+    # courseName = "危险化学品经营单位安全生产管理人员"  # 课程名称
+    # # courseName = "低压电工作业"  # 课程名称
     # kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
     # if login_fr() == 0:
     #     i = 0
     #     while len(d_list) > 0:
     #         # enter_by_list0(d_list, kind)
     #         # enter_by_list1(d_list)
-    #         enter_by_list8(d_list, '0110102503111', courseName, '初证')
+    #         enter_by_list11(d_list, '0110092507105', courseName, '初证')
     #         # enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
