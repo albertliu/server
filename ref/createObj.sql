@@ -3222,10 +3222,11 @@ BEGIN
 				--合作单位或石化内部项目，设为未付费、后付费
 				if @host not in('znxf','spc','shm') or @type=1
 					select @payNow = 1
-				
+				declare @saler varchar(50)
+				exec [setStudentSaler] @username, @fromID, @saler output
 
 				--添加课程  石化内部项目，设为不签名
-				insert into studentCourseList(username,courseID,refID,payNow,title,price,type,signatureType,hours,closeDate,projectID,classID,SNo,reexamine,checked,checkDate,checker,currDiplomaID,currDiplomaDate,fromID,fromKind,source,host,registerID) select @username,courseID,@refID,@payNow,@title,@price,@type,iif(@type=1,0,1),hours,dateadd(d,period,getDate()),@projectID,@classID,@SNo,@reexamine,@checked,@checkDate,@checker,@currDiplomaID,@currDiplomaDate,@fromID,@fromKind,@source,@host,@username from courseInfo where courseID=@courseID
+				insert into studentCourseList(username,courseID,refID,payNow,title,price,type,signatureType,hours,closeDate,projectID,classID,SNo,reexamine,checked,checkDate,checker,currDiplomaID,currDiplomaDate,fromID,fromKind,source,host,registerID) select @username,courseID,@refID,@payNow,@title,@price,@type,iif(@type=1,0,1),hours,dateadd(d,period,getDate()),@projectID,@classID,@SNo,@reexamine,@checked,@checkDate,@checker,@currDiplomaID,@currDiplomaDate,@saler,@fromKind,@source,@host,@username from courseInfo where courseID=@courseID
 				select @ID=max(ID) from studentCourseList where refID=@refID
 
 				if @type=1	--公司内部项目
@@ -3285,6 +3286,24 @@ BEGIN
 END
 GO
 
+
+-- CREATE Date: 2025-08-16
+-- 给定username，fromID，判断该学员应该属于哪个销售员。如果已有销售，则返回原有的销售，否则将该学员标记为新的销售
+-- USE CASE: exec [setStudentSaler] '1230000','xxxx.'
+CREATE PROCEDURE [dbo].[setStudentSaler] 
+	@username varchar(50),@fromID varchar(50), @saler varchar(50) output
+--WITH ENCRYPTION
+AS
+BEGIN
+	select @saler = isnull(fromID,'') from studentInfo where username=@username
+
+	if @saler='' and @fromID>''
+	begin
+		update studentInfo set fromID=@fromID where username=@username
+		set @saler=@fromID
+	end
+END
+GO
 
 --test
 exec addnewStudentCert '120107196604032113','C001' 
@@ -6250,11 +6269,13 @@ BEGIN
 			--添加课程
 			--从预报名表里查找编号
 			exec lookRefSNo @cID, @username, @name, @pNo output, @mark output
+			declare @saler varchar(50)
+			exec [setStudentSaler] @username, @fromID, @saler output
 			--select @title=(case when @title>'' then @title else invoice end) from ref_student_spc where username=@username and classID=@cID
 			--预报名表内人员自动确认：mark=0 , checked=1
 			--insert into studentCourseList(username,courseID,refID,reexamine,type,hours,closeDate,projectID,classID,SNo,checked,checkDate,checker,submited,submitDate,submiter,host,registerID) select @username,courseID,@refID,@reexamine,@t,hours,dateadd(d,period,getDate()),@projectID,@classID,@pNo,(case when @mark=0 then 1 else 0 end),(case when @mark=0 then getDate() else null end),(case when @mark=0 then 'system.' else null end),1,getDate(),@registerID,@host,@registerID from courseInfo where courseID=@courseID
 			insert into studentCourseList(username,courseID,refID,reexamine,payNow,needInvoice,title,pay_kindID,pay_type,pay_status,price,amount,noReceive,invoice,receipt,invoice_amount,dateInvoice,dateInvoicePick,datePay,pay_checker,pay_memo,type,hours,closeDate,projectID,classID,SNo,checked,checkDate,checker,submited,submitDate,submiter,currDiplomaID,currDiplomaDate,overdue,express,fromID,fromKind,source,oldNo,signatureType,memo,host,registerID) 
-				select @username,courseID,@refID,@reexamine,@payNow,@needInvoice,@title,@kindID,@type,@status,@price,@amount,iif(@type=3 and @status=1,1,0),@invoice,@receipt,@invoice_amount,[dbo].[whenull](@dateInvoice,null),[dbo].[whenull](@dateInvoicePick,null),iif(@datePay>'',@datePay,iif(@status=1,getDate(),null)),iif(@status=1,@registerID,null),@pay_memo,@t,hours,dateadd(d,period,getDate()),@projectID,@classID,@pNo,1,getDate(),'system.',1,getDate(),@registerID,@currDiplomaID,@currDiplomaDate,@overdue,@express,@fromID,@fromKind,@source,@oldNo,@signatureType,@memo,@host,@registerID from courseInfo where courseID=@courseID
+				select @username,courseID,@refID,@reexamine,@payNow,@needInvoice,@title,@kindID,@type,@status,@price,@amount,iif(@type=3 and @status=1,1,0),@invoice,@receipt,@invoice_amount,[dbo].[whenull](@dateInvoice,null),[dbo].[whenull](@dateInvoicePick,null),iif(@datePay>'',@datePay,iif(@status=1,getDate(),null)),iif(@status=1,@registerID,null),@pay_memo,@t,hours,dateadd(d,period,getDate()),@projectID,@classID,@pNo,1,getDate(),'system.',1,getDate(),@registerID,@currDiplomaID,@currDiplomaDate,@overdue,@express,@saler,@fromKind,@source,@oldNo,@signatureType,@memo,@host,@registerID from courseInfo where courseID=@courseID
 			select @ID=max(ID) from studentCourseList where username=@username
 	
 			if @certID='C20' or @certID='C20A' or @certID='C21'	--消防员添加额外报名信息
@@ -7143,6 +7164,46 @@ BEGIN
 		update classInfo set send = send + 1,sendDate=getDate(),sender=@registerID where classID=@batchID
 		--return students list for send mobile message
 		select b.name,b.username,b.mobile,@certName as certName, b.ID as enterID, @startDate as dt,@address as address,b.name + '：请于' + @startDate + '至' + @endDate + '参加' + @certName + (case when @kindID=0 then '培训，' + @address + '。携带身份证原件、笔记本和笔。' else '在线培训。注意在规定时间内完成课程学习，在模拟考试中取得良好成绩，否则将影响考试和取证。' end) as item, @kindID as kindID from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
+	end
+END
+GO
+
+-- CREATE DATE: 2025-08-17
+-- 根据给定的参数，向考生批量发送竞赛通知
+-- batchID: classInfo.classID; selList: username list
+-- USE CASE: exec sendMsg4Competition 1
+CREATE PROCEDURE [dbo].[sendMsg4Competition]
+	@batchID varchar(50), @selList varchar(4000), @registerID varchar(50)
+AS
+BEGIN
+	declare @username varchar(50),@item varchar(500),@host varchar(50),@startDate varchar(50),@endDate varchar(50),@address varchar(100),@certName varchar(50),@kindID int
+	--send system message
+	--将名单导入到临时表
+	create table #temp(username varchar(50))
+	declare @n int, @j int
+	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0
+	while @n>@j
+	begin
+		insert into #temp(username) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
+		select @j = @j + 1
+	end
+	if exists(select 1 from classInfo where classID=@batchID) and @n>0
+	begin
+		select @startDate=dateStart,@endDate=dateEnd,@address=classRoom,@certName=shortName,@kindID=kindID from v_classInfo where classID=@batchID
+		declare rc cursor for select b.username,'电工高级（三级）、智能楼宇管理员高级（三级）、制冷空调系统安装维修工高级（三级）竞赛班开始报名，9月下旬培训11月考试。通过后享受政府补贴，并有机会获得额外奖金。咨询电话：021-52132119（周一至周五8:30-16:30）' from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
+		open rc
+		fetch next from rc into @username,@item
+		While @@fetch_status=0 
+		Begin 
+			--0 回复 1 通知 2 其他
+			exec sendSysMessage @username,1,@item,@host,'system.'
+			fetch next from rc into @username,@item
+		End
+		Close rc 
+		Deallocate rc
+		update classInfo set send = send + 1,sendDate=getDate(),sender=@registerID where classID=@batchID
+		--return students list for send mobile message
+		select b.name,b.username,b.mobile,b.ID as enterID, '通过后享受政府补贴，并有机会获得额外奖金。咨询电话：021-52132119' as address,'电工高级（三级）、智能楼宇管理员高级（三级）、制冷空调系统安装维修工高级（三级）竞赛班开始报名，9月下旬培训11月考试。通过后享受政府补贴，并有机会获得额外奖金。咨询电话：021-52132119（周一至周五8:30-16:30）' as item, @kindID as kindID from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
 	end
 END
 GO

@@ -427,7 +427,7 @@ router.post('/reset_student_password', function(req, res, next) {
     if(status==1){
       msg = "该用户不存在。";
     }
-    if(status==2){
+    if(status==2){sendsms
       msg = "该手机号码与注册登记的不一致。";
     }
     let response = { "status": status, "msg": msg };
@@ -563,6 +563,42 @@ router.post('/send_message_class', function(req, res, next) {
           sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], re[i]["address"], re[i]["dt"], (re[i]["kindID"]==1?"msg_class_online":"msg_class"));
           sqlstr = "writeSSMSlog";
           params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "培训通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.body.registerID };
+          //console.log(params);
+          db.excuteProc(sqlstr, params, function (err, data1) {
+            if (err) {
+              console.log(err);
+              let response = { "status": 9, msg:"系统错误。" };
+              return res.send(response);
+            }
+          });
+        }
+      }
+    }
+    let response = { "status": 0, "msg": "操作成功。" };
+    return res.send(response);
+  });
+});
+
+//4. 批量通知学员，培训时间地点。发送短信。
+router.post('/send_message_competition', function(req, res, next) {
+  sqlstr = "sendMsg4Competition";
+  params = {batchID:req.body.batchID, selList:req.body.selList, registerID: req.body.registerID };
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      let response = { "status": 9, msg:"系统错误。" };
+      return res.send(response);
+    }
+    //return: 0 success; other error:1 the user not exist  2 the phone error.
+    //console.log(req.body.SMS, params, data.recordset);
+
+    if(req.body.SMS==1){ //发通知
+      let re = data.recordset;
+      for (var i in re){
+        if(re[i]["mobile"].length == 11){
+          sendsms.sendSMS(re[i]["mobile"], "", "", re[i]["address"], "", "msg_competition");
+          sqlstr = "writeSSMSlog";
+          params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "竞赛通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.body.registerID };
           //console.log(params);
           db.excuteProc(sqlstr, params, function (err, data1) {
             if (err) {
