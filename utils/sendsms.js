@@ -72,8 +72,8 @@ const ssms ={
           pa = "{'name':'" + name + "'}";
         }
         if(temp=="msg_competition"){
-          tc = "SMS_492375595";
-          pa = "{'address':'" + address + "'}";
+          tc = "SMS_492555652";
+          pa = "{'item':'" + item + "','phone':'" + address + "'}";
         }
         
         var params = {

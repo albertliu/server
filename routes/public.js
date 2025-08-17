@@ -596,7 +596,7 @@ router.post('/send_message_competition', function(req, res, next) {
       let re = data.recordset;
       for (var i in re){
         if(re[i]["mobile"].length == 11){
-          sendsms.sendSMS(re[i]["mobile"], "", "", re[i]["address"], "", "msg_competition");
+          sendsms.sendSMS(re[i]["mobile"], "", re[i]["dt"], re[i]["address"], "", "msg_competition");
           sqlstr = "writeSSMSlog";
           params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "竞赛通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.body.registerID };
           //console.log(params);
