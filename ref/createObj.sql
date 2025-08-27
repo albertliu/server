@@ -3751,7 +3751,7 @@ BEGIN
 			insert into temp_exam_question_qty(paperID,examID,qty,qty0,memo) values(@paperID,@examID,@qty,@n,@memo)
 		else
 			insert into #temp
-			select ID,questionID,kindID,scorePer,score,answer,myAnswer,questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName,memo from v_studentQuestionList where refID=@paperID order by kindID
+			select ID,questionID,kindID,scorePer,score,answer,myAnswer,questionName,A,B,C,D,E,F,image,imageA,imageB,imageC,imageD,imageE,imageF,knowPointID,kindName,memo from v_studentQuestionList where refID=@paperID order by kindID desc,ID
 	end
 
 	-- 错题集
@@ -3791,7 +3791,7 @@ BEGIN
 		insert into #temp select 0,0,0,0,0,'','','没有发现相关题目。','','','','','','','','','','','','','',0,'',''
 
 	if @pkind=0 and @page>0 and @pageSize>0
-		select * from #temp order by ID offset (@page-1)*@pageSize rows fetch next @pageSize rows only
+		select * from #temp order by kindID desc,ID offset (@page-1)*@pageSize rows fetch next @pageSize rows only
 	else
 		select top 100 percent * from #temp order by kindID, questionID
 	return 0
@@ -7172,7 +7172,7 @@ GO
 -- 根据给定的参数，向考生批量发送竞赛通知
 -- batchID: classInfo.classID; selList: username list
 -- USE CASE: exec sendMsg4Competition 1
-CREATE PROCEDURE [dbo].[sendMsg4Competition]
+ALTER PROCEDURE [dbo].[sendMsg4Competition]
 	@batchID varchar(50), @selList varchar(4000), @registerID varchar(50)
 AS
 BEGIN
@@ -7203,7 +7203,7 @@ BEGIN
 		Deallocate rc
 		update classInfo set send = send + 1,sendDate=getDate(),sender=@registerID where classID=@batchID
 		--return students list for send mobile message
-		select b.name,b.username,b.mobile,b.ID as enterID, '通过后享受政府补贴，并有机会获得额外奖金。咨询电话：021-52132119' as address,'电工高级（三级）、智能楼宇管理员高级（三级）、制冷空调系统安装维修工高级（三级）竞赛班开始报名，9月下旬培训11月考试。通过后享受政府补贴，并有机会获得额外奖金。咨询电话：021-52132119（周一至周五8:30-16:30）' as item, @kindID as kindID from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
+		select b.name,b.username,b.mobile,b.ID as enterID, '通过后享受政府补贴，并有机会获额外奖金。' as dt, '021-52132119' as address,'电工高级（三级）、智能楼宇管理员高级（三级）、制冷空调系统安装维修工高级（三级）竞赛班开始报名，9月下旬培训11月考试。通过后享受政府补贴，并有机会获得额外奖金。咨询电话：021-52132119（周一至周五8:30-16:30）' as item, @kindID as kindID from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
 	end
 END
 GO
@@ -11125,7 +11125,7 @@ ALTER FUNCTION [dbo].[getNodeInfoArchive]
 (	
 	@classID int, @kindID varchar(50)
 )
-RETURNS @tab TABLE (classID int, className nvarchar(50),applyID varchar(100),certName nvarchar(100),reexamineName nvarchar(50),startDate varchar(50), endDate varchar(50),qty int,qtyReturn int,qtyExam int,qtyPass int,summary nvarchar(2000),adviser nvarchar(50),attendanceRate decimal(18,2))
+RETURNS @tab TABLE (classID int, className nvarchar(500),applyID varchar(100),certName nvarchar(100),reexamineName nvarchar(50),startDate varchar(50), endDate varchar(50),qty int,qtyReturn int,qtyExam int,qtyPass int,summary nvarchar(2000),adviser nvarchar(50),attendanceRate decimal(18,2))
 AS
 BEGIN
 	declare @startDate varchar(50),@endDate varchar(50),@qtyPass int,@qtyExam int,@adviserName nvarchar(50)

@@ -3,6 +3,7 @@ const redisConfig = {
     session_secret : 'Asecret123-ShElearning2020',
     cookie : {
         maxAge : 10 * 24 * 60 * 60 * 1000,     //user page cookie expire(ms)  10 days
+        rolling: true   // 每次请求都会重置 session 的过期时间
     },
     sessionStore : {
         host : "127.0.0.1",
