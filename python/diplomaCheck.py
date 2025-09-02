@@ -46,11 +46,11 @@ username = ""
 password = ""
 
 
-def enter_by_list0(elist, kindID):
+def enter_by_list0(elist, kindID, refID):
     # 根据指定开班编号及名单（kindID:0 applyID  1 enterID)查询应复训日期。
     # 获取名单完整信息
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
-    sql = "exec getStudentListByList '" + elist + "', " + str(kindID)  # 数据库查询语句
+    sql = "exec getStudentListByList '" + elist + "', " + str(kindID) + ", " + str(refID)  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
     rs = cursor.fetchall()
     url = r'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/inquirySpecialCertificate?personTypeCode=03'
@@ -119,7 +119,7 @@ def enter_by_list0(elist, kindID):
                 # 保存结果
                 result["count_s"] += 1
                 # @enterID int, @date varchar(50), @registerID varchar(50)
-                sql = "exec setDiplomaCheckDate " + str(row[4]) + ", '" + checkDate.replace(" ", "") + "', 'system'"
+                sql = "exec setDiplomaCheckDate " + str(row[4]) + ", '" + checkDate.replace(" ", "") + "', '" + register + "'"
                 # print(sql)
                 execSQL(sql)
                 time.sleep(1)
@@ -293,12 +293,10 @@ if __name__ == '__main__':
     # enter_by_list1('321281198711034057', '高正友', '低压电工作业')
     # 以上是测试代码
     kind = sys.argv[2]     # 0 applyID  1 enterID  2 username  
-    host = sys.argv[3]
+    register = sys.argv[4]
     # print(kind, sys.argv[3], sys.argv[4])
-    username = "13817866150" if host == "feng" else "15900646360"
-    password = "123456Asdf" if host == "feng" else "123456Asdf"
-    if kind == '0' or kind == '1':
-        enter_by_list0(sys.argv[1], sys.argv[2])   # argv[2]:0 applyID  1 enterID
-    if kind == '2':
-        enter_by_list1(sys.argv[1], sys.argv[3], sys.argv[4])   # argv[2]:0 applyID  1 enterID
+    if kind != '3':
+        enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 0 applyID  1 enterID  2 username
+    if kind == '3':
+        enter_by_list1(sys.argv[1], sys.argv[3], sys.argv[4])   # argv[2]:3 username/name
     print(result)

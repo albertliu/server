@@ -1154,10 +1154,10 @@ router.post('/enterPay', function (req, res) {
 
 //
 router.post('/diplomaCheck', function (req, res) {
-  // 配置初始化信息 selList: when kindID:0 applyID  1 enterID
+  // 配置初始化信息 selList: when kindID 0 applyID 1 enterID 2 username  @refID:classInfo.ID
   shell.exec('@echo off')
   // shell.exec('chcp 65001')
-  let url = pyUrl + '/diplomaCheck.py ' + req.body.selList + ' ' + req.body.kindID + ' ' + req.query.host + ' ' + req.query.register;
+  let url = pyUrl + '/diplomaCheck.py ' + req.body.selList + ' ' + req.body.kindID + ' ' + req.query.refID + ' ' + req.query.register;
   // console.log("url:", url)
   shell.exec(url, function (code, stdout, stderr) {
     // console.log('Exit code:', code);
@@ -1182,7 +1182,7 @@ router.post('/diplomaCheckSingle', function (req, res) {
   // 配置初始化信息 selList: when kindID:0 applyID  1 enterID
   shell.exec('@echo off')
   // shell.exec('chcp 65001')
-  let url = pyUrl + '/diplomaCheck.py ' + req.body.username + ' 2 ' + req.body.name + ' ' + req.body.courseName;
+  let url = pyUrl + '/diplomaCheck.py ' + req.body.username + ' 3 ' + req.body.name + ' ' + req.body.courseName;
   // console.log("url:", url);
   shell.exec(url, function (code, stdout, stderr) {
     // console.log('Exit code:', code);

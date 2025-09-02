@@ -10604,6 +10604,20 @@ BEGIN
 END
 GO
 
+-- CREATE DATE: 2023-10-13
+-- 复训日期查询登记
+-- USE CASE: exec [setDiplomaCheckDate] 1
+ALTER PROCEDURE [dbo].[setDiplomaCheckDate]
+	@enterID int, @date varchar(50), @registerID varchar(50)
+AS
+BEGIN
+	if @enterID>0
+	begin
+		update studentCourseList set currDiplomaDate=[dbo].[whenull](@date,null), currDiplomaID=registerID + convert(varchar(20),getDate(),23) where ID=@enterID
+	end
+END
+GO
+
 --判断某个模拟考试是否达到条件
 ALTER FUNCTION [dbo].[getMockAllow]
 (	
