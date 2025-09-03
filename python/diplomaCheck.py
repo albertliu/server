@@ -36,7 +36,7 @@ conn = pymssql.connect(
     port="14333",  # TCP端口
     user="sqlrw",
     password=env_dist.get('NODE_ENV_DB_PASSWD'),
-    database="etraining",
+    database="elearning",
     autocommit=True   # 自动提交
     )
 result = {"count_s": 0, "count_e": 0, "err": 0, "errMsg": "", "msg": ""}
