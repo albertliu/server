@@ -30,7 +30,6 @@ driver = webdriver.Chrome(options=options)
 # 创建连接字符串  （sqlserver默认端口为1433）
 img_path = env_dist.get('NODE_ENV_IMG')
 py_path = env_dist.get('NODE_ENV_PYTHON')
-password1 = env_dist.get('NODE_ENV_DB_PASSWD')
 conn = pymssql.connect(
     server=env_dist.get('NODE_ENV_DB'),  # 本地服务器
     port="14333",  # TCP端口
@@ -59,7 +58,7 @@ def enter_by_list0(elist, kindID, refID):
     driver.get(url)
 
     # 浏览器全屏，可有可无
-    driver.maximize_window()
+    # driver.maximize_window()
 
     for row in rs:
         try:
@@ -70,7 +69,9 @@ def enter_by_list0(elist, kindID, refID):
 
             if wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(), '请选择证件类型')]"))):
                 # 选择证件类型
-                name_input = driver.find_elements(By.XPATH, "//div[contains(text(), '请选择证件类型')]/following-sibling::input[@class='uni-input-input']")[0].click()
+                # name_input = driver.find_elements(By.XPATH, "//div[contains(text(), '请选择证件类型')]/following-sibling::input[@class='uni-input-input']")[0].click()
+                name_input = driver.find_elements(By.XPATH, "//uni-view[@class='u-form-item__body__right__content__slot']")[0]
+                name_input.click()
                 time.sleep(1)
                 # 点击符合要求的项目
                 name_input = driver.find_elements(By.XPATH, "//uni-text[@class='u-action-sheet__item-wrap__item__name']/span[contains(text(),'身份证')]")[0].click()
@@ -127,7 +128,7 @@ def enter_by_list0(elist, kindID, refID):
                 result["count_e"] += 1
 
         except Exception as e:
-            print(e)
+            # print(e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
             pass
@@ -288,15 +289,15 @@ if __name__ == '__main__':
     # 以下是测试代码
     # username = "13817866150"
     # password = "123456Asdf"
-    # register = "test"
-    # # enter_by_list0('4923,4924', 0)
+    register = "desk."
+    enter_by_list0('512221197606053091,421102198810310515,310230198310061254,430281198804285810,341124199903047819,32032419860706099X,513723199008164437,620503199201067416,533521199902061539,411528199011055018,310229199403310415,310229198612294410,341225200405123935,612323199504118617,320922199912233011,31011519821029561X,341225197703046152,310108198311101630,320821197309233913,360313199610303510,342601198409092410,340321200102127313,413021197505205013,342921199012260718,340321200109087334,410825200112183512,510722199604122058,341222199808192391,370923198803132837,360122199806156618,341282199001165516,341222198809204695,530125199907043111,330122198709223217,342923199701144811,610422199012113219,360481199609060816,362330199709103533,130425198011026316,320623198803087495,321322199205240472,310225198701074414,371322199207204351,310229198803034435,52250119960925363X,341227198811055635,341621200107102753,341223197801202814,510525199507150098,411528199004052230,341282200307075551', 2, 1036)
     # enter_by_list1('321281198711034057', '高正友', '低压电工作业')
     # 以上是测试代码
-    kind = sys.argv[2]     # 0 applyID  1 enterID  2 username  
-    register = sys.argv[4]
+    # kind = sys.argv[2]     # 0 applyID  1 enterID  2 username  
+    # register = sys.argv[4]
     # print(kind, sys.argv[3], sys.argv[4])
-    if kind != '3':
-        enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 0 applyID  1 enterID  2 username
-    if kind == '3':
-        enter_by_list1(sys.argv[1], sys.argv[3], sys.argv[4])   # argv[2]:3 username/name
+    # if kind != '3':
+    #     enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 0 applyID  1 enterID  2 username
+    # if kind == '3':
+    #     enter_by_list1(sys.argv[1], sys.argv[3], sys.argv[4])   # argv[2]:3 username/name
     print(result)

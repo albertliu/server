@@ -716,7 +716,7 @@ def enter_by_list9(elist, classID, courseName, reex):
     time.sleep(1)
     # 选择课程
     # 点击下拉框
-    name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'资格类型')]/following-sibling::div//input[contains(@placeholder, '查询全部')]")[0].click()
+    name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'资格类型')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
     time.sleep(1)
     # 点击符合要求的项目
     name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li[contains(text(),'" + courseName + "')]")))
