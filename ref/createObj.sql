@@ -10,7 +10,7 @@ ALTER DATABASE elearning SET RECOVERY FULL
 --De0penl99O53!4N#~9.
 --set datefirst 1  --将星期一设为第一天
 
-select * from dictionaryDoc where kind like '%serviceKind%' order by kind, ID
+select * from dictionaryDoc where kind like '%material%' order by kind, ID
 select * from dictionaryDoc where kind like '%statusYes%' order by kind, ID
 select * from dictionaryDoc where item like '%预备%' order by kind, ID
 --delete from dictionaryDoc where mID=1298
@@ -22,7 +22,7 @@ insert into dictionaryDoc(ID,item,kind,description,memo) values('5','其他','IDki
 insert into dictionaryDoc(ID,item,kind,description,memo) values('6','六','week','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('8','社保证明','material','student_social','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('0','个人','fromKind','','')
-insert into dictionaryDoc(ID,item,kind,description,memo) values('1','学校','fromKind','','')
+update dictionaryDoc set item='居住证' where mID=1276
 update dictionaryDoc set item='研究生及以上' where mID=242
 update dictionaryDoc set item='本科或同等学历' where mID=241
 update dictionaryDoc set item='专科或同等学历' where mID=240
@@ -2980,7 +2980,7 @@ GO
 -- return: 0 success; other error:1 the user already exist  2 the user not exist  3 the companyID wrong.
 -- USE CASE: exec updatestudentInfo 1,'xxxx'...
 ALTER PROCEDURE [dbo].[updateStudentInfo]
-	@mark int,@username varchar(50),@name nvarchar(50),@password varchar(50),@kindID int,@companyID varchar(50),@dept1 varchar(50),@dept1Name nvarchar(100),@dept2 varchar(50),@dept3 varchar(50),@job varchar(50),@linker varchar(50),@job_status varchar(50),@mobile nvarchar(50),@phone nvarchar(50),@email nvarchar(50),@address nvarchar(100),@limitDate varchar(50),@education varchar(50),@unit nvarchar(100),@dept nvarchar(100),@ethnicity nvarchar(50),@IDaddress nvarchar(100),@bureau nvarchar(50),@IDdateStart varchar(50),@IDdateEnd varchar(50),@experience nvarchar(500),@fromID varchar(50),@fromKind varchar(50),@memo nvarchar(500),@host varchar(50),@registerID varchar(50)
+	@mark int,@username varchar(50),@name nvarchar(50),@password varchar(50),@kindID int,@companyID varchar(50),@dept1 varchar(50),@dept1Name nvarchar(100),@dept2 varchar(50),@dept3 varchar(50),@job varchar(50),@linker varchar(50),@job_status varchar(50),@mobile nvarchar(50),@phone nvarchar(50),@email nvarchar(50),@address nvarchar(100),@limitDate varchar(50),@education varchar(50),@unit nvarchar(100),@tax varchar(50),@dept nvarchar(100),@ethnicity nvarchar(50),@IDaddress nvarchar(100),@bureau nvarchar(50),@IDdateStart varchar(50),@IDdateEnd varchar(50),@experience nvarchar(500),@fromID varchar(50),@fromKind varchar(50),@memo nvarchar(500),@host varchar(50),@registerID varchar(50)
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -3023,8 +3023,8 @@ BEGIN
 			set @re =  3   --error: the companyID wrong.
 		if @re = 0
 		begin
-			insert into studentInfo(host,userName,name,password,kindID,companyID,dept1,dept2,dept3,job,job_status,mobile,phone,email,address,education,unit,dept,ethnicity,IDaddress,bureau,IDdateStart,IDdateEnd,experience,memo,birthday,sex,age,linker,fromID,fromKind,registerID) 
-				values(@host,upper(@username),@name,@password,@kindID,@companyID,@dept1,@dept2,@dept3,@job,@job_status,@mobile,@phone,@email,@address,@education,@unit,@dept,@ethnicity,@IDaddress,@bureau,@IDdateStart,@IDdateEnd,@experience,@memo,substring(@username,7,8),dbo.getSexfromID(@username),dbo.getAgefromID(@username),@linker,@fromID,@fromKind,@registerID)
+			insert into studentInfo(host,userName,name,password,kindID,companyID,dept1,dept2,dept3,job,job_status,mobile,phone,email,address,education,unit,tax,dept,ethnicity,IDaddress,bureau,IDdateStart,IDdateEnd,experience,memo,birthday,sex,age,linker,fromID,fromKind,registerID) 
+				values(@host,upper(@username),@name,@password,@kindID,@companyID,@dept1,@dept2,@dept3,@job,@job_status,@mobile,@phone,@email,@address,@education,@unit,@tax,@dept,@ethnicity,@IDaddress,@bureau,@IDdateStart,@IDdateEnd,@experience,@memo,substring(@username,7,8),dbo.getSexfromID(@username),dbo.getAgefromID(@username),@linker,@fromID,@fromKind,@registerID)
 			select @userID=userID from studentInfo where username=@username
 			select @event = '新增'
 			exec writeEventTrace @host,@registerID,'user',@username,0,'登记',@username
@@ -3040,12 +3040,12 @@ BEGIN
 			select @kindID0=kindID,@host0=host,@companyID0=companyID from studentInfo where username=@username
 			--更换公司后修改host
 			--if(@companyID0<>@companyID)
-			if(@companyID>0)
+			if(@companyID>0 and (@host='znxf' or @host='spc'))
 				select @host=host from deptInfo where deptID=@companyID
 
 			--如果有密码输入，保存新密码，否则保持原来密码.
 			insert into [log_update_studentInfo] select *,@registerID,getDate() from studentInfo where username=@username
-			update studentInfo set kindID=@kindID,password=(case when @password>'' then @password else password end),companyID=@companyID,host=@host,dept1=@dept1,dept2=@dept2,dept3=@dept3,job=@job,job_status=@job_status,name=@name,mobile=@mobile,phone=@phone,email=@email,address=@address,limitDate=@limitDate,education=@education,unit=@unit,dept=@dept,@linker=(case when @linker>'' then @linker else linker end)
+			update studentInfo set kindID=@kindID,password=(case when @password>'' then @password else password end),companyID=@companyID,host=@host,dept1=@dept1,dept2=@dept2,dept3=@dept3,job=@job,job_status=@job_status,name=@name,mobile=@mobile,phone=@phone,email=@email,address=@address,limitDate=@limitDate,education=@education,unit=@unit,tax=@tax,dept=@dept,@linker=(case when @linker>'' then @linker else linker end)
 			,ethnicity=(case when @ethnicity='' then ethnicity else @ethnicity end),IDaddress=(case when @IDaddress='' then IDaddress else @IDaddress end),bureau=(case when @bureau='' then bureau else @bureau end),IDdateStart=(case when @IDdateStart is null then IDdateStart else @IDdateStart end),IDdateEnd=(case when @IDdateStart is not null then @IDdateEnd else IDdateEnd end),experience=@experience,fromID=@fromID,fromKind=@fromKind,memo=@memo where username=@username
 			select @event = '修改'
 			--如果由系统内变更为系统外，检查是否已经选了那些系统内课程(非第三方课程)，如果有则删除
@@ -3290,18 +3290,19 @@ GO
 -- CREATE Date: 2025-08-16
 -- 给定username，fromID，判断该学员应该属于哪个销售员。如果已有销售，则返回原有的销售，否则将该学员标记为新的销售
 -- USE CASE: exec [setStudentSaler] '1230000','xxxx.'
-CREATE PROCEDURE [dbo].[setStudentSaler] 
+ALTER PROCEDURE [dbo].[setStudentSaler] 
 	@username varchar(50),@fromID varchar(50), @saler varchar(50) output
 --WITH ENCRYPTION
 AS
 BEGIN
-	select @saler = isnull(fromID,'') from studentInfo where username=@username
+	--select @saler = isnull(fromID,'') from studentInfo where username=@username
 
-	if @saler='' and @fromID>''
-	begin
-		update studentInfo set fromID=@fromID where username=@username
-		set @saler=@fromID
-	end
+	--if @saler='' and @fromID>''
+	--begin
+	--	update studentInfo set fromID=@fromID where username=@username
+	--	set @saler=@fromID
+	--end
+	set @saler=@fromID
 END
 GO
 
@@ -9552,7 +9553,7 @@ BEGIN
 		select @j = @j + 1
 	end
 
-	select name,sexName,educationName,username,mobile,unit,job,link_address,IDdateStart,IDdateEnd,photo_filename as file1,certName,c.linker,a.ID,file2 from v_applyInfo a, #temp b, hostInfo c where a.ID=b.id and a.host=c.hostNo order by passNo,a.ID
+	select name,sexName,educationName,username,mobile,unit,job,link_address,IDdateStart,IDdateEnd,photo_filename as file1,certName,c.linker,a.ID,file2, (case when employe_filename>'' then '工作证明' when job_filename>'' then '居住证' when social_filename>'' then '社保证明' else '' end) as jobcert, (case when employe_filename>'' then employe_filename when job_filename>'' then job_filename when social_filename>'' then social_filename else '' end) as jobfile,a.tax from v_applyInfo a, #temp b, hostInfo c where a.ID=b.id and a.host=c.hostNo order by passNo,a.ID
 END
 GO
 

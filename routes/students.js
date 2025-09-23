@@ -468,7 +468,7 @@ router.post('/new_student', function (req, res, next) {
   if(fromID > ''){
       fromID += ".";
   }
-  params = { mark: 0, username: req.body.username, name: req.body.name, password: req.body.password, kindID: req.body.kindID, companyID: req.body.companyID, dept1: req.body.dept1, dept1Name: req.body.dept1Name, dept2: req.body.dept2, dept3: req.body.dept3, job: req.body.job,linker:'',job_status:1, mobile: req.body.mobile, phone: req.body.phone, email: req.body.email, address: req.body.address, limitDate: req.body.limitDate, unit:req.body.unit, dept:req.body.dept,ethnicity:'',IDaddress:'',bureau:'',IDdateStart:'',IDdateEnd:'',experience: req.body.experience, fromID: fromID, fromKind:0, memo: req.body.memo, education: req.body.education, host: cid, registerID: req.body.username };
+  params = { mark: 0, username: req.body.username, name: req.body.name, password: req.body.password, kindID: req.body.kindID, companyID: req.body.companyID, dept1: req.body.dept1, dept1Name: req.body.dept1Name, dept2: req.body.dept2, dept3: req.body.dept3, job: req.body.job,linker:'',job_status:1, mobile: req.body.mobile, phone: req.body.phone, email: req.body.email, address: req.body.address, limitDate: req.body.limitDate, unit:req.body.unit, unit:req.body.tax, dept:req.body.dept,ethnicity:'',IDaddress:'',bureau:'',IDdateStart:'',IDdateEnd:'',experience: req.body.experience, fromID: fromID, fromKind:0, memo: req.body.memo, education: req.body.education, host: cid, registerID: req.body.username };
   //console.log("add params:", params);
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
@@ -518,7 +518,7 @@ router.post('/update_student', function (req, res, next) {
   if(fromID > ''){
       fromID += ".";
   }
-  params = { mark: 1, username: req.body.username, name: req.body.name, password: req.body.password, kindID: req.body.kindID, companyID: req.body.companyID, dept1: req.body.dept1, dept1Name: req.body.dept1Name, dept2: req.body.dept2, dept3: req.body.dept3, job: req.body.job,linker:'', job_status:1, mobile: req.body.mobile, phone: req.body.phone, email: req.body.email, address: req.body.address, limitDate: req.body.limitDate, unit:req.body.unit, dept:req.body.dept,ethnicity:'',IDaddress:'',bureau:'',IDdateStart:'',IDdateEnd:'',experience: req.body.experience, fromID: fromID, fromKind:0, memo: req.body.memo, education:req.body.education, host: req.session.user.host, registerID: req.body.username };
+  params = { mark: 1, username: req.body.username, name: req.body.name, password: req.body.password, kindID: req.body.kindID, companyID: req.body.companyID, dept1: req.body.dept1, dept1Name: req.body.dept1Name, dept2: req.body.dept2, dept3: req.body.dept3, job: req.body.job,linker:'', job_status:1, mobile: req.body.mobile, phone: req.body.phone, email: req.body.email, address: req.body.address, limitDate: req.body.limitDate, unit:req.body.unit, unit:req.body.tax, dept:req.body.dept,ethnicity:'',IDaddress:'',bureau:'',IDdateStart:'',IDdateEnd:'',experience: req.body.experience, fromID: fromID, fromKind:0, memo: req.body.memo, education:req.body.education, host: req.session.user.host, registerID: req.body.username };
   //console.log("update params:", params);
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
