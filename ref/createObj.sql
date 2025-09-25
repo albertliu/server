@@ -3089,7 +3089,7 @@ GO
 -- return: 0 success; other error:1 the user already exist  2 the user not exist  3 the companyID wrong.
 -- USE CASE: exec updatestudentInfoTai 1,'xxxx'...
 ALTER PROCEDURE [dbo].[updateStudentInfoTai]
-	@username varchar(50),@name nvarchar(50),@sex int,@birthday varchar(50),@kindID int,@companyID varchar(50),@dept1 varchar(50),@dept1Name nvarchar(100),@dept2 varchar(50),@dept3 varchar(50),@job varchar(50),@linker varchar(50),@job_status varchar(50),@mobile nvarchar(50),@phone nvarchar(50),@email nvarchar(50),@address nvarchar(100),@limitDate varchar(50),@education int,@unit nvarchar(100),@dept nvarchar(100),@ethnicity nvarchar(50),@IDaddress nvarchar(100),@bureau nvarchar(50),@IDdateStart varchar(50),@IDdateEnd varchar(50),@experience nvarchar(500),@fromID varchar(50),@fromKind varchar(50),@memo nvarchar(500),@host varchar(50),@registerID varchar(50)
+	@username varchar(50),@name nvarchar(50),@sex int,@birthday varchar(50),@kindID int,@companyID varchar(50),@dept1 varchar(50),@dept1Name nvarchar(100),@dept2 varchar(50),@dept3 varchar(50),@job varchar(50),@linker varchar(50),@job_status varchar(50),@mobile nvarchar(50),@phone nvarchar(50),@email nvarchar(50),@address nvarchar(100),@limitDate varchar(50),@education int,@unit nvarchar(100),@tax varchar(50),@dept nvarchar(100),@ethnicity nvarchar(50),@IDaddress nvarchar(100),@bureau nvarchar(50),@IDdateStart varchar(50),@IDdateEnd varchar(50),@experience nvarchar(500),@fromID varchar(50),@fromKind varchar(50),@memo nvarchar(500),@host varchar(50),@registerID varchar(50)
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -3126,12 +3126,12 @@ BEGIN
 		set @re =  3   --error: the companyID wrong.
 
 	if exists(select 1 from studentInfo where username=@username)
-		update studentInfo set host=@host,name=@name,kindID=@kindID,companyID=@companyID,dept1=@dept1,dept2=@dept2,dept3=@dept3,job=@job,job_status=@job_status,mobile=@mobile,phone=@phone,email=@email,address=@address,education=@education,unit=@unit,dept=@dept,ethnicity=@ethnicity,IDaddress=@IDaddress,bureau=@bureau,IDdateStart=@IDdateStart,IDdateEnd=@IDdateEnd,experience=@experience,memo=@memo,birthday=@birthday,sex=@sex,age=@age,fromID=@fromID,fromKind=@fromKind where username=@username
+		update studentInfo set host=@host,name=@name,kindID=@kindID,companyID=@companyID,dept1=@dept1,dept2=@dept2,dept3=@dept3,job=@job,job_status=@job_status,mobile=@mobile,phone=@phone,email=@email,address=@address,education=@education,unit=@unit,tax=@tax,dept=@dept,ethnicity=@ethnicity,IDaddress=@IDaddress,bureau=@bureau,IDdateStart=@IDdateStart,IDdateEnd=@IDdateEnd,experience=@experience,memo=@memo,birthday=@birthday,sex=@sex,age=@age,fromID=@fromID,fromKind=@fromKind where username=@username
 	else
 		if @re = 0
 		begin
-			insert into studentInfo(host,userName,name,kindID,companyID,dept1,dept2,dept3,job,job_status,mobile,phone,email,address,education,unit,dept,ethnicity,IDaddress,bureau,IDdateStart,IDdateEnd,experience,memo,birthday,sex,age,linker,fromID,fromKind,registerID) 
-				values(@host,upper(@username),@name,@kindID,@companyID,@dept1,@dept2,@dept3,@job,@job_status,@mobile,@phone,@email,@address,@education,@unit,@dept,@ethnicity,@IDaddress,@bureau,@IDdateStart,@IDdateEnd,@experience,@memo,@birthday,@sex,@age,@linker,@fromID,@fromKind,@registerID)
+			insert into studentInfo(host,userName,name,kindID,companyID,dept1,dept2,dept3,job,job_status,mobile,phone,email,address,education,unit,tax,dept,ethnicity,IDaddress,bureau,IDdateStart,IDdateEnd,experience,memo,birthday,sex,age,linker,fromID,fromKind,registerID) 
+				values(@host,upper(@username),@name,@kindID,@companyID,@dept1,@dept2,@dept3,@job,@job_status,@mobile,@phone,@email,@address,@education,@unit,@tax,@dept,@ethnicity,@IDaddress,@bureau,@IDdateStart,@IDdateEnd,@experience,@memo,@birthday,@sex,@age,@linker,@fromID,@fromKind,@registerID)
 			select @userID=userID from studentInfo where username=@username
 			select @event = '新增'
 			exec writeEventTrace @host,@registerID,'user',@username,0,'登记',@username
@@ -9542,9 +9542,9 @@ ALTER PROCEDURE [dbo].[getApplyListByList]
 	@selList varchar(4000)
 AS
 BEGIN
-	declare @kindID int
+	declare @kindID int, @unit nvarchar(200)
 	--将名单导入到临时表
-	create table #temp(id int)
+	create table #temp(id int, punit nvarchar(200))
 	declare @n int, @j int
 	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0
 	while @n>@j
@@ -9552,8 +9552,8 @@ BEGIN
 		insert into #temp(id) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
 		select @j = @j + 1
 	end
-
-	select name,sexName,educationName,username,mobile,unit,job,link_address,IDdateStart,IDdateEnd,photo_filename as file1,certName,c.linker,a.ID,file2, (case when employe_filename>'' then '工作证明' when job_filename>'' then '居住证' when social_filename>'' then '社保证明' else '' end) as jobcert, (case when employe_filename>'' then employe_filename when job_filename>'' then job_filename when social_filename>'' then social_filename else '' end) as jobfile,a.tax from v_applyInfo a, #temp b, hostInfo c where a.ID=b.id and a.host=c.hostNo order by passNo,a.ID
+	update #temp set punit=c.hostName from #temp a, v_applyInfo d, studentInfo b, hostInfo c where a.id=d.id and d.username=b.username and c.hostNo=b.host
+	select name,sexName,educationName,username,mobile,iif(a.host='spc' or a.host='shm',c.hostName,iif(a.unit>'',a.unit,punit)) as unit,job,link_address,IDdateStart,IDdateEnd,photo_filename as file1,certName,c.linker,a.ID,file2, (case when employe_filename>'' then N'工作证明' when job_filename>'' then N'居住证' when social_filename>'' then N'社保' else '' end) as jobcert, (case when employe_filename>'' then employe_filename when job_filename>'' then job_filename when social_filename>'' then social_filename else '' end) as jobfile,a.tax from v_applyInfo a, #temp b, hostInfo c where a.ID=b.id and a.host=c.hostNo order by passNo,a.ID
 END
 GO
 

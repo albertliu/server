@@ -186,11 +186,11 @@ def enter_by_list0(elist, kind):
             # 弹出确定按钮
             # confirm_btn = driver.find_elements(By.XPATH, "//span[@class='dialog-footer']//button[contains(@class, 'el-button--primary')]")[0] 
             # time.sleep(1)
-            confirm_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[@class='dialog-footer']//button[contains(@class, 'el-button--primary')]")))
+            confirm_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[@class='dialog-footer']//button[contains(@class, 'el-button el-button--primary')]")))
             confirm_btn.click()
             # 姓名输入
             # name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'姓名')]/following-sibling::div//input")  # 姓名输入框
-            name_input = wait.until(EC.presence_of_element_located((By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'姓名')]/following-sibling::div//input")))  # 姓名输入框
+            name_input = wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(),'姓名')]/following-sibling::div//input")))  # 姓名输入框
             s1 = ""
             if name_input.is_enabled():
                 # 如果是可用的就填入姓名（以前没有报过名）
@@ -202,24 +202,24 @@ def enter_by_list0(elist, kind):
                     s1 = '<p style="color:red;"> 姓名与原登记不符：' + tt + '</p>'
             # 选择文化程度
             # 点击下拉框
-            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'文化程度')]/following-sibling::div//input")[0].click()
+            name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'文化程度')]/following-sibling::div//input")[0].click()
             # time.sleep(1)
             wait.until(EC.presence_of_element_located((By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + row[2][:2] + "')]")))
             # 点击符合要求的学历选项（与给定值前两位相符的）
             name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + row[2][:2] + "')]")[0].click()
             # 联系手机
-            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'联系手机')]/following-sibling::div//input")[0]
+            name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'联系手机')]/following-sibling::div//input")[0]
             clean_send(name_input, row[4])
             # 单位/街道名称
             # name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'单位/街道名称')]/following-sibling::div//input")[0]
-            clean_send(name_input, row[5])
+            # clean_send(name_input, row[5])
             if kind == "安全干部":
                 # 职务
-                name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'职务')]/following-sibling::div//input")[0]
+                name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'职务')]/following-sibling::div//input")[0]
                 clean_send(name_input, row[6])
                 # 职称
                 # 点击下拉框
-                name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'职称')]/following-sibling::div//input")[0].click()
+                name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'职称')]/following-sibling::div//input")[0].click()
                 # time.sleep(1)
                 wait.until(EC.presence_of_element_located((By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'无')]")))
                 # 点击符合要求的选项
@@ -231,45 +231,53 @@ def enter_by_list0(elist, kind):
             # name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'邮编')]/following-sibling::div//input")[0]
             # clean_send(name_input, '000000')
             # 判断是否本地户籍
-            area = driver.find_elements(By.XPATH, "//span[contains(text(),'非本地户籍')]/../label")[0]
-            if area.get_attribute("class") == "el-radio is-checked":
+            area = driver.find_elements(By.XPATH, "//span[contains(text(),'非本地户籍')]/preceding-sibling::span")[0]
+            if area.get_attribute("class") == "el-radio__input is-checked":
                 # 非本地户籍需要上传证明材料
                 # 选择相应的证明种类：工作证明、居住证、社保证明
-                name_input = driver.find_elements(By.XPATH, "//span[contains(text(),'" + row[15] + "')]/preceding-sibling::span[1]//input[class='radio']")[0].click()
-                # 填写单位名称
-                name_input = driver.find_elements(By.XPATH, "//label[for='workUnit')]/following-sibling::div[1]//input")[0]
-                if name_input.is_displayed():
-                    clean_send(name_input, row[5])
-                # 填写单位地址
-                name_input = driver.find_elements(By.XPATH, "//label[for='workAddress')]/following-sibling::div[1]//input")[0]
-                if name_input.is_displayed():
-                    clean_send(name_input, row[7])
-                # 填写统一社会信用代码
-                name_input = driver.find_elements(By.XPATH, "//label[for='creditCode')]/following-sibling::div[1]//input")[0]
-                if name_input.is_displayed():
-                    clean_send(name_input, row[17])
+                name_input = driver.find_elements(By.XPATH, "//span[contains(text(),'" + row[15] + "')]/preceding-sibling::span//span[@class='el-radio__inner']")[0].click()
                 # 上传文件
-                name_input = driver.find_elements(By.XPATH, "//div[@class='upload-demo']//button")[0]
-                if row[16] > '' and name_input.is_displayed():
+                name_input = driver.find_elements(By.XPATH, "//div[@class='upload-demo']//input[@type='file']")[0]
+                if row[16] > '':
                     name_input.send_keys(img_path + row[16])
                     
+            # 填写单位名称
+            name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'单位名称')]/following-sibling::div//input")[0]
+            if name_input.is_displayed():
+                clean_send(name_input, row[5])
+            # 填写单位地址
+            name_input = driver.find_elements(By.XPATH, "//label[@for='unitAddress']/following-sibling::div//input")[0]
+            if name_input.is_displayed():
+                clean_send(name_input, row[7])
+            # 填写统一社会信用代码
+            name_input = driver.find_elements(By.XPATH, "//label[@for='creditCode']/following-sibling::div//input")[0]
+            if name_input.is_displayed():
+                clean_send(name_input, row[17])
             # 勾选承诺
-            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::p[@class='information']/label")[0].click()
+            name_input = driver.find_elements(By.XPATH, "//p[@class='information']/label")[0].click()
             # 下一步按钮
-            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div[@class='button']/button")[0].click()
+            name_input = driver.find_elements(By.XPATH, "//div[@class='button']/button[@type='button']")[0].click()
             time.sleep(1)
-            # print("window:", driver.window_handles)
+            # 检查错误信息
+            err_msg = driver.find_elements(By.XPATH, "//div[@class='el-form-item__error']")
+            if err_msg and err_msg[0].is_displayed():
+                result["count_e"] += 1
+                sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '" + err_msg[0].text + "'"
+                execSQL(sql)
+                d_list.remove(str(row[13]))     # 从列表中删除失败数据
+                time.sleep(1)
+                continue
             # 选择课程
             # 点击下拉框
-            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'个人报名登记情况')]/following-sibling::div[@class='con-left fl']//label[contains(text(),'资格类型:')]/following-sibling::div//input")[0].click()
+            name_input = driver.find_elements(By.XPATH, "//div[@class='con-left fl']//label[contains(text(),'资格类型:')]/following-sibling::div//input")[0].click()
             time.sleep(1)
             # 点击符合要求的项目
             name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + row[11] + "')]")[0].click()
             # 填写人
-            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'个人报名登记情况')]/following-sibling::div[@class='con-left fl']//label[contains(text(),'填写人')]/following-sibling::div//input")[0]
+            name_input = driver.find_elements(By.XPATH, "//div[@class='con-left fl']//label[contains(text(),'填写人')]/following-sibling::div//input")[0]
             clean_send(name_input, register)
             # 上传照片
-            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'个人报名登记情况')]/following-sibling::div[@class='con-right fl']//input[@type='file']")[0].send_keys(img_path + row[10])
+            name_input = driver.find_elements(By.XPATH, "//div[@class='con-right fl']//input[@type='file']")[0].send_keys(img_path + row[10])
             # 保存按钮
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//form[@class='el-form']/div[@class='button']//span[contains(text(),'保存')]/..")))
             name_input.click()
@@ -1047,16 +1055,16 @@ if __name__ == '__main__':
     # username = "13651648767"
     # password = "Pqf1823797198"
     # register = "desk."
-    # d_list = '9507'.split(',')    # 需要处理的数据列表
-    # courseName = "危险化学品经营单位安全生产管理人员"  # 课程名称
+    # d_list = '9506'.split(',')    # 需要处理的数据列表
+    # courseName = "低压电工作业"  # 课程名称
     # # courseName = "低压电工作业"  # 课程名称
     # kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
     # if login_fr() == 0:
     #     i = 0
     #     while len(d_list) > 0:
-    #         # enter_by_list0(d_list, kind)
+    #         enter_by_list0(d_list, kind)
     #         # enter_by_list1(d_list)
-    #         enter_by_list11(d_list, '0110092507105', courseName, '初证')
+    #         # enter_by_list11(d_list, '0110092507105', courseName, '初证')
     #         # enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
