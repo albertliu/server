@@ -850,14 +850,14 @@ def enter_by_list10(elist, classID, courseName, reex):
     time.sleep(1)
     # 选择课程
     # 点击下拉框
-    name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'资格类型')]/following-sibling::div//input[contains(@placeholder, '查询全部')]")[0].click()
+    name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'资格类型')]/following-sibling::div//input[@placeholder='请选择']")[0].click()
     time.sleep(1)
     # 点击符合要求的项目
     name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li[contains(text(),'" + courseName + "')]")[0].click()
     time.sleep(1)
     # 选择类型
     # 点击下拉框
-    name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
+    name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'培训类别')]/following-sibling::div//input[@placeholder='请选择']")[0].click()
     time.sleep(1)
     # 点击符合要求的类型
     name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + reex + "')]")[0].click()
@@ -896,7 +896,7 @@ def enter_by_list10(elist, classID, courseName, reex):
             result["count_s"] += 1
             # @batchID,@ID,@courseID,@certName,@passNo,@username,@name,@score1,@score2,@startDate,@reexam, @host,@registerID
             # sql = "exec generateApplyScore 1, " + str(row[13]) + ", '', '', '" + diplomaID.replace(" ", "") + "', '', '', '" + score1 + "', '" + score2 + "', '" + examDate + "', '" + reexStr + "', '', 'system'"
-            sql = "exec generateApplyScore1 " + str(row[13]) + ", '" + diplomaID.replace(" ", "") + "', '" + score1 + "', '" + score2 + "', '" + examDate + "', '" + register + "'"
+            sql = "exec generateApplyScore1 " + str(row[13]) + ", '" + diplomaID.replace(" ", "").replace("&nbsp;", "") + "', '" + score1 + "', '" + score2 + "', '" + examDate + "', '" + register + "'"
             # print(sql)
             execSQL(sql)
             d_list.remove(str(row[13]))     # 从列表中删除已成功数据
