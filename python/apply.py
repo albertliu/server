@@ -358,10 +358,10 @@ def enter_by_list1(elist):
             clean_send(diploma_input, row[3])
             # 选择课程
             # 点击下拉框
-            name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'资格类型')]/following-sibling::div/div/div/input")[0].click()
+            name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'资格类型')]/following-sibling::div//input")[0].click()
             time.sleep(1)
             # 点击符合要求的项目
-            name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + row[11] + "')]")[0].click()
+            name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + row[11] + "')]")[0].click()
             # 查找按钮
             search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '查询')]")[0]
             search_btn.click()
@@ -438,27 +438,41 @@ def enter_by_list1(elist):
                 s1 = '<p style="color:red;"> 姓名与原登记不符：' + tt + '</p>'
             # 选择文化程度
             # 点击下拉框
-            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'文化程度')]/following-sibling::div//input")[0].click()
+            name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'文化程度')]/following-sibling::div//input")[0].click()
             # time.sleep(1)
             wait.until(EC.presence_of_element_located((By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + row[2][:2] + "')]")))
             # 点击符合要求的学历选项（与给定值前两位相符的）
             name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + row[2][:2] + "')]")[0].click()
             # 联系手机
-            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'个人信息登记情况')]/following-sibling::div//label[contains(text(),'联系手机')]/following-sibling::div//input")[0]
+            name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'联系手机')]/following-sibling::div//input")[0]
             clean_send(name_input, row[4])
-            # 单位/街道名称
-            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'个人信息登记情况')]/following-sibling::div//label[contains(text(),'单位/街道名称')]/following-sibling::div//input")[0]
-            clean_send(name_input, row[5])
-            # 单位/街道地址
-            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'个人信息登记情况')]/following-sibling::div//label[contains(text(),'单位/街道地址')]/following-sibling::div//input")[0]
-            clean_send(name_input, row[7])
-            # 清空单位/街道电话
-            # name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'个人信息登记情况')]/following-sibling::div//label[contains(text(),'单位/街道电话')]/following-sibling::div//input")[0]
-            # clean_send(name_input, '')
+            # 判断是否本地户籍
+            area = driver.find_elements(By.XPATH, "//span[contains(text(),'非本地户籍')]/preceding-sibling::span")[0]
+            if area.get_attribute("class") == "el-radio__input is-checked":
+                # 非本地户籍需要上传证明材料
+                # 选择相应的证明种类：工作证明、居住证、社保证明
+                name_input = driver.find_elements(By.XPATH, "//span[contains(text(),'" + row[15] + "')]/preceding-sibling::span//span[@class='el-radio__inner']")[0].click()
+                # 上传文件
+                name_input = driver.find_elements(By.XPATH, "//div[@class='upload-demo']//input[@type='file']")[0]
+                if row[16] > '':
+                    name_input.send_keys(img_path + row[16])
+                    
+            # 填写单位名称
+            name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'单位名称')]/following-sibling::div//input")[0]
+            if name_input.is_displayed():
+                clean_send(name_input, row[5])
+            # 填写单位地址
+            name_input = driver.find_elements(By.XPATH, "//label[@for='unitAddress']/following-sibling::div//input")[0]
+            if name_input.is_displayed():
+                clean_send(name_input, row[7])
+            # 填写统一社会信用代码
+            name_input = driver.find_elements(By.XPATH, "//label[@for='creditCode']/following-sibling::div//input")[0]
+            if name_input.is_displayed():
+                clean_send(name_input, row[17])
             # 勾选承诺
-            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'个人信息登记情况')]/following-sibling::p[@class='information']/label")[0].click()
+            name_input = driver.find_elements(By.XPATH, "//p[@class='information']/label")[0].click()
             # 下一步按钮
-            name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'个人信息登记情况')]/following-sibling::div[@class='button']/button")[0].click()
+            name_input = driver.find_elements(By.XPATH, "//div[@class='button']/button[@type='button']")[0].click()
             time.sleep(1)
             # 填写人
             name_input = driver.find_elements(By.XPATH, "//div[@class='el-row']/div/label[contains(text(),'填写人')]/following-sibling::div//input")[0]
@@ -466,7 +480,7 @@ def enter_by_list1(elist):
             # 保存按钮
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'el-button')]/span[contains(text(),'保存')]/..")))
             name_input.click()
-            time.sleep(2)
+            time.sleep(3)
             # 判断保存结果
             if driver.find_elements(By.XPATH, "//p[contains(text(),'该学员报名成功')]"):
                 result["count_s"] += 1
@@ -481,7 +495,7 @@ def enter_by_list1(elist):
                 result["count_e"] += 1
                 # 提交失败 保存错误信息
                 name_input = driver.find_elements(By.XPATH, "//div[@role='dialog']//div[@class='el-message-box__message']/p")[0]
-                sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：" + name_input.text + "'"
+                sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '" + name_input.text + "'"
                 execSQL(sql)
                 d_list.remove(str(row[13]))     # 从列表中删除失败数据
 
