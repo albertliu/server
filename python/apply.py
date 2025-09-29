@@ -164,7 +164,7 @@ def enter_by_list0(elist, kind):
         name_input = driver.find_elements(By.XPATH, "//input[contains(@placeholder, '选择类型')]")[0].click()
         time.sleep(1)
         # 点击符合要求的项目
-        name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + kind + "')]")[0].click()
+        name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + kind + "')]")[0].click()
 
     rs = cursor.fetchall()
     # print(len(rs))
@@ -175,6 +175,13 @@ def enter_by_list0(elist, kind):
                 execSQL(sql)
                 d_list.remove(str(row[13]))     # 从列表中删除失败数据
                 continue
+            # 非18位长度的，选择其他证件
+            if len(row[3]) != 18:
+                name_input = driver.find_elements(By.XPATH, "//input[contains(@placeholder, '选择证件种类')]")[0].click()
+                time.sleep(1)
+                # 点击符合要求的项目
+                name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'其他')]")[0].click()
+            
             # 查找身份证
             # 身份证输入框
             username_input = wait.until(EC.presence_of_element_located((By.XPATH, "//input[contains(@placeholder, '请输入证件号码')]")))  
@@ -1149,16 +1156,16 @@ if __name__ == '__main__':
     # username = "13651648767"
     # password = "Pqf1823797198"
     # register = "desk."
-    # d_list = '测试'.split(',')    # 需要处理的数据列表
+    # d_list = '9506'.split(',')    # 需要处理的数据列表
     # courseName = "低压电工作业"  # 课程名称
     # # courseName = "低压电工作业"  # 课程名称
     # kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
     # if login_fr() == 0:
     #     i = 0
     #     while len(d_list) > 0:
-    #         # enter_by_list0(d_list, kind)
+    #         enter_by_list0(d_list, kind)
     #         # enter_by_list1(d_list)
-    #         enter_by_list7(d_list, '290', courseName, '初证')
+    #         # enter_by_list7(d_list, '290', courseName, '初证')
     #         # enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
