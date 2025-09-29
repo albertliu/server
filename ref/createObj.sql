@@ -9555,7 +9555,7 @@ BEGIN
 		select @j = @j + 1
 	end
 	update #temp set punit=c.hostName from #temp a, v_applyInfo d, studentInfo b, hostInfo c where a.id=d.id and d.username=b.username and c.hostNo=b.host
-	select name,sexName,educationName,username,mobile,iif(a.host='spc' or a.host='shm',c.hostName,iif(a.unit>'',a.unit,punit)) as unit,job,link_address,IDdateStart,IDdateEnd,photo_filename as file1,certName,c.linker,a.ID,file2, (case when employe_filename>'' then N'工作证明' when job_filename>'' then N'居住证' when social_filename>'' then N'社保' else '' end) as jobcert, (case when employe_filename>'' then employe_filename when job_filename>'' then job_filename when social_filename>'' then social_filename else '' end) as jobfile,a.tax from v_applyInfo a, #temp b, hostInfo c where a.ID=b.id and a.host=c.hostNo order by passNo,a.ID
+	select name,sexName,educationName,username,mobile,iif(a.host='spc' or a.host='shm',c.hostName,iif(a.unit>'',a.unit,punit)) as unit,iif(job='','管理',job) as job,link_address,IDdateStart,IDdateEnd,photo_filename as file1,certName,c.linker,a.ID,file2, (case when employe_filename>'' then N'工作证明' when job_filename>'' then N'居住证' when social_filename>'' then N'社保' else '' end) as jobcert, (case when employe_filename>'' then employe_filename when job_filename>'' then job_filename when social_filename>'' then social_filename else '' end) as jobfile,a.tax from v_applyInfo a, #temp b, hostInfo c where a.ID=b.id and a.host=c.hostNo order by passNo,a.ID
 END
 GO
 

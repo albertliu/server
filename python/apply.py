@@ -223,15 +223,15 @@ def enter_by_list0(elist, kind):
             # clean_send(name_input, row[5])
             if kind == "安全干部":
                 # 职务
-                name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'职务')]/following-sibling::div//input")[0]
+                name_input = driver.find_elements(By.XPATH, "//label[@for='position']/following-sibling::div//input")[0]
                 clean_send(name_input, row[6])
                 # 职称
                 # 点击下拉框
-                name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'职称')]/following-sibling::div//input")[0].click()
-                # time.sleep(1)
-                wait.until(EC.presence_of_element_located((By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'无')]")))
+                name_input = driver.find_elements(By.XPATH, "//label[@for='jobTitle']/following-sibling::div//input")[0].click()
+                time.sleep(1)
+                # wait.until(EC.presence_of_element_located((By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'无')]")))
                 # 点击符合要求的选项
-                name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'无')]")[0].click()
+                name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'无')]")[0].click()
             # 单位/街道地址
             # name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'单位/街道地址')]/following-sibling::div//input")[0]
             # clean_send(name_input, row[7])
