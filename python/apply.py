@@ -10,6 +10,7 @@ import tempfile
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver import ActionChains
+from selenium.webdriver.common.keys import Keys
 import pymssql
 from datetime import date
 # wd = webdriver.Chrome()
@@ -520,103 +521,182 @@ def enter_by_list1(elist):
 
 
 def enter_by_list7(adviser, classID, courseName, reex):
-    # 根据指定开班编号（applyID)上传课程表。
-    # 获取名单完整信息
+    # 根据指定班级编号（classID)创建计划，并上传课程表。
+    # 获取班级信息
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
-    sql = "exec getClassScheduleList '" + classID + "'"  # 数据库查询语句
+    sql = "exec getClassInfo '" + classID + "'"  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
 
-    # 开班管理菜单
-    # if len(driver.find_elements(By.XPATH, "//li[contains(text(),'班级管理')]")) == 0:
-    driver.find_elements(By.XPATH, "//span[contains(text(),'开班管理')]")[0].click()  # 点击开班管理菜单
+    # 培训计划管理菜单
+    driver.find_elements(By.XPATH, "//span[contains(text(),'培训计划管理')]")[0].click()  # 点击培训计划管理菜单
     time.sleep(1)
-    # else:
-    # driver.find_elements(By.XPATH, "//li[contains(text(),'班级管理')]")[0].click()  # 点击班级管理菜单
-    name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//li[contains(text(),'班级管理')]")))
-    name_input.click()
+    m_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//li[contains(text(),'计划上报')]")))  # 点击计划上报菜单
+    m_input.click()
     time.sleep(1)
     # 选择课程
     # 点击下拉框
-    name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'资格类型')]/following-sibling::div//input[contains(@placeholder, '查询全部')]")[0].click()
+    name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'资格类型')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
     time.sleep(1)
     # 点击符合要求的项目
-    name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li[contains(text(),'" + courseName + "')]")))
-    name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li[contains(text(),'" + courseName + "')]")[0].click()
-    time.sleep(1)
+    name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + courseName + "')]")))
+    name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + courseName + "')]")[0].click()
+    # time.sleep(1)
     # 选择类型
     # 点击下拉框
     name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//form[@class='el-form']//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")))
     name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
     time.sleep(1)
     # 点击符合要求的类型
-    name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + reex + "')]")[0].click()
-    # 开班编号
-    name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'开班编号:')]/following-sibling::div/div//input")[0]
-    clean_send(name_input, classID)
-    # 查找按钮
-    search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '查询')]/..")[0]
+    name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + reex + "')]")[0].click()
+    # 新增按钮
+    search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '新增')]/..")[0]
     search_btn.click()
     time.sleep(1)
-    # wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'" + classID + "')]")))
-    driver.find_elements(By.XPATH, "//div[contains(text(),'" + classID + "')]")[0].click()  # 点击班级记录
-    # 考核申请材料上传
-    search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '修改课程安排')]/..")[0]
+    rs = cursor.fetchall()
+    # 计划人数
+    wait.until(EC.presence_of_element_located((By.XPATH, "//label[@for='planTrainCnt']")))
+    # 添加计划人数
+    name_input = driver.find_element(By.XPATH, "//label[@for='planTrainCnt']/following-sibling::div//input[@class='el-input__inner']")
+    clean_send(name_input, rs[0][3])
+    # 添加办学地点
+    name_input = driver.find_element(By.XPATH, "//label[@for='trainAddress']/following-sibling::div//input[@class='el-input__inner']")
+    clean_send(name_input, rs[0][4])
+    # 添加培训日期
+    name_input = driver.find_element(By.XPATH, "//label[@for='startDate']/following-sibling::div//input[@class='el-input__inner']")
+    clean_send(name_input, rs[0][5])
+    name_input.send_keys(Keys.ENTER)  # 按下Enter键确认选择
+    # 添加截止日期
+    name_input = driver.find_element(By.XPATH, "//label[@for='endDate']/following-sibling::div//input[@class='el-input__inner']")
+    clean_send(name_input, rs[0][6])
+    name_input.send_keys(Keys.ENTER)  # 按下Enter键确认选择
+    # 添加填写人
+    name_input = driver.find_element(By.XPATH, "//label[@for='modifyName']/following-sibling::div//input[@class='el-input__inner']")
+    clean_send(name_input, register)
+    # name_input.click()
+    # 下一步按钮
+    search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '下一步')]/..")[0]
     search_btn.click()
     time.sleep(1)
-    wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(), '班级培训负责人')]")))
-    # 添加班主任
-    name_input = driver.find_element(By.XPATH, "//label[contains(text(), '班级培训负责人')]/../following-sibling::div//input[@class='el-input__inner']")
-    clean_send(name_input, adviser)
+    # 添加班级培训负责人
+    name_input = driver.find_element(By.XPATH, "//label[@for='teacherName']/../following-sibling::div//input[@class='el-input__inner']")
+    clean_send(name_input, adviser[0])
 
+    # 添加授课计划
+    # 获取课表
+    sql = "exec getClassScheduleList '" + classID + "'"  # 数据库查询语句
+    cursor.execute(sql)  # 执行sql语句
     rs = cursor.fetchall()
     # print(len(rs))
     _no = 0
-    _form = []
+    # _form = []
+    _td = []
     _i = 0
     for row in rs:
         try:
-            _form = driver.find_elements(By.XPATH, "//form[@class='el-form demo-form-inline el-form--inline']")
-            # 是否有空行
-            if row[2] == 0:   # 上午
-                _i = 0
-                _no += 1
-                if len(_form) < _no:  # 需要添加行
-                    search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '新 增')]")[0]
-                    # search_btn.click()
-                    # 使用JavaScript执行点击操作
-                    driver.execute_script("arguments[0].click();", search_btn)
-                    time.sleep(1)
-                    _form = driver.find_elements(By.XPATH, "//form[@class='el-form demo-form-inline el-form--inline']")
-                # 添加日期
-                name_input = _form[_no-1].find_elements(By.XPATH, "//input[@class='el-input__inner']")
-                clean_send(name_input[(_no-1)*5+1], row[1])
-            else:
-                _i = 1
-            # 添加课程
-            name_input = _form[_no-1].find_elements(By.XPATH, "//input[@class='el-input__inner']")
-            # name_input[(_no-1)*5 + _i*2 + 2].send_keys(row[3])
-            clean_send(name_input[(_no-1)*5 + _i*2 + 2], row[3])
-            # 添加授课人
-            # name_input[(_no-1)*5 + _i*2 + 3].send_keys(row[4])
-            clean_send(name_input[(_no-1)*5 + _i*2 + 3], row[4])
+            search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '新 增')]/..")[0]
+            search_btn.click()
+            # 使用JavaScript执行点击操作
+            # driver.execute_script("arguments[0].click();", search_btn)
+            time.sleep(1)
+            # _form = driver.find_elements(By.XPATH, "//colgroup/following-sibling::tbody/tr")[_no]
+            # _form1 = driver.find_elements(By.XPATH, "//colgroup/following-sibling::tbody/tr[" + str(_no+1) + "]")[0]
+            _td = driver.find_elements(By.XPATH, "//colgroup/following-sibling::tbody/tr/td")
+            # 填写日期
+            name_input = _td[_i].find_elements(By.XPATH, ".//input")[0]
+            clean_send(name_input, row[1])
+            # name_input.send_keys(Keys.ENTER)  # 按下Enter键确认选择
+            # 填写上下午
+            name_input = _td[_i+1].find_elements(By.XPATH, ".//input/following-sibling::span//i")[0].click()
+            time.sleep(1)
+            # 点击符合要求的项目
+            # name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + str(row[2]) + "')]")))
+            name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + row[2] + "')]")
+            name_input[_no].click()
+            # time.sleep(1)
+            # 填写课程
+            name_input = _td[_i+2].find_elements(By.XPATH, ".//input")[0]
+            clean_send(name_input, row[3])
+            # 填写学时
+            name_input = _td[_i+3].find_elements(By.XPATH, ".//input/following-sibling::span//i")[0].click()
+            time.sleep(1)
+            # 点击符合要求的项目
+            # name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + str(row[4]) + "')]")))
+            name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + str(row[4]) + "')]")
+            name_input[_no].click()
+            # time.sleep(1)
+            # 填写老师
+            name_input = _td[_i+4].find_elements(By.XPATH, ".//input")[0]
+            clean_send(name_input, row[5])
+            # 填写老师身份证
+            name_input = _td[_i+5].find_elements(By.XPATH, ".//input")[0]
+            clean_send(name_input, row[6])
+            # 填写课程类型
+            name_input = _td[_i+6].find_elements(By.XPATH, ".//input/following-sibling::span//i")[0].click()
+            time.sleep(1)
+            # 点击符合要求的项目
+            # name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + row[7] + "')]")))
+            name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + str(row[7]) + "')]")
+            name_input[_no].click()
+            # time.sleep(1)
+            # 填写教室
+            name_input = _td[_i+7].find_elements(By.XPATH, ".//input")[0]
+            clean_send(name_input, row[8])
+            _i += 9
+            _no += 1
 
         except Exception as e:
-            # print("exceptZ:", e)
+            print("exceptZ:", e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
             break
 
-    if _no > 0:
-        search_btn = driver.find_element(By.XPATH, "//button/span[contains(text(), '保存')]/..")
-        search_btn.click()
-        time.sleep(3)
+    # 暂存按钮
+    search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '暂存')]/..")[0]
+    search_btn.click()
+    time.sleep(2)
+    # 判断保存结果
+    if driver.find_elements(By.XPATH, "//p[contains(text(),'添加班级信息成功')]"):
         # 提交成功，确定按钮
         name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
         name_input.click()
-        result["count_s"] = _no
-        sql = "exec setUploadSchedule '" + classID + "','system.'"  # 记录上传日志
-        cursor.execute(sql)  # 执行sql语句
-        d_list.remove(adviser[0])     # 从列表中删除已成功数据
+        time.sleep(1)
+
+        # 获取计划ID
+        m_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//li[contains(text(),'计划管理')]")))  # 点击计划管理菜单
+        m_input.click()
+        time.sleep(1)
+        # 选择课程
+        # 点击下拉框
+        name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'资格类型')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
+        time.sleep(1)
+        # 点击符合要求的项目
+        name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + courseName + "')]")))
+        name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + courseName + "')]")[0].click()
+        # time.sleep(1)
+        # 选择类型
+        # 点击下拉框
+        name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//form[@class='el-form']//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")))
+        name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
+        time.sleep(1)
+        # 点击符合要求的类型
+        name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + reex + "')]")[0].click()
+        # 查询按钮
+        search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '查询')]/..")[0]
+        search_btn.click()
+        time.sleep(1)
+        # 查找最后一个计划
+        _form = driver.find_elements(By.XPATH, "//colgroup/following-sibling::tbody/tr")
+        _i = len(_form)
+        if _i > 0:
+            # planID = driver.find_elements(By.XPATH, "//colgroup/following-sibling::tbody/tr[" + str(_i) + "]/td[2]/div")[0].text
+            divs = driver.find_elements(By.XPATH, "//colgroup/following-sibling::tbody/tr/td[2]/div")     # 获取所有行的第二列（计划编号）
+            planID = max([element.text for element in divs])
+            # 保存数据
+            sql = "exec setUploadSchedule '" + classID + "','" + planID + "','system.'"  # 记录上传日志
+            cursor.execute(sql)  # 执行sql语句
+            d_list.clear()    # 从列表中删除数据
+            result["count_s"] = _no
+
     # 关闭数据库
     cursor.close()
     # conn.close()
@@ -1069,19 +1149,20 @@ if __name__ == '__main__':
     # username = "13651648767"
     # password = "Pqf1823797198"
     # register = "desk."
-    # d_list = '9506'.split(',')    # 需要处理的数据列表
+    # d_list = '测试'.split(',')    # 需要处理的数据列表
     # courseName = "低压电工作业"  # 课程名称
     # # courseName = "低压电工作业"  # 课程名称
     # kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
     # if login_fr() == 0:
     #     i = 0
     #     while len(d_list) > 0:
-    #         enter_by_list0(d_list, kind)
+    #         # enter_by_list0(d_list, kind)
     #         # enter_by_list1(d_list)
-    #         # enter_by_list11(d_list, '0110092507105', courseName, '初证')
+    #         enter_by_list7(d_list, '290', courseName, '初证')
     #         # enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+    #         # enter_by_list11(d_list, '0110092507105', courseName, '初证')
     #         i += 1
     #         if i > 3:
     #             break
@@ -1116,7 +1197,7 @@ if __name__ == '__main__':
                 if reexamine == '1':
                     enter_by_list1(d_list)
                 if reexamine == '7':    # 上传课表
-                    enter_by_list7(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+                    enter_by_list7(d_list, sys.argv[5], sys.argv[6], sys.argv[7])   # adviser, classID, courseName, reex
                 if reexamine == '8':    # 上传照片
                     # 5:classID, 6:courseName, 7:reex（初训,复训,初训补考,复训补考）
                     enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])

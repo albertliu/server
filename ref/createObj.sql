@@ -11,7 +11,8 @@ ALTER DATABASE elearning SET RECOVERY FULL
 --set datefirst 1  --将星期一设为第一天
 
 select * from dictionaryDoc where kind like '%material%' order by kind, ID
-select * from dictionaryDoc where kind like '%statusYes%' order by kind, ID
+select * from dictionaryDoc where kind like '%schedule%' order by kind, ID
+select * from dictionaryDoc where kind like '%online%' order by kind, ID
 select * from dictionaryDoc where item like '%预备%' order by kind, ID
 --delete from dictionaryDoc where mID=1298
 insert into dictionaryDoc(ID,item,kind,description,memo) values('0','公开','servicePrivate','','')
@@ -22,7 +23,8 @@ insert into dictionaryDoc(ID,item,kind,description,memo) values('5','其他','IDki
 insert into dictionaryDoc(ID,item,kind,description,memo) values('6','六','week','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('8','社保证明','material','student_social','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('0','个人','fromKind','','')
-update dictionaryDoc set item='居住证' where mID=1276
+update dictionaryDoc set item='实操' where mID=1297
+update dictionaryDoc set item='线上' where mID=1291
 update dictionaryDoc set item='研究生及以上' where mID=242
 update dictionaryDoc set item='本科或同等学历' where mID=241
 update dictionaryDoc set item='专科或同等学历' where mID=240
@@ -237,7 +239,7 @@ CREATE TABLE [dbo].[courseInfo](
 	[deadline] [int] NULL default(20),		--高于此数不可退课（%）
 	[deadday] [int] NULL default(20),		--高于此数不可退课（天）
 	[period] [int] NULL default(90),		--高于此数强制结束课程（天）
-	[periodExt] [int] NULL default(360),	--不合格者可延长学习时间（天）
+	[periodExt] [int] NULL default(360),	--最短培训周期（天）
 	[completionPass] [int] NULL default(100),		--达到于此数可结业（%）
 	[host] [varchar](50) NOT NULL,			--专属项目所有者
 	[memo] [varchar](500) NULL,
@@ -7111,7 +7113,7 @@ BEGIN
 	--send system message
 	if exists(select 1 from generateApplyInfo where ID=@batchID)
 	begin
-		declare rc cursor for select username,'尊敬的' + a.name + '：请您于' + examDate + '参加' + b.courseName + '考试，地点为' + b.address + '。请携带身份证、准考证，迟到15分钟不得入场。',a.host from v_applyInfo a, v_generateApplyInfo b where a.refID=b.ID and b.ID=@batchID and a.statusApply=1
+		declare rc cursor for select username,'尊敬的' + a.name + '：请您于' + examDate + '参加' + b.courseName + '考试，地点为' + b.address + '。请携带身份证、准考证，迟到15分钟不得入场。',a.host from v_applyInfo a, v_generateApplyInfo b where a.refID=b.ID and b.ID=@batchID and a.examDate>'' -- and a.statusApply=1
 		open rc
 		fetch next from rc into @username,@item,@host
 		While @@fetch_status=0 
@@ -7125,7 +7127,7 @@ BEGIN
 		update generateApplyInfo set send = send + 1,sendDate=getDate(),sender=@registerID where ID=@batchID
 	end
 	--return students list for send mobile message
-	select name,username,mobile,b.courseName as certName,a.enterID, examDate as dt, b.address,'尊敬的' + a.name + '：请您于' + examDate + '参加' + b.courseName + '考试，地点为' + b.address + '。请携带身份证、准考证，迟到15分钟不得入场。' as item from v_applyInfo a, v_generateApplyInfo b where a.refID=b.ID and b.ID=@batchID and a.statusApply=1
+	select name,username,mobile,b.courseName as certName,a.enterID, examDate as dt, b.address,'尊敬的' + a.name + '：请您于' + examDate + '参加' + b.courseName + '考试，地点为' + b.address + '。请携带身份证、准考证，迟到15分钟不得入场。' as item from v_applyInfo a, v_generateApplyInfo b where a.refID=b.ID and b.ID=@batchID and a.examDate>'' -- and a.statusApply=1
 END
 GO
 
@@ -7912,7 +7914,7 @@ GO
 -- 根据给定的参数，添加或者更新申报信息
 -- USE CASE: exec updateGenerateApplyInfo 1,'P1','xxxx'...
 ALTER PROCEDURE [dbo].[updateGenerateApplyInfo]
-	@ID int,@courseID varchar(50),@applyID varchar(50),@title nvarchar(100),@startDate varchar(100),@address nvarchar(100),@teacher varchar(50),@classroom nvarchar(100),@adviserID varchar(50),@diplomaReady varchar(50),@host varchar(50),@memo nvarchar(500),@summary nvarchar(2000),@registerID varchar(50)
+	@ID int,@courseID varchar(50),@applyID varchar(50),@title nvarchar(100),@startDate varchar(100),@endDate varchar(100),@planID varchar(50),@planQty varchar(50),@notes nvarchar(500),@address nvarchar(100),@teacher varchar(50),@classroom nvarchar(100),@adviserID varchar(50),@diplomaReady varchar(50),@host varchar(50),@memo nvarchar(500),@summary nvarchar(2000),@registerID varchar(50)
 AS
 BEGIN
 	declare @re int
@@ -7921,12 +7923,12 @@ BEGIN
 	if @ID=0	-- 新纪录
 	begin
 		--填写生成记录
-		insert into generateApplyInfo(courseID,applyID,title,startDate,address,teacher,classroom,diplomaReady,host,memo,registerID) values(@courseID,@applyID,@title,@startDate,@address,@teacher,@classroom,@diplomaReady,@host,@memo,@registerID)
+		insert into generateApplyInfo(courseID,applyID,title,startDate,endDate,planID,planQty,notes,address,teacher,classroom,diplomaReady,host,memo,registerID) values(@courseID,@applyID,@title,@startDate,@endDate,@planID,@planQty,@notes,@address,@teacher,@classroom,@diplomaReady,@host,@memo,@registerID)
 		select @re=max(ID) from generateApplyInfo where registerID=@registerID
 	end
 	if @ID>0	-- 保存信息
 	begin
-		update generateApplyInfo set applyID=@applyID,title=@title,summary=@summary,startDate=@startDate,address=@address,teacher=@teacher,classroom=@classroom,adviserID=@adviserID,diplomaReady=@diplomaReady,host=@host,memo=@memo where ID=@ID
+		update generateApplyInfo set applyID=@applyID,title=@title,summary=@summary,startDate=@startDate,endDate=@endDate,planID=@planID,planQty=@planQty,notes=@notes,address=@address,teacher=@teacher,classroom=@classroom,adviserID=@adviserID,diplomaReady=@diplomaReady,host=@host,memo=@memo where ID=@ID
 	end
 	select @re as re
 END
@@ -9557,6 +9559,19 @@ BEGIN
 END
 GO
 
+-- =============================================
+-- CREATE Date: 2025-09-27
+-- Description:	根据classID获取generateApplyInfo数据
+-- Use Case:	exec [getClassInfo] '...'
+-- =============================================
+CREATE PROCEDURE [dbo].[getClassInfo] 
+	@classID int
+AS
+BEGIN
+	select ID,applyID,planID,planQty,notes,startDate,endDate from v_generateApplyInfo where ID=@classID
+END
+GO
+
 -- CREATE DATE: 2023-05-30
 -- 申报说明
 CREATE PROCEDURE [dbo].[setApplyMemo]
@@ -10143,11 +10158,19 @@ BEGIN
 	if @classID=0
 		select @classID=max(refID) from applyInfo where enterID=@enterID
 	select @checkinMark=checkinMark from generateApplyInfo where ID=@classID
-	select a.theDate + iif(@checkinMark=1,a.typeName,'') as theDate,a.item,a.teacherName,a.kindName,a.classID, b.file1, b.file2 from 
-	(select * from v_classSchedule where mark='A' and online=0 and (typeID=0 or typeID=@checkinMark) and classID = @classID) a 
-	left outer join 
-	(select d.file1,d.file2,c.refID from checkinInfo c, faceDetectInfo d where c.enterID=d.refID and c.refID=d.keyID and c.kindID=1 and d.kindID=2 and c.enterID=@enterID) b
-	on a.ID=b.refID
+
+	if @classID>0
+		select a.theDate + iif(@checkinMark=1,a.typeName,'') as theDate,a.item,a.teacherName,a.kindName,a.classID, b.file1, b.file2 from 
+		(select * from v_classSchedule where mark='A' and online=0 and (typeID=0 or typeID=@checkinMark) and classID = @classID) a 
+		left outer join 
+		(select d.file1,d.file2,c.refID from checkinInfo c, faceDetectInfo d where c.enterID=d.refID and c.refID=d.keyID and c.kindID=1 and d.kindID=2 and c.enterID=@enterID) b
+		on a.ID=b.refID
+	else
+		select a.theDate as theDate,a.item,a.teacherName,a.kindName,a.classID, b.file1, b.file2 from 
+		(select * from v_classSchedule where mark='A' and online=0) a 
+		inner join 
+		(select d.file1,d.file2,c.refID from checkinInfo c, faceDetectInfo d where c.enterID=d.refID and c.refID=d.keyID and c.kindID=1 and d.kindID=2 and c.enterID=@enterID) b
+		on a.ID=b.refID
 END
 GO
 
@@ -11013,21 +11036,22 @@ GO
 -- 查询班级课表
 -- USE CASE: exec [getClassScheduleList] '123'
 ALTER PROCEDURE [dbo].[getClassScheduleList]
-	@applyID varchar(50)
+	@classID int
 AS
 BEGIN
-	select a.ID, a.theDate, a.typeID, item, isnull(a.teacherName,'未知') as teacherName from v_classSchedule a, generateApplyInfo b where a.classID=b.ID and a.mark='A' and a.status=0 and b.applyID=@applyID and a.std=1 order by a.seq
+	select a.ID, a.theDate, a.typeName, item, iif(a.hours>4,4,iif(a.hours<1,1,a.hours)) as hours, isnull(a.teacherName,'未知') as teacherName, a.teacherSID, a.kindOnline, a.address,a.online, a.typeID 
+	from v_classSchedule a, generateApplyInfo b where a.classID=b.ID and a.mark='A' and a.status=0 and b.ID=@classID and a.std=1 order by a.seq
 END
 GO
 
 -- CREATE DATE: 2024-10-15
 -- 标记课表上传记录
 -- USE CASE: exec [setUploadSchedule] '123'
-CREATE PROCEDURE [dbo].[setUploadSchedule]
-	@applyID varchar(50), @registerID varchar(50)
+ALTER PROCEDURE [dbo].[setUploadSchedule]
+	@classID varchar(50), @planID varchar(50), @registerID varchar(50)
 AS
 BEGIN
-	update generateApplyInfo set uploadScheduleDate=getDate(),uploadScheduler=@registerID where applyID=@applyID
+	update generateApplyInfo set planID=@planID,uploadScheduleDate=getDate(),uploadScheduler=@registerID where ID=@classID
 END
 GO
 
@@ -11534,6 +11558,36 @@ BEGIN
 	select @logMemo = @unitName+'  '+@linker+'  '+@phone+'  '+@memo
 	exec writeOpLog '','企业客户信息','updateSalerUnitInfo',@registerID,@logMemo,@ID
 	select @ID as re
+END
+GO
+
+-- CREATE DATE: 2025-09-29
+-- 检查某个班级的课表是否符合上报要求
+-- 开班日期、班主任、培训地点，计划人数在 1-60 人之间，课表日期在计划日期之间，教师姓名，身份证，教室，学时1-4，课表日期+上下午不得重复
+-- USE CASE: exec checkClassSchedule 1
+ALTER PROCEDURE [dbo].[checkClassSchedule]
+	@classID varchar(50)
+AS
+BEGIN
+	declare @re int, @msg nvarchar(4000),@startDate smalldatetime,@endDate smalldatetime,@courseID varchar(50)
+	select @startDate=startDate,@endDate=endDate,@courseID=courseID,@msg='',@re=0 from generateApplyInfo where ID=@classID
+	--开班日期必须是下个月
+	if month(getDate())>=month(@startDate)
+		select @msg = @msg + '培训日期必须为下个月；'
+	--培训周期
+	if exists(select 1 from courseInfo where courseID=@courseID and period>datediff(d,@startDate,@endDate)+1)
+		select @msg = @msg + '培训周期不足，至少天数：' + cast(period as varchar) + '；' from courseInfo where courseID=@courseID
+	--班主任、培训地点，计划人数
+	select @msg=@msg+iif(planQty<1 or planQty>60,'计划人数应在 1-60 人之间；','')+iif(adviserName>'','','班主任未填；')+iif(notes='','培训地点未填；','') from v_generateApplyInfo where ID=@classID
+	--课表日期在计划日期之间
+	if exists(select 1 from classSchedule where classID=@classID and mark='A' and (theDate<@startDate or theDate>@endDate))
+		select @msg = @msg + '课表日期超出培训周期；'
+	--教师姓名，身份证，教室，学时1-4
+	select @msg=@msg+iif(teacherName='','教师姓名有空缺；','')+iif(teacherSID='','教师身份证有空缺；','')+iif(online=0 and address='','线下教室有空缺；','')+iif(hours<1 or hours>4,'学时应在1-4之间；','') from v_classSchedule where classID=@classID and mark='A'
+	--课表日期+上下午不得重复
+	if exists(select 1 from classSchedule where classID=@classID and mark='A' group by theDate, typeID having count(*)>1)
+		select @msg = @msg + '课表日期+上下午不得重复；'
+	select @msg as msg
 END
 GO
 
