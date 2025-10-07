@@ -96,6 +96,8 @@ CREATE TABLE [dbo].[unitInfo](
 	[address] [nvarchar](100) NULL,
 	[email] [nvarchar](200) NULL,
 	[status] [int] NULL DEFAULT ((0)),
+	[checker] [varchar](50) NULL,
+	[association] [nvarchar](50) NULL,
 	[memo] [nvarchar](2000) NULL,
 	[host] [varchar](50) NULL,
 	[regDate] [datetime] NULL DEFAULT (getdate()),
@@ -2987,7 +2989,7 @@ AS
 BEGIN
 	SET NOCOUNT ON;
 	DECLARE @logMemo varchar(500),@event varchar(50),@userID int,@re int
-	select @logMemo = '',@dept1Name=REPLACE(@dept1Name,' ',''), @re=0	--0 success
+	select @logMemo = '',@dept1Name=REPLACE(@dept1Name,' ',''), @tax= UPPER(replace(dbo.whenull(@tax,''),' ','')), @address=REPLACE(dbo.whenull(@address,''),' ',''), @re=0	--0 success
 	if @limitDate = '' or @limitDate = 'null' or @limitDate= 'undefined'
 		set @limitDate = null
 	if @dept1 = '' or @dept1 = 'null' or @dept1= 'undefined' or @dept1= '0'
@@ -3025,6 +3027,15 @@ BEGIN
 			set @re =  3   --error: the companyID wrong.
 		if @re = 0
 		begin
+			if @tax>''
+				select @unit=unitName, @address=address from unitInfo where taxNo=@tax
+			else if @unit>''
+				select @tax=taxNo, @address=address from unitInfo where unitName=@unit
+			else if @host='shm'
+				select @unit=a.unitName,@tax=a.taxNo, @address=a.address from unitInfo a, deptInfo b where b.host='shm' and b.deptID=@dept1 and a.unitName=b.deptName
+			else if @host='spc' and @kindID=0
+				select @unit=a.unitName,@tax=a.taxNo, @address=a.address from unitInfo a, deptInfo b where b.host='spc' and b.deptID=8 and a.unitName=b.deptName
+			exec setUnitTaxConfirm @unit,@tax,@address,'',''
 			insert into studentInfo(host,userName,name,password,kindID,companyID,dept1,dept2,dept3,job,job_status,mobile,phone,email,address,education,unit,tax,dept,ethnicity,IDaddress,bureau,IDdateStart,IDdateEnd,experience,memo,birthday,sex,age,linker,fromID,fromKind,registerID) 
 				values(@host,upper(@username),@name,@password,@kindID,@companyID,@dept1,@dept2,@dept3,@job,@job_status,@mobile,@phone,@email,@address,@education,@unit,@tax,@dept,@ethnicity,@IDaddress,@bureau,@IDdateStart,@IDdateEnd,@experience,@memo,substring(@username,7,8),dbo.getSexfromID(@username),dbo.getAgefromID(@username),@linker,@fromID,@fromKind,@registerID)
 			select @userID=userID from studentInfo where username=@username
@@ -3132,6 +3143,11 @@ BEGIN
 	else
 		if @re = 0
 		begin
+			if @tax>''
+				select @unit=unitName, @address=address from unitInfo where taxNo=@tax and checker>''
+			else if @unit>''
+				select @tax=taxNo, @address=address from unitInfo where unitName=@unit and checker>''
+			exec setUnitTaxConfirm @unit,@tax,@address,'',''
 			insert into studentInfo(host,userName,name,kindID,companyID,dept1,dept2,dept3,job,job_status,mobile,phone,email,address,education,unit,tax,dept,ethnicity,IDaddress,bureau,IDdateStart,IDdateEnd,experience,memo,birthday,sex,age,linker,fromID,fromKind,registerID) 
 				values(@host,upper(@username),@name,@kindID,@companyID,@dept1,@dept2,@dept3,@job,@job_status,@mobile,@phone,@email,@address,@education,@unit,@tax,@dept,@ethnicity,@IDaddress,@bureau,@IDdateStart,@IDdateEnd,@experience,@memo,@birthday,@sex,@age,@linker,@fromID,@fromKind,@registerID)
 			select @userID=userID from studentInfo where username=@username
@@ -4910,13 +4926,13 @@ GO
 -- 根据给定的参数，添加或者更新导入学员报名信息（仅智能消防学校）. dept2Name有值的（加油站），判定为中石化员工
 -- USE CASE: exec generateStudent 1,1,'xxxx'...
 ALTER PROCEDURE [dbo].[generateStudent]
-	@username varchar(50),@name nvarchar(50),@dept1Name nvarchar(100),@dept2Name nvarchar(100),@job varchar(50),@mobile nvarchar(50),@address nvarchar(50),@education nvarchar(50),@currDiplomaDate nvarchar(50),@memo nvarchar(500),@classID varchar(50),@oldNo varchar(50),@registerID varchar(50)
+	@username varchar(50),@name nvarchar(50),@dept1Name nvarchar(100),@tax varchar(50),@dept2Name nvarchar(100),@job varchar(50),@mobile nvarchar(50),@address nvarchar(50),@education nvarchar(50),@currDiplomaDate nvarchar(50),@memo nvarchar(500),@classID varchar(50),@oldNo varchar(50),@registerID varchar(50)
 
 AS
 BEGIN
 	declare @password varchar(50),@kindID int,@companyID varchar(50),@dept1 varchar(50),@dept2 varchar(50),@fromID varchar(50),@price int,@unit varchar(100),@educationID int,@certID varchar(50),@courseID varchar(50),@projectID varchar(50),@host varchar(50),@err int,@exist int,@existOther int,@null int,@Tai int,@msg varchar(50)
 	declare @retireDay int, @enterID int, @refID int
-	select @dept1=0, @dept2=0, @unit=null, @educationID=0,@err=0,@exist=0,@existOther=0,@null=0,@oldNo=(case when @oldNo>0 then @oldNo else 0 end),@Tai=charindex('台',@username),@host='znxf',@username = upper(@username)
+	select @dept1=0, @dept2=0, @unit=null, @educationID=0,@err=0,@exist=0,@existOther=0,@null=0,@oldNo=(case when @oldNo>0 then @oldNo else 0 end),@Tai=charindex('台',@username),@host='znxf',@username = upper(@username), @tax= UPPER(replace(dbo.whenull(@tax,''),' ','')), @address=REPLACE(dbo.whenull(@address,''),' ','')
 	select @password = item,@kindID=0 from dictionaryDoc where kind='studentPasswd'
 	select @educationID=ID from dictionaryDoc where kind='education' and item=@education
 	if @currDiplomaDate='' or @currDiplomaDate='null' or @currDiplomaDate='undefined' set @currDiplomaDate=''
@@ -4952,8 +4968,17 @@ BEGIN
 		-- 注册学员
 		if not exists(select 1 from studentInfo where username=@username)	-- 新纪录
 		begin
-				insert into studentInfo(host,userName,name,password,kindID,companyID,dept1,dept2,unit,job,mobile,address,education,memo,birthday,sex,age,registerID) 
-				values(@host,upper(@username),@name,iif(@host<>'spc',@password,'Sh123456'),@kindID,@companyID,@dept1,@dept2,@unit,@job,@mobile,@address,@educationID,@memo,(case when @Tai=0 then substring(@username,7,8) else '2000-01-01' end),(case when @Tai=0 then dbo.getSexfromID(@username) else 0 end),(case when @Tai=0 then dbo.getAgefromID(@username) else '1' end),@registerID)
+			if @tax>''
+				select @unit=unitName, @address=address,@host=host from unitInfo where taxNo=@tax
+			else if @unit>''
+				select @tax=taxNo, @address=address,@host=host from unitInfo where unitName=@unit
+			else if @host='shm'
+				select @unit=a.unitName,@tax=a.taxNo, @address=a.address from unitInfo a, deptInfo b where b.host='shm' and b.deptID=@dept1 and a.unitName=b.deptName
+			else if @host='spc' and @kindID=0
+				select @unit=a.unitName,@tax=a.taxNo, @address=a.address from unitInfo a, deptInfo b where b.host='spc' and b.deptID=8 and a.unitName=b.deptName
+			exec setUnitTaxConfirm @unit,@tax,@address,'',''
+			insert into studentInfo(host,userName,name,password,kindID,companyID,dept1,dept2,unit,tax,job,mobile,address,education,memo,birthday,sex,age,registerID) 
+			values(@host,upper(@username),@name,iif(@host<>'spc',@password,'Sh123456'),@kindID,@companyID,@dept1,@dept2,@unit,@tax,@job,@mobile,@address,@educationID,@memo,(case when @Tai=0 then substring(@username,7,8) else '2000-01-01' end),(case when @Tai=0 then dbo.getSexfromID(@username) else 0 end),(case when @Tai=0 then dbo.getAgefromID(@username) else '1' end),@registerID)
 		end
 		else
 		begin
@@ -9555,7 +9580,7 @@ BEGIN
 		select @j = @j + 1
 	end
 	update #temp set punit=c.hostName from #temp a, v_applyInfo d, studentInfo b, hostInfo c where a.id=d.id and d.username=b.username and c.hostNo=b.host
-	select name,sexName,educationName,username,mobile,iif(a.host='spc' or a.host='shm',c.hostName,iif(a.unit>'',a.unit,punit)) as unit,iif(job='','管理',job) as job,link_address,IDdateStart,IDdateEnd,photo_filename as file1,certName,c.linker,a.ID,file2, (case when employe_filename>'' then N'工作证明' when job_filename>'' then N'居住证' when social_filename>'' then N'社保' else '' end) as jobcert, (case when employe_filename>'' then employe_filename when job_filename>'' then job_filename when social_filename>'' then social_filename else '' end) as jobfile,a.tax from v_applyInfo a, #temp b, hostInfo c where a.ID=b.id and a.host=c.hostNo order by passNo,a.ID
+	select name,sexName,educationName,username,mobile,iif(a.unit>'',a.unit,punit) as unit,iif(job='','管理',job) as job,link_address,IDdateStart,IDdateEnd,photo_filename as file1,certName,c.linker,a.ID,file2, (case when employe_filename>'' then N'工作证明' when job_filename>'' then N'居住证' when social_filename>'' then N'社保' else '' end) as jobcert, (case when employe_filename>'' then employe_filename when job_filename>'' then job_filename when social_filename>'' then social_filename else '' end) as jobfile,a.tax from v_applyInfo a, #temp b, hostInfo c where a.ID=b.id and a.host=c.hostNo order by passNo,a.ID
 END
 GO
 
@@ -10701,7 +10726,7 @@ BEGIN
 	select @host=host, @fname='' from studentCourseList where ID=@enterID
 	select @hostName=hostName from hostInfo where hostNo=@host
 	select @fname=filename, @startDate=isnull(convert(varchar(20),startDate,23),'') from generateApplyInfo where ID=@classID
-	select a.username,b.name,a.SNo,signatureType,isnull(a.signature,'') as signature,isnull(convert(varchar(20),a.signatureDate,23),'') as signatureDate,@startDate as startDate,c.reexamine,a.express,c.certID,c.courseName1 as courseName,a.price,c.price as priceStandard,@host as host,'上海智能消防学校' as hostName,b.sexName,birthday,b.mobile,b.age,b.job,b.educationName,b.address,b.IDaddress,b.ethnicity,b.IDdateStart,b.IDdateEnd,b.IDD_long,iif(a.host='spc' or a.host='shm',@hostName,b.unit) as unit,b.photo_filename,b.IDa_filename,b.IDb_filename,b.edu_filename,@fname as proof_filename 
+	select a.username,b.name,a.SNo,signatureType,isnull(a.signature,'') as signature,isnull(convert(varchar(20),a.signatureDate,23),'') as signatureDate,@startDate as startDate,c.reexamine,a.express,c.certID,c.courseName1 as courseName,a.price,c.price as priceStandard,@host as host,'上海智能消防学校' as hostName,b.sexName,birthday,b.mobile,b.age,b.job,b.educationName,b.address,b.IDaddress,b.ethnicity,b.IDdateStart,b.IDdateEnd,b.IDD_long,b.unit,b.photo_filename,b.IDa_filename,b.IDb_filename,b.edu_filename,@fname as proof_filename 
 		from studentCourseList a, v_studentInfo b, v_courseInfo c where a.username=b.username and a.courseID=c.courseID and a.ID=@enterID
 END
 GO
@@ -11194,7 +11219,7 @@ GO
 -- 获取班级学员列表信息（档案用）
 -- USE CASE: select * from dbo.[getStudentListByClassIDArchive]('123','A')
 -- kindID: A 申报班  B 培训班
-CREATE FUNCTION [dbo].[getStudentListByClassIDArchive]
+ALTER FUNCTION [dbo].[getStudentListByClassIDArchive]
 (	
 	@classID int, @kindID varchar(50)
 )
@@ -11209,7 +11234,7 @@ BEGIN
 	begin
 		select @refID=classID from classInfo where ID=@classID
 		INSERT INTO @tab
-		select username , name ,sexName , age, SNo ,mobile ,(case when host='znxf' then unit else hostName end) as unit1 ,score ,
+		select username , name ,sexName , age, SNo ,mobile ,unit ,score ,
 			diploma_startDate ,diplomaID ,score1 ,score2 ,statusName ,educationName ,hours ,
 			cast(isnull(completion,0) as decimal(18,2)) as completion1 ,cast(isnull(completion*hours/100,0) as decimal(18,2)) as hoursSpend1 ,startDate,ID
 		 from v_studentCourseList where classID=@refID
@@ -11217,7 +11242,7 @@ BEGIN
 	if @kindID='A'		--申报班
 	begin
 		INSERT INTO @tab
-		select username , name ,sexName , age, SNo ,mobile ,(case when host='znxf' then unit else hostName end) as unit1 ,a.score ,
+		select username , name ,sexName , age, SNo ,mobile ,unit,a.score ,
 			diploma_startDate ,diplomaID ,a.score1 ,a.score2 ,statusName ,educationName ,hours ,
 			cast(isnull(completion,0) as decimal(18,2)) as completion1 ,cast(isnull(completion*hours/100,0) as decimal(18,2)) as hoursSpend1 ,startDate,a.ID
 		 from v_studentCourseList a, applyInfo b where a.ID=b.enterID and b.refID=@classID
@@ -11556,8 +11581,71 @@ BEGIN
 	
 	-- 写操作日志
 	select @logMemo = @unitName+'  '+@linker+'  '+@phone+'  '+@memo
-	exec writeOpLog '','企业客户信息','updateSalerUnitInfo',@registerID,@logMemo,@ID
+	exec writeOpLog '','企业信息','updateSalerUnitInfo',@registerID,@logMemo,@ID
 	select @ID as re
+END
+GO
+
+-- CREATE DATE: 2025-06-25
+-- 根据给定的参数，确认企业名称和代码。
+-- USE CASE: exec setUnitTaxConfirm 'P1','xxxx'...
+CREATE PROCEDURE [dbo].[setUnitTaxConfirm]
+	@unitName nvarchar(4000),@taxNo varchar(50),@address nvarchar(100),@username varchar(50),@registerID varchar(50)
+AS
+BEGIN
+	declare @logMemo nvarchar(500)
+	select @unitName=replace(dbo.whenull(@unitName,''),' ',''), @taxNo=replace(dbo.whenull(@taxNo,''),' ',''), @address=replace(dbo.whenull(@address,''),' ','')
+	if @unitName>'' and @taxNo>'' and len(@taxNo)=18	--无名称或代码的或代码不正确的，不予处理
+	begin
+		if not exists(select 1 from unitInfo where unitName=@unitName or taxNo=@taxNo)	-- 新纪录
+		begin
+			insert into unitInfo(unitName,taxNo,address,checker,registerID) values(@unitName,@taxNo,@address,@registerID,@registerID)
+			--自动更新那些有相同名称但无税号的学员信息
+			update studentInfo set tax=@taxNo,address=iif(address is null and @address>'',@address,address) where unit=@unitName and (tax='' or tax is null)
+			select @logMemo='新增企业' + @unitName + @taxNo + @address
+		end
+		else
+		begin
+			if @registerID=''	--非人工确认的（一般来自学员注册信息变更时触发的自动登记）
+				update unitInfo set unitName=@unitName,address=iif(address is null and @address>'',@address,address) where taxNo=@taxNo and (checker='' or checker is null)
+			else
+			begin
+				if exists(select 1 from unitInfo where unitName=@unitName and taxNo<>@taxNo)
+					update unitInfo set taxNo=@taxNo,address=iif(@address>'',@address,address),checker=@registerID where unitName=@unitName
+				else if exists(select 1 from unitInfo where taxNo=@taxNo and unitName<>@unitName)
+					update unitInfo set unitName=@unitName,address=iif(@address>'',@address,address),checker=@registerID where taxNo=@taxNo
+				--根据确认的企业信息，更新与此不符的学员信息
+				update studentInfo set tax=@taxNo,address=iif(address is null and @address>'',@address,address) where unit=@unitName and tax<>@taxNo
+				update studentInfo set unit=@unitName,address=iif(address is null and @address>'',@address,address) where tax=@taxNo and unit<>@unitName
+				select @logMemo='确认企业代码' + @unitName + @taxNo + @address
+			end
+		end
+
+		if @username>''
+			update studentInfo set tax=@taxNo, unit=@unitName, address=@address where username=@username
+	
+		-- 写操作日志
+		exec writeOpLog '','企业信息','setUnitTaxConfirm',@registerID,@logMemo,@taxNo
+	end
+	select @taxNo as re
+END
+GO
+
+-- CREATE DATE: 2025-06-25
+-- 根据给定的参数，检查企业名称和代码是否已登记，以代码为主。
+-- USE CASE: exec checkUnitInfo 'P1','xxxx'...
+ALTER PROCEDURE [dbo].[checkUnitInfo]
+	@unitName nvarchar(4000),@taxNo varchar(50)
+AS
+BEGIN
+	declare @re int
+	select @unitName=replace(dbo.whenull(@unitName,''),' ',''), @taxNo=replace(dbo.whenull(@taxNo,''),' ','')
+	if @taxNo>'' and exists(select 1 from unitInfo where taxNo=@taxNo)	-- 有代码
+		select 1 as re,unitName,taxNo,saler,checker,checkerName,isnull(address,'') as address,isnull(phone,'') as phone from v_unitInfo where taxNo=@taxNo
+	else if @unitName>'' and exists(select 1 from unitInfo where unitName=@unitName)	-- 有单位名称
+		select 2 as re,unitName,taxNo,saler,checker,checkerName,isnull(address,'') as address,isnull(phone,'') as phone from v_unitInfo where unitName=@unitName
+	else
+		select 0 as re
 END
 GO
 
@@ -11588,6 +11676,31 @@ BEGIN
 	if exists(select 1 from classSchedule where classID=@classID and mark='A' group by theDate, typeID having count(*)>1)
 		select @msg = @msg + '课表日期+上下午不得重复；'
 	select @msg as msg
+END
+GO
+
+--CREATE Date:2020-05-18
+--返回学员指定资料图片的大小
+--kindID: 
+--0	照片
+--1	身份证正面
+--2	身份证背面
+--3	学历证书
+--4	学信网认证
+--5	在职证明
+--6	居住证
+--7	承诺书
+--8	社保证明
+--USE CASE: [dbo].[getStudentMaterialSize]('123','0')
+CREATE FUNCTION [dbo].[getStudentMaterialSize](
+	@username varchar(50), @kindID int
+)
+RETURNS int
+AS
+BEGIN
+	declare @re int
+	select @re = size from studentMaterials where username=@username and kindID=@kindID
+	return isnull(@re,0)
 END
 GO
 

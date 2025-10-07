@@ -354,8 +354,9 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     let r_existOther_msg = "";
     let idx = 0;
     let job = "";
+    let tax = "";
     data1.forEach(function (val) {
-      pn = val["联系地址"];
+      pn = val["单位地址"];
       if (typeof (pn) == "undefined") {
         pn = '';
       }
@@ -382,7 +383,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
       job = val["岗位/职务"] || val["工种/职务"];
       // if(p1>""){
         sqlstr = "generateStudent";
-        params = { "username": p1.replace(/\s+/g, ""), "name": p2.replace(/\s+/g, ""), "dept1Name": val["单位"], "dept2Name": val["加油站"] || "", "currDiplomaDate": p3, "job": job, "mobile": "" + mn, "address": "" + pn, "education": val["文化程度"], "memo": val["备注"], "classID": key, "oldNo": val["序号"], "registerID": currUser };
+        params = { "username": p1.replace(/\s+/g, ""), "name": p2.replace(/\s+/g, ""), "dept1Name": val["单位名称"] || "", "tax": val["单位代码"] || "", "dept2Name": val["加油站"] || "", "currDiplomaDate": p3, "job": job, "mobile": "" + mn, "address": "" + pn, "education": val["文化程度"], "memo": val["备注"], "classID": key, "oldNo": val["序号"], "registerID": currUser };
         // console.log("params.",params);
         db.excuteProc(sqlstr, params, function (err, data) {
           if (err) {
@@ -807,6 +808,14 @@ router.post('/uploadBase64img', async function (req, res, next) {
       break;
     case "student_employment":
       uploadFolder = "students/employments/";
+      fn = req.body.username;
+      break;
+    case "student_social":
+      uploadFolder = "students/socials/";
+      fn = req.body.username;
+      break;
+    case "student_jobCertificate":
+      uploadFolder = "students/jobCertificates/";
       fn = req.body.username;
       break;
     case "student_IDcardA":
