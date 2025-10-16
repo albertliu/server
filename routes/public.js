@@ -944,6 +944,43 @@ router.post('/send_message_submit_login', function(req, res, next) {
     });
 });
 
+//4. 批量通知学员，消防操作员尽快报名。同时发送系统消息和短信。
+router.post('/send_message_fire_enter_alert', function(req, res, next) {
+    let ec = 0;
+    sqlstr = "sendMsg4FireEnterSoon";
+    params = {batchID:req.body.batchID, selList: req.body.selList, registerID: req.body.registerID };
+    db.excuteProc(sqlstr, params, function (err, data) {
+        if (err) {
+            console.log(err);
+            let response = { "status": 9, msg:"系统错误。" };
+            return res.send(response);
+        }
+        //return: 0 success; other error:1 the user not exist  2 the phone error.
+        //console.log(data.recordset[0]);
+        if(req.body.SMS==1){ //发通知
+            let re = data.recordset;
+            for (var i in re){
+                if(re[i]["mobile"].length == 11){
+                    sendsms.sendSMS(re[i]["mobile"], re[i]["name"], '', '', '', "msg_fire_enter_alert");
+                    sqlstr = "writeSSMSlog";
+                    params = { username: re[i]["username"], mobile: re[i]["mobile"], kind: "消防操作员尽快报名通知", message: re[i]["item"], refID: re[i]["enterID"], registerID: req.body.registerID };
+                    //console.log(params);
+                    db.excuteProc(sqlstr, params, function (err, data1) {
+                        if (err) {
+                            console.log(err);
+                            let response = { "status": 9, msg:"系统错误。" };
+                            return res.send(response);
+                        }
+                    });
+                    ec += 1;
+                }
+            }
+        }
+        let response = { "status": 0, "msg": "操作成功。" };
+        return res.send(response);
+    });
+});
+
 //4. 批量关闭提交电子照片/签名通知。
 router.post('/send_message_submit_attention_close', function(req, res, next) {
     let ec = 0;

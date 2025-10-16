@@ -1897,8 +1897,9 @@ router.post('/readQustionOther', function (req, res, next) {
             }
           }
           sqlstr = "addNewQuestionOther";
-          params = {mark:(req.query.mark=="lx"?file.replace(".txt",""):req.query.mark), knowPointID:'', kindID:kindID, questionName:questionName, answer:answer, memo:memo, A:items[0], B:items[1], C:items[2], D:items[3], E:items[4], F:items[5], id_A:items_id[0], id_B:items_id[1], id_C:items_id[2], id_D:items_id[3], id_E:items_id[4], id_F:items_id[5] };
-          // console.log(params);
+          // params = {mark:(req.query.mark=="lx"?file.replace(".txt",""):req.query.mark), knowPointID:'', kindID:kindID, questionName:questionName, answer:answer, memo:memo, A:items[0], B:items[1], C:items[2], D:items[3], E:items[4], F:items[5], id_A:items_id[0], id_B:items_id[1], id_C:items_id[2], id_D:items_id[3], id_E:items_id[4], id_F:items_id[5] };
+          params = {mark:(req.query.mark=="lx"?file.replace(".txt",""):req.query.mark), knowPointID:'', kindID:kindID, questionName:questionName, answer:answer, memo:memo, A:items[0], B:items[1], C:items[2], D:items[3], E:items[4], F:items[5] };
+         console.log("addNewQuestionOther params:",params);
           db.excuteProc(sqlstr, params, function (err, data) {
               if (err) {
                   console.log(err);
@@ -1921,15 +1922,16 @@ router.post('/readQustionOther_xfgly', function (req, res, next) {
   fs.readdir(path, function (err, files) {
     //err 为错误 , files 文件名列表包含文件夹与文件
     if (err) {
-      console.log('error:\n' + err);
+      console.log('readQustionOther_xfgly error:\n' + err);
       return;
     }
     let i = 0;
-    //console.log(1);
+    // console.log("files:", files);
     files.forEach(function (file) {
       let q = fs.readFileSync(path + '/' + file, { encoding: 'utf8' });
       // console.log("file:",file);
-      let arr = JSON.parse(q.replace(/\r\n/g,""));
+      // let arr = JSON.parse(q.replace(/\r\n/g,""));
+      let arr = eval(q.replace(/\r\n/g,""));
       if(arr.length>0){
         // console.log("question1:",arr[1]);
         for(const x of arr){

@@ -75,6 +75,10 @@ const ssms ={
           tc = "SMS_492555652";
           pa = "{'item':'" + item + "','phone':'" + address + "'}";
         }
+        if(temp=="msg_fire_enter_alert"){
+          tc = "SMS_496000909";
+          pa = "{'name':'" + name + "'}";
+        }
         
         var params = {
           "RegionId": "cn-hangzhou",
