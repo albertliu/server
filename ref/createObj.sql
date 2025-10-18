@@ -1355,7 +1355,7 @@ BEGIN
 			SELECT ID,certID,certName,0 as mark,reexamine from v_certificateInfo where host=@host and status=0 and kindID=0 and type=1 and (mark=0 or mark=2)
 			union
 			SELECT a.ID,a.certID,a.certName,0,a.reexamine from v_certificateInfo a, studentInfo b where a.status=0 and a.kindID=1 and b.username=@username and a.host=b.host and (a.mark=0 or a.mark=2)
-		) x where certID not in (select certID from v_studentCertList where username=@username and status<2 and diplomaID='' union select certID from v_diplomaInfo where username=@username and status=0 and datediff(d,getDate(),endDate)>90)
+		) x where certID not in (select certID from v_studentCertList where username=@username and status<2 and diplomaID='' union select certID from v_diplomaInfo where username=@username and status=0 and datediff(d,getDate(),endDate)>360)
 		union
 		SELECT * FROM
 		(
@@ -1630,7 +1630,7 @@ BEGIN
 		-- 添加总题库
 		declare @courseID varchar(50), @certID varchar(50), @pp varchar(50), @kindID int, @qty1 varchar(50), @qty2 varchar(50), @qty3 varchar(50)
 		select @courseID=a.courseID, @certID=b.certID from studentCourseList a, courseInfo b where a.courseID=b.courseID and a.ID=@enterID
-		declare rc cursor for select cast(count(*) as varchar), isnull(sum(iif(a.kindID=1,1,0)),0), isnull(sum(iif(a.kindID=2,1,0)),0), isnull(sum(iif(a.kindID=3,1,0)),0), d.examID, d.kindID from questionInfo a, (select distinct knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID) d 
+		declare rc cursor for select cast(count(*) as varchar), isnull(sum(iif(a.kindID=1,1,0)),0), isnull(sum(iif(a.kindID=2,1,0)),0), isnull(sum(iif(a.kindID=3,1,0)),0), d.examID, d.kindID from questionInfo a, (select distinct knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID and b.status=0) d 
 			where a.knowPointID=d.knowPointID and a.status=0
 			group by d.examID, d.kindID
 		open rc
@@ -1650,7 +1650,7 @@ BEGIN
 		if exists(select top 1 1 from questionInfo a, (select distinct knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID) d where a.knowPointID=d.knowPointID and a.status=0 and a.chapterID>0)
 		begin
 			select @re = @re + '{"paperID":' + cast(@enterID as varchar) + ',"item":"章节练习","examScore":"' + cast(count(*) as varchar) + '题","pkind":4, "examID":"","list":[' from questionInfo a, (select distinct knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID) d where a.knowPointID=d.knowPointID and a.status=0 and a.chapterID>0
-			declare rc cursor for select cast(count(*) as varchar), a.chapterID from questionInfo a, (select distinct c.knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID) d where a.knowPointID=d.knowPointID and a.status=0 and a.chapterID>0
+			declare rc cursor for select cast(count(*) as varchar), a.chapterID from questionInfo a, (select distinct c.knowPointID, b.examID, b.kindID from examInfo b, examRuleInfo c where b.examID=c.examID and b.courseID=@courseID and b.status=0) d where a.knowPointID=d.knowPointID and a.status=0 and a.chapterID>0
 				group by a.chapterID
 			open rc
 			fetch next from rc into @qty1,@kindID

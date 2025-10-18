@@ -33,7 +33,7 @@ options.add_argument('ignore-certificate-errors')
 # 指定为无界面模式
 # options.add_argument('headless')
 driver = webdriver.Chrome(options=options)
-# 设置最大等待时间20秒
+# 设置最大等待时间10秒
 wait = WebDriverWait(driver, 10)
 # 创建连接字符串  （sqlserver默认端口为1433）
 img_path = env_dist.get('NODE_ENV_IMG')
