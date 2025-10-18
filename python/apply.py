@@ -11,6 +11,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import TimeoutException
 import pymssql
 from datetime import date
 # wd = webdriver.Chrome()
@@ -32,8 +33,8 @@ options.add_argument('ignore-certificate-errors')
 # 指定为无界面模式
 # options.add_argument('headless')
 driver = webdriver.Chrome(options=options)
-# driver = webdriver.Chrome()
-wait = WebDriverWait(driver, 5)
+# 设置最大等待时间20秒
+wait = WebDriverWait(driver, 10)
 # 创建连接字符串  （sqlserver默认端口为1433）
 img_path = env_dist.get('NODE_ENV_IMG')
 py_path = env_dist.get('NODE_ENV_PYTHON')
@@ -294,7 +295,9 @@ def enter_by_list0(elist, kind):
             name_input = wait.until(EC.invisibility_of_element_located((By.XPATH, "//form[@class='el-form']/div[@class='button']//span[contains(text(),'保存')]/..")))
 
             # 判断保存结果
-            if driver.find_elements(By.XPATH, "//p[contains(text(),'该学员报名成功')]"):
+            try:
+                # 成功
+                wait.until(EC.visibility_of_element_located((By.XPATH, "//p[contains(text(),'该学员报名成功')]")))
                 result["count_s"] += 1
                 sql = "exec setApplyMemo " + str(row[13]) + ", '已报名', '报名成功'" + s1
                 execSQL(sql)
@@ -303,7 +306,8 @@ def enter_by_list0(elist, kind):
                 name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
                 name_input.click()
                 time.sleep(3)
-            else:
+            except TimeoutException:
+                # 失败
                 result["count_e"] += 1
                 # 提交失败 保存错误信息
                 # name_input = driver.find_elements(By.XPATH, "//div[@role='dialog']//div[@class='el-message-box__message']/p")[0]
@@ -313,16 +317,16 @@ def enter_by_list0(elist, kind):
                 d_list.remove(str(row[13]))     # 从列表中删除失败数据
 
                 # 关闭按钮
-                name_input = driver.find_element(By.XPATH, "//div[@role='dialog']//span[contains(text(),'关闭')]/..")
-                if len(name_input) < 1:
-                    name_input = driver.find_element(By.XPATH, "//div[@role='dialog']//span[contains(text(),'确定')]/..")
+                name_input = driver.find_element(By.XPATH, "//div[@role='dialog']//button/span[contains(text(),'确定')]/..")
+                if not name_input.is_displayed():
+                    name_input = driver.find_element(By.XPATH, "//div[@role='dialog']//button/span[contains(text(),'关闭')]/..")
                 name_input.click()
                 time.sleep(1)
 
-        except Exception as e:
+        except Exception:
             # result["err"] = 1
             # result["errMsg"] = "action failed"
-            # print(e)
+            # print(Exception)
             pass
     # 关闭数据库
     cursor.close()
@@ -490,7 +494,9 @@ def enter_by_list1(elist):
             name_input.click()
             time.sleep(3)
             # 判断保存结果
-            if driver.find_elements(By.XPATH, "//p[contains(text(),'该学员报名成功')]"):
+            try:
+                # 成功
+                wait.until(EC.visibility_of_element_located((By.XPATH, "//p[contains(text(),'该学员报名成功')]")))
                 result["count_s"] += 1
                 sql = "exec setApplyMemo " + str(row[13]) + ", '已报名', '报名成功'" + s1
                 execSQL(sql)
@@ -499,7 +505,8 @@ def enter_by_list1(elist):
                 name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
                 name_input.click()
                 time.sleep(1)
-            else:
+            except TimeoutException:
+                # 失败
                 result["count_e"] += 1
                 # 提交失败 保存错误信息
                 name_input = driver.find_elements(By.XPATH, "//div[@role='dialog']//div[@class='el-message-box__message']/p")[0]
@@ -508,13 +515,13 @@ def enter_by_list1(elist):
                 d_list.remove(str(row[13]))     # 从列表中删除失败数据
 
                 # 关闭按钮
-                name_input = driver.find_element(By.XPATH, "//div[@role='dialog']//span[contains(text(),'关闭')]/..")
-                if len(name_input) < 1:
-                    name_input = driver.find_element(By.XPATH, "//div[@role='dialog']//span[contains(text(),'确定')]/..")
+                name_input = driver.find_element(By.XPATH, "//div[@role='dialog']//button/span[contains(text(),'确定')]/..")
+                if not name_input.is_displayed():
+                    name_input = driver.find_element(By.XPATH, "//div[@role='dialog']//button/span[contains(text(),'关闭')]/..")
                 name_input.click()
                 time.sleep(1)
 
-        except Exception as e:
+        except Exception:
             # result["err"] = 1
             # result["errMsg"] = "action failed"
             pass
@@ -807,7 +814,7 @@ def enter_by_list8(elist, classID, courseName, reex):
             d_list.remove(str(row[13]))     # 从列表中删除已成功数据
             time.sleep(3)
 
-        except Exception as e:
+        except Exception:
             # print("exceptZ:", e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"

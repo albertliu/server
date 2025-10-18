@@ -2978,7 +2978,7 @@ END
 
 GO
 
--- CREATE DATE: 2020-05-01
+-- CREATE DATE: 2020-05-01  update:2025-10-15
 -- 根据给定的参数，添加或者更新用户数据，并写日志
 -- @mark:0 new user; 1 update user
 -- return: 0 success; other error:1 the user already exist  2 the user not exist  3 the companyID wrong.
@@ -3035,6 +3035,8 @@ BEGIN
 				select @unit=a.unitName,@tax=a.taxNo, @address=a.address from unitInfo a, deptInfo b where b.host='shm' and b.deptID=@dept1 and a.unitName=b.deptName
 			else if @host='spc' and @kindID=0
 				select @unit=a.unitName,@tax=a.taxNo, @address=a.address from unitInfo a, deptInfo b where b.host='spc' and b.deptID=8 and a.unitName=b.deptName
+			else if @host='spc' and @kindID=1
+				select @unit=deptName from deptInfo where deptID=@dept1
 			exec setUnitTaxConfirm @unit,@tax,@address,'',''
 			insert into studentInfo(host,userName,name,password,kindID,companyID,dept1,dept2,dept3,job,job_status,mobile,phone,email,address,education,unit,tax,dept,ethnicity,IDaddress,bureau,IDdateStart,IDdateEnd,experience,memo,birthday,sex,age,linker,fromID,fromKind,registerID) 
 				values(@host,upper(@username),@name,@password,@kindID,@companyID,@dept1,@dept2,@dept3,@job,@job_status,@mobile,@phone,@email,@address,@education,@unit,@tax,@dept,@ethnicity,@IDaddress,@bureau,@IDdateStart,@IDdateEnd,@experience,@memo,substring(@username,7,8),dbo.getSexfromID(@username),dbo.getAgefromID(@username),@linker,@fromID,@fromKind,@registerID)
@@ -4922,7 +4924,7 @@ BEGIN
 END
 GO
 
--- CREATE DATE: 2020-05-24
+-- CREATE DATE: 2020-05-24  update:2025-10-15
 -- 根据给定的参数，添加或者更新导入学员报名信息（仅智能消防学校）. dept2Name有值的（加油站），判定为中石化员工
 -- USE CASE: exec generateStudent 1,1,'xxxx'...
 ALTER PROCEDURE [dbo].[generateStudent]
@@ -5003,7 +5005,11 @@ BEGIN
 
 			-- 在其他班级注册过
 			if exists(select 1 from studentCourseList where username=@username and courseID=@courseID and status<2 and classID>'' and classID<>@classID)
+			begin
 				select @existOther=1,@msg=max(SNo) from studentCourseList where username=@username and courseID=@courseID and status<2 and classID>'' and classID<>@classID		--已在其他班注册过
+				--update enter info
+				update studentCourseList set host=@host where username=@username and courseID=@courseID and status<2
+			end
 			else
 			begin
 				declare @kind int, @payNow int, @title nvarchar(500), @deptID int
@@ -7677,7 +7683,7 @@ END
 GO
 
 -- =============================================
--- CREATE Date: 2021-03-24
+-- CREATE Date: 2021-03-24  update:2025-10-15
 -- Description:	将购物车中给定的人员放入考试安排。
 -- @examID: 考试编号 generatePasscardInfo.ID
 -- @selList: 名单，用逗号分隔的ID in cart
@@ -7697,8 +7703,9 @@ BEGIN
 		select @j = @j + 1
 	end
 
-	declare @certID varchar(50)
+	declare @certID varchar(50), @agencyID int
 	select @certID=certID from v_generatePasscardInfo where ID=@examID
+	select @agencyID = agencyID from certificateInfo where certID=@certID
 	--删除课程与考试不符合的人员
 	update cartBill set memo='培训与考试不符' from cartBill c, v_studentCourseList a, #temp_cart b where b.id=c.id and a.ID=c.refID and a.certID<>@certID
 	delete from #temp_cart where id in(select b.id from v_studentCourseList a, #temp_cart b, cartBill c where b.id=c.id and a.ID=c.refID and a.certID<>@certID)
@@ -7706,9 +7713,11 @@ BEGIN
 	update cartBill set memo='已安排其他场次:' + cast(d.ID as varchar) from cartBill c, passcardInfo a, #temp_cart b, generatePasscardInfo d where b.id=c.id and a.enterID=c.refID and a.refID=d.ID and d.status<2
 	delete from #temp_cart where id in(select b.ID from passcardInfo a, #temp_cart b, cartBill c, generatePasscardInfo d where b.id=c.id and a.enterID=c.refID and a.refID=d.ID and d.status<2)
 	--删除已经获取相应证书且距离失效超过6个月的人员，避免重复报考取证
-	update cartBill set memo='已获取相关证书:' + a.diplomaID + ' 有效期至' + convert(varchar(10),a.endDate,23) from cartBill c, diplomaInfo a, #temp_cart b where b.id=c.id and a.username=c.username and a.certID=@certID and a.status=0 and datediff(d,getDate(),a.endDate)>=180
-	delete from #temp_cart where id in(select b.ID from cartBill c, diplomaInfo a, #temp_cart b where b.id=c.id and a.username=c.username and a.certID=@certID and a.status=0 and datediff(d,getDate(),a.endDate)>=180)
-
+	if @agencyID=1	--update:2025-10-15
+	begin
+		update cartBill set memo='已获取相关证书:' + a.diplomaID + ' 有效期至' + convert(varchar(10),a.endDate,23) from cartBill c, diplomaInfo a, #temp_cart b where b.id=c.id and a.username=c.username and a.certID=@certID and a.status=0 and datediff(d,getDate(),a.endDate)>=180
+		delete from #temp_cart where id in(select b.ID from cartBill c, diplomaInfo a, #temp_cart b where b.id=c.id and a.username=c.username and a.certID=@certID and a.status=0 and datediff(d,getDate(),a.endDate)>=180)
+	end
 	--如果为补考，则标记原来的考试
 	update passcardInfo set resit=1 where ID in(select max(a.ID) as ID from passcardInfo a, #temp_cart b, cartBill c where a.enterID=c.refID and b.ID=c.ID and c.memo='*补考*' group by c.refID)
 
@@ -9579,8 +9588,8 @@ BEGIN
 		insert into #temp(id) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
 		select @j = @j + 1
 	end
-	update #temp set punit=c.hostName from #temp a, v_applyInfo d, studentInfo b, hostInfo c where a.id=d.id and d.username=b.username and c.hostNo=b.host
-	select name,sexName,educationName,username,mobile,iif(a.unit>'',a.unit,punit) as unit,iif(job='','管理',job) as job,link_address,IDdateStart,IDdateEnd,photo_filename as file1,certName,c.linker,a.ID,file2, (case when employe_filename>'' then N'工作证明' when job_filename>'' then N'居住证' when social_filename>'' then N'社保' else '' end) as jobcert, (case when employe_filename>'' then employe_filename when job_filename>'' then job_filename when social_filename>'' then social_filename else '' end) as jobfile,a.tax from v_applyInfo a, #temp b, hostInfo c where a.ID=b.id and a.host=c.hostNo order by passNo,a.ID
+	--update #temp set punit=c.hostName from #temp a, v_applyInfo d, studentInfo b, hostInfo c where a.id=d.id and d.username=b.username and c.hostNo=b.host
+	select name,sexName,educationName,username,mobile,a.unit,iif(job='','管理',job) as job,link_address,IDdateStart,IDdateEnd,photo_filename as file1,certName,c.linker,a.ID,file2, (case when employe_filename>'' then N'工作证明' when job_filename>'' then N'居住证' when social_filename>'' then N'社保' else '' end) as jobcert, (case when employe_filename>'' then employe_filename when job_filename>'' then job_filename when social_filename>'' then social_filename else '' end) as jobfile,a.tax from v_applyInfo a, #temp b, hostInfo c where a.ID=b.id and a.host=c.hostNo order by passNo,a.ID
 END
 GO
 
@@ -11673,8 +11682,8 @@ BEGIN
 	--教师姓名，身份证，教室，学时1-4
 	select @msg=@msg+iif(teacherName='','教师姓名有空缺；','')+iif(teacherSID='','教师身份证有空缺；','')+iif(online=0 and address='','线下教室有空缺；','')+iif(hours<1 or hours>4,'学时应在1-4之间；','') from v_classSchedule where classID=@classID and mark='A'
 	--课表日期+上下午不得重复
-	if exists(select 1 from classSchedule where classID=@classID and mark='A' group by theDate, typeID having count(*)>1)
-		select @msg = @msg + '课表日期+上下午不得重复；'
+	if exists(select 1 from classSchedule where classID=@classID and mark='A' group by theDate, typeID having sum(hours)>4)
+		select @msg = @msg + '课表中半天课程不得超过4课时；'
 	select @msg as msg
 END
 GO
@@ -11703,4 +11712,81 @@ BEGIN
 	return isnull(@re,0)
 END
 GO
+
+-- CREATE DATE: 2025-10-09
+-- 根据给定的参数，删除学员的某个资料。
+-- USE CASE: exec delStudentMaterial '123','student_education'...
+CREATE PROCEDURE [dbo].[delStudentMaterial]
+	@username varchar(50), @kind varchar(50),@registerID varchar(50)
+AS
+BEGIN
+	declare @re int
+	select @re=ID from dictionaryDoc where kind='material' and memo=@kind
+	delete from studentMaterials where username=@username and kindID=@re
+	-- 写操作日志
+	exec writeOpLog '','删除学员资料','delStudentMaterial',@registerID,@kind,@username
+	select isnull(@re,0) as re
+END
+GO
+
+-- CREATE DATE: 2025-10-11
+-- 根据给定的参数，批量通知学员，登录系统并进行签名和付款
+-- batchID: classInfo.classID; selList: username list
+-- USE CASE: exec sendMsg4FireEnterSoon 1
+CREATE PROCEDURE [dbo].[sendMsg4FireEnterSoon]
+	@batchID varchar(50), @selList varchar(4000), @registerID varchar(50)
+AS
+BEGIN
+	declare @username varchar(50),@item varchar(500),@host varchar(50),@certName varchar(50)
+	--send system message
+	--将名单导入到临时表
+	create table #temp(username varchar(50),enterID int)
+	declare @n int, @j int
+	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0
+	while @n>@j
+	begin
+		insert into #temp(username) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
+		select @j = @j + 1
+	end
+
+	--send system message
+	if exists(select 1 from classInfo where classID=@batchID) and @n>0
+	begin
+		select @certName=shortName from v_classInfo where classID=@batchID
+		declare rc cursor for select b.username,b.name + '：消防设施操作员考试将重做大调整，请于2025-10-31前完成考试申报以便调整前取证。逾期不提供新标准的重新培训' from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
+		open rc
+		fetch next from rc into @username,@item
+		While @@fetch_status=0 
+		Begin 
+			--0 回复 1 通知 2 其他
+			exec sendSysMessage @username,1,@item,@host,'system.'
+			fetch next from rc into @username,@item
+		End
+		Close rc 
+		Deallocate rc
+
+		--记录通知
+		update #temp set enterID=b.ID from #temp a, studentCourseList b where a.username=b.username and b.classID=@batchID
+		--取得enterID list 替换 username list
+		declare @list varchar(4000)
+		select @list=''
+		declare rc cursor for select enterID from #temp
+		open rc
+		fetch next from rc into @item
+		While @@fetch_status=0 
+		Begin 
+			select @list = @list + @item + ','
+			fetch next from rc into @item
+		End
+		Close rc 
+		Deallocate rc
+		select @list = left(@list,len(@list)-1)
+		exec sendAttections 1,@list,@registerID
+
+		--return students list for send mobile message
+		select b.name,b.username,b.mobile,@certName as certName, b.ID as enterID,b.name + '：消防设施操作员考试将重做大调整，请于2025-10-31前完成考试申报以便调整前取证。逾期不提供新标准的重新培训' as item from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
+	end
+END
+GO
+
 
