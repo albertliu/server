@@ -1782,7 +1782,7 @@ router.get('/get_trainProof_shot', async function (req, res, next) {
     let path = 'users/upload/students/trainingProof/unit' + req.query.nodeID + '.pdf';
     let filename = path.replace("users/", "/");
     // shotimg.genImg(sqlstr, path, 700, 800);
-    pdf.genPDF([sqlstr], [path], '96mm', '130mm', '', false, 0.5, false);
+    pdf.genPDF([sqlstr], [path], '96mm', '140mm', '', false, 0.5, false);
 
     //return publish file path
     sqlstr = "updateTrainingProof";
