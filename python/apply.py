@@ -658,8 +658,8 @@ def enter_by_list7(adviser, classID, courseName, reex):
             _i += 9
             _no += 1
 
-        except Exception as e:
-            print("exceptZ:", e)
+        except Exception:
+            # print("exceptZ:", e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
             break
@@ -921,7 +921,7 @@ def enter_by_list9(elist, classID, courseName, reex):
             d_list.remove(str(row[13]))     # 从列表中删除已成功数据
             time.sleep(1)
 
-        except Exception as e:
+        except Exception:
             # print("exceptZ:", e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
@@ -1010,7 +1010,7 @@ def enter_by_list10(elist, classID, courseName, reex):
             d_list.remove(str(row[13]))     # 从列表中删除已成功数据
             # time.sleep(1)
 
-        except Exception as e:
+        except Exception:
             # print(e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
@@ -1089,7 +1089,7 @@ def enter_by_list11(elist, classID, courseName, reex):
             d_list.remove(str(row[13]))     # 从列表中删除已成功数据
             # time.sleep(1)
 
-        except Exception as e:
+        except Exception:
             # print(e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"

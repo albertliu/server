@@ -345,7 +345,7 @@ router.get('/get_student_diploma_list', function (req, res, next) {
       let response = { "status": 9 };
       return res.send(response);
     }
-    response = data.recordset;
+    response = data.recordset || [];
     return res.send(response);
   });
 });

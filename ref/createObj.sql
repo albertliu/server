@@ -10053,7 +10053,8 @@ BEGIN
 	DECLARE @SqlStatement NVARCHAR(MAX), @ListToPivot  NVARCHAR(4000), @fields  NVARCHAR(4000), @updates  NVARCHAR(MAX), @theDate varchar(50), @i int, @mark int
 	select @ListToPivot='', @i=0, @fields = '' ,@updates = '', @mark=checkinMark from generateApplyInfo where ID=@classID
 
-	declare curs cursor for select convert(varchar(20),theDate,23) + iif(@mark=1,typeName,'') as theDate from v_classSchedule where mark='A' and online=0 and (typeID=0 or typeID=@mark) and classID=@classID order by theDate,typeID
+	--declare curs cursor for select convert(varchar(20),theDate,23) + iif(@mark=1,typeName,'') as theDate from v_classSchedule where mark='A' and online=0 and (typeID=0 or typeID=@mark) and classID=@classID order by theDate,typeID
+	declare curs cursor for select theDate from v_classSchedule where mark='A' and online=0 and (typeID=0 or typeID=@mark) and classID=@classID group by theDate order by theDate
 	open curs
 	fetch next from curs into @theDate
 	while @@FETCH_STATUS = 0
@@ -10084,7 +10085,7 @@ BEGIN
 			theDate,
 			d.refID
 		  FROM (select * from (select SNo,passNo,ID as applyID,enterID, username, name from v_applyInfo where refID=' + @classID + ') a,
-		  (select ID, convert(varchar(20),theDate,23) + iif(@mark=1,typeName,'''') as theDate from v_classSchedule where mark=''A'' and (typeID=0 or typeID=@mark) and classID=' + @classID + ') b) c 
+		  (select max(ID) as ID, theDate from v_classSchedule where mark=''A'' and classID=' + @classID + ' and (typeID=0 or typeID=@mark) group by theDate) b) c 
 		  left outer join (select enterID, refID, 1 as checkin from checkinInfo where kindID=1) d on c.ID=d.refID and c.enterID=d.enterID
 		) e
 		PIVOT (
@@ -10098,7 +10099,7 @@ BEGIN
 
 	SELECT * FROM @tb order by passNo,ID
 	';
- 
+
 	EXEC(@SqlStatement)
 END
 GO
@@ -10219,7 +10220,7 @@ BEGIN
 	if @classID=0
 		select @classID=max(refID) from applyInfo where enterID=@enterID
 	select @username=username,@courseID=courseID from v_applyInfo where enterID=@enterID
-	select @start=convert(varchar(20),dateadd(d,-180,min(theDate)),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = @classID
+	select @start=convert(varchar(20),dateadd(d,-365,min(theDate)),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = @classID
 
 	select a.theDate,a.item,a.teacherName,a.kindName,a.classID, b.file1, b.file2 from 
 	(select * from v_classSchedule where mark='A' and classID <>@classID and theDate between @start and @end) a 
@@ -10239,7 +10240,7 @@ AS
 BEGIN
 	declare @start varchar(50),@end varchar(50),@username varchar(50),@courseID varchar(50),@re int
 	select @username=username,@courseID=courseID from v_applyInfo where enterID=@enterID
-	select @start=convert(varchar(20),dateadd(d,-180,min(theDate)),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) as refID from applyInfo where enterID=@enterID)
+	select @start=convert(varchar(20),dateadd(d,-365,min(theDate)),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) as refID from applyInfo where enterID=@enterID)
 
 	select @re=count(*) from 
 	(select ID from v_classSchedule where mark='A' and online=0 and classID not in (select refID from applyInfo where enterID=@enterID and refID=@classID) and theDate between @start and @end) a 
@@ -10735,7 +10736,8 @@ BEGIN
 	select @host=host, @fname='' from studentCourseList where ID=@enterID
 	select @hostName=hostName from hostInfo where hostNo=@host
 	select @fname=filename, @startDate=isnull(convert(varchar(20),startDate,23),'') from generateApplyInfo where ID=@classID
-	select a.username,b.name,a.SNo,signatureType,isnull(a.signature,'') as signature,isnull(convert(varchar(20),a.signatureDate,23),'') as signatureDate,@startDate as startDate,c.reexamine,a.express,c.certID,c.courseName1 as courseName,a.price,c.price as priceStandard,@host as host,'上海智能消防学校' as hostName,b.sexName,birthday,b.mobile,b.age,b.job,b.educationName,b.address,b.IDaddress,b.ethnicity,b.IDdateStart,b.IDdateEnd,b.IDD_long,b.unit,b.photo_filename,b.IDa_filename,b.IDb_filename,b.edu_filename,@fname as proof_filename 
+	select a.username,b.name,a.SNo,signatureType,isnull(a.signature,'') as signature,isnull(convert(varchar(20),a.signatureDate,23),'') as signatureDate,@startDate as startDate,c.reexamine,a.express,c.certID,c.courseName1 as courseName,a.price,c.price as priceStandard,@host as host,
+		'上海智能消防学校' as hostName,b.sexName,birthday,b.mobile,b.age,b.job,b.educationName,b.address,b.IDaddress,b.ethnicity,b.IDdateStart,b.IDdateEnd,b.IDD_long,b.unit,b.photo_filename,b.IDa_filename,b.IDb_filename,b.edu_filename,@fname as proof_filename,c.agreement 
 		from studentCourseList a, v_studentInfo b, v_courseInfo c where a.username=b.username and a.courseID=c.courseID and a.ID=@enterID
 END
 GO
@@ -11421,7 +11423,7 @@ GO
 -- CREATE DATE: 2025-04-10
 -- 获取学员已有证书信息
 -- USE CASE: select * from dbo.[getStudentCertList]('120107196604032113')
-CREATE FUNCTION [dbo].[getStudentDiplomaList]
+ALTER FUNCTION [dbo].[getStudentDiplomaList]
 (	
 	@username varchar(50)
 )
@@ -11429,15 +11431,9 @@ RETURNS TABLE
 AS
 RETURN 
 (
-	SELECT    dbo.v_diplomaInfo.ID, dbo.v_diplomaInfo.diplomaID, dbo.v_diplomaInfo.username, dbo.v_diplomaInfo.certID, dbo.v_diplomaInfo.status, dbo.v_diplomaInfo.score, dbo.v_diplomaInfo.term, 
-               dbo.v_diplomaInfo.startDate, dbo.v_diplomaInfo.endDate, dbo.v_diplomaInfo.filename, dbo.v_diplomaInfo.memo, dbo.v_diplomaInfo.regDate, dbo.v_diplomaInfo.registerID, 
-               dbo.v_diplomaInfo.name, dbo.v_diplomaInfo.sex, dbo.v_diplomaInfo.age, dbo.v_diplomaInfo.host, dbo.v_diplomaInfo.dept1, dbo.v_diplomaInfo.dept2, dbo.v_diplomaInfo.mobile, 
-               dbo.v_diplomaInfo.email, dbo.v_diplomaInfo.hostName, dbo.v_diplomaInfo.dept1Name, dbo.v_diplomaInfo.dept2Name, dbo.v_diplomaInfo.sexName, dbo.v_diplomaInfo.kindName, 
-               dbo.v_diplomaInfo.kindID, dbo.v_diplomaInfo.certName, dbo.v_diplomaInfo.agencyName, dbo.v_diplomaInfo.agencyID, dbo.v_diplomaInfo.statusName, 
-               dbo.v_diplomaInfo.registerName
-	FROM       dbo.v_studentDiplomaGroupExt ,
-               dbo.v_diplomaInfo where dbo.v_diplomaInfo.username=@username and dbo.v_studentDiplomaGroupExt.username=@username and dbo.v_studentDiplomaGroupExt.diplomaID = dbo.v_diplomaInfo.diplomaID
-
+	SELECT *	FROM dbo.v_diplomaInfo where dbo.v_diplomaInfo.username=@username and status=0
+	union select * from v_diplomaInfo where ID in(select max(ID) as ID from diplomaInfo where username=@username and status=1 group by certID)
+	and certID not in(select certID from diplomaInfo where username=@username and status=0)
 )
 GO
 
@@ -11684,6 +11680,8 @@ BEGIN
 	--课表日期+上下午不得重复
 	if exists(select 1 from classSchedule where classID=@classID and mark='A' group by theDate, typeID having sum(hours)>4)
 		select @msg = @msg + '课表中半天课程不得超过4课时；'
+	if exists(select 1 from classSchedule where classID=@classID and mark='A' and len(item)>25)
+		select @msg = @msg + '课表中课程内容不得超过25个字；'
 	select @msg as msg
 END
 GO
