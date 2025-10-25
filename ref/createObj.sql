@@ -9639,13 +9639,14 @@ GO
 
 -- CREATE DATE: 2023-02-16
 -- 生成一个班级的班级/申报报名表
+-- @mark: A 申报班  B 培训班
 -- USE CASE: exec [generate_emergency_exam_materials_byclass] 1
 ALTER PROCEDURE [dbo].[generate_emergency_exam_materials_byclass]
-	@batchID int, @selList varchar(4000), @keyID int, @fn nvarchar(100), @registerID varchar(50)
+	@batchID varchar(50), @selList varchar(4000), @keyID int, @fn nvarchar(100), @mark varchar(50), @registerID varchar(50)
 AS
 BEGIN
 	--将名单导入到临时表
-	create table #temp(id int)
+	create table #temp(id varchar(50))
 	declare @n int, @j int
 	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0
 	while @n>@j
@@ -9655,11 +9656,19 @@ BEGIN
 	end
 
 	if @keyID=2		--班级
-		update studentCourseList set file1='/upload/students/firemanMaterials/' + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
+	begin
+		if @mark='A'
+			update studentCourseList set file1='/upload/students/firemanMaterials/' + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
+		else
+			update studentCourseList set file1='/upload/students/firemanMaterials/' + cast(a.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, studentInfo b, #temp c where a.username=b.username and a.username=c.id and a.classID=@batchID
+	end
 	if @keyID=5		--报名表
 		update studentCourseList set file2='/upload/students/firemanMaterials/' + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
 	--exec writeOpLog @fn,'generate_emergency_exam_materials_byclass',@registerID,@keyID,@batchID
-	select a.ID,name,username,enterID,entryform from v_applyInfo a, #temp b where a.ID=b.id and a.signature>'' order by a.ID
+	if @mark='A'
+		select a.ID,name,username,enterID,entryform from v_applyInfo a, #temp b where a.ID=b.id and a.signature>'' order by a.ID
+	else
+		select a.ID,name,username,a.ID as enterID,entryform from v_studentCourseList a, #temp b where a.username=b.id and a.classID=@batchID and a.signature>'' order by a.SNo
 END
 GO
 

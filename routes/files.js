@@ -1559,10 +1559,11 @@ router.post('/generate_emergency_exam_materials_byclass', function (req, res, ne
   let path = "";
   let f = ['','','班级归档资料.pdf','','','报名表.jpg']
   let keyID = req.query.keyID;
+  let mark = req.query.mark || 'A';
 
   // sqlstr = "select ID,name,username,enterID,entryform from v_applyInfo where refID=@refID and signature>'' order by ID";   //获取指定申报下的有签名的名单
   sqlstr = "generate_emergency_exam_materials_byclass";   //获取指定申报下的有签名的名单
-  params = { batchID: req.query.refID, keyID: keyID, selList: req.body.selList, fn: f[keyID], registerID: req.query.registerID };
+  params = { batchID: req.query.refID, keyID: keyID, selList: req.body.selList, fn: f[keyID], mark:mark, registerID: req.query.registerID };
   // console.log(params);
   db.excuteProc(sqlstr, params, async function (err, data) {
     if (err) {
@@ -1579,9 +1580,9 @@ router.post('/generate_emergency_exam_materials_byclass', function (req, res, ne
       for (var i in dat) {
         //班级归档资料
         sqlstr = env + "/entryform_" + dat[i]["entryform"] + ".asp?public=1&nodeID=" + dat[i]["enterID"] + "&refID=" + dat[i]["username"] + "&host=" + req.query.host + "&kindID=" + kindID + "&status=" + req.query.refID + "&keyID=";
-        path = 'users/upload/students/firemanMaterials/' + dat[i]["ID"] + '_' + dat[i]["name"] + '_' + dat[i]["username"];
+        path = 'users/upload/students/firemanMaterials/' + mark + dat[i]["ID"] + '_' + dat[i]["name"] + '_' + dat[i]["username"];
         if(keyID==2){ //班级存档资料\考站资料生成pdf文件
-          await pdf.genPDF([sqlstr + keyID], [path + f[keyID]], '210mm', '290mm', '', false, 1, false);
+          await pdf.genPDF([sqlstr + keyID], [path + f[keyID]], '800', (mark=='B'?'900':'1080'), '', false, 1, false);
         }
         if(keyID==5){ //申报资料生成jpg文件
           await shotimg.genImg(sqlstr + keyID, path + f[keyID], (kindID==0?2160:2800), 1020);
