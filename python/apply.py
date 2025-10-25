@@ -299,7 +299,7 @@ def enter_by_list0(elist, kind):
                 # 成功
                 wait.until(EC.visibility_of_element_located((By.XPATH, "//p[contains(text(),'该学员报名成功')]")))
                 result["count_s"] += 1
-                sql = "exec setApplyMemo " + str(row[13]) + ", '已报名', '报名成功'" + s1
+                sql = "exec setApplyMemo " + str(row[13]) + ", '已报名', '报名成功" + s1 + "'"
                 execSQL(sql)
                 d_list.remove(str(row[13]))     # 从列表中删除已成功数据
                 # 提交成功，确定按钮
@@ -498,7 +498,7 @@ def enter_by_list1(elist):
                 # 成功
                 wait.until(EC.visibility_of_element_located((By.XPATH, "//p[contains(text(),'该学员报名成功')]")))
                 result["count_s"] += 1
-                sql = "exec setApplyMemo " + str(row[13]) + ", '已报名', '报名成功'" + s1
+                sql = "exec setApplyMemo " + str(row[13]) + ", '已报名', '报名成功" + s1 + "'"
                 execSQL(sql)
                 d_list.remove(str(row[13]))     # 从列表中删除已成功数据
                 # 提交成功，确定按钮
@@ -1163,15 +1163,15 @@ if __name__ == '__main__':
     # username = "13651648767"
     # password = "Pqf1823797198"
     # register = "desk."
-    # d_list = '9506'.split(',')    # 需要处理的数据列表
+    # d_list = '31568'.split(',')    # 需要处理的数据列表
     # courseName = "低压电工作业"  # 课程名称
     # # courseName = "低压电工作业"  # 课程名称
     # kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
     # if login_fr() == 0:
     #     i = 0
     #     while len(d_list) > 0:
-    #         enter_by_list0(d_list, kind)
-    #         # enter_by_list1(d_list)
+    #         # enter_by_list0(d_list, kind)
+    #         enter_by_list1(d_list)
     #         # enter_by_list7(d_list, '290', courseName, '初证')
     #         # enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
