@@ -6250,7 +6250,7 @@ GO
 -- USE CASE: exec [doEnter] 'P-20-001', 'albert'
 -- =============================================
 ALTER PROCEDURE [dbo].[doEnter] 
-	@ID int,@username varchar(50),@classID varchar(50),@price int,@amount int,@invoice varchar(50),@receipt varchar(50),@invoice_amount int,@projectID varchar(50),@title nvarchar(100),@payNow int,@needInvoice int,@kindID varchar(50),@type int,@status int,@datePay varchar(50),@dateInvoice varchar(50),@dateInvoicePick varchar(50),@pay_memo varchar(500),@currDiplomaID varchar(50),@currDiplomaDate varchar(50),@overdue int,@express int,@fromID varchar(50),@fromKind varchar(50),@source nvarchar(50),@oldNo int,@memo varchar(2000),@host varchar(50),@registerID varchar(50)
+	@ID int,@username varchar(50),@classID varchar(50),@price varchar(50),@amount varchar(50),@invoice varchar(50),@receipt varchar(50),@invoice_amount int,@projectID varchar(50),@title nvarchar(100),@payNow int,@needInvoice int,@kindID varchar(50),@type int,@status int,@datePay varchar(50),@dateInvoice varchar(50),@dateInvoicePick varchar(50),@pay_memo varchar(500),@currDiplomaID varchar(50),@currDiplomaDate varchar(50),@overdue int,@express int,@fromID varchar(50),@fromKind varchar(50),@source nvarchar(50),@oldNo int,@memo varchar(2000),@host varchar(50),@registerID varchar(50)
 AS
 BEGIN
 	declare @event varchar(50),@mem varchar(500),@cID int,@name varchar(50),@certID varchar(50),@courseID varchar(50),@refID int,@t int,@payID int,@re int,@msg varchar(50),@SNo int,@mark int,@reexamine int,@pNo varchar(50),@certName varchar(60),@unit varchar(100),@job_status int,@education int,@mobile varchar(50),@email varchar(50),@address varchar(200),@today varchar(50),@signatureType int
@@ -9658,12 +9658,12 @@ BEGIN
 	if @keyID=2		--班级
 	begin
 		if @mark='A'
-			update studentCourseList set file1='/upload/students/firemanMaterials/' + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
+			update studentCourseList set file1='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
 		else
-			update studentCourseList set file1='/upload/students/firemanMaterials/' + cast(a.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, studentInfo b, #temp c where a.username=b.username and a.username=c.id and a.classID=@batchID
+			update studentCourseList set file1='/upload/students/firemanMaterials/' + @mark + cast(a.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, studentInfo b, #temp c where a.username=b.username and a.username=c.id and a.classID=@batchID
 	end
 	if @keyID=5		--报名表
-		update studentCourseList set file2='/upload/students/firemanMaterials/' + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
+		update studentCourseList set file2='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
 	--exec writeOpLog @fn,'generate_emergency_exam_materials_byclass',@registerID,@keyID,@batchID
 	if @mark='A'
 		select a.ID,name,username,enterID,entryform from v_applyInfo a, #temp b where a.ID=b.id and a.signature>'' order by a.ID
