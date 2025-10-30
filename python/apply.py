@@ -286,7 +286,10 @@ def enter_by_list0(elist, kind):
             name_input = driver.find_elements(By.XPATH, "//div[@class='con-left fl']//label[contains(text(),'填写人')]/following-sibling::div//input")[0]
             clean_send(name_input, register)
             # 上传照片
-            name_input = driver.find_elements(By.XPATH, "//div[@class='con-right fl']//input[@type='file']")[0].send_keys(img_path + row[10])
+            if row[10] > "":
+                name_input = driver.find_elements(By.XPATH, "//div[@class='con-right fl']//input[@type='file']")[0].send_keys(img_path + row[10])
+            else:
+                s1 += "缺少照片"
             # 保存按钮
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//form[@class='el-form']/div[@class='button']//span[contains(text(),'保存')]/..")))
             name_input.click()
