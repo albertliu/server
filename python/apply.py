@@ -248,7 +248,7 @@ def enter_by_list0(elist, kind):
                 if row[16] > '':
                     name_input = driver.find_elements(By.XPATH, "//div[@class='upload-demo']//input[@type='file']")[0]
                     name_input.send_keys(img_path + row[16])
-                    name_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//li[@class='el-upload-list item is-success')]//span[contains(text(),'删除')]")))
+                    name_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//li[@class='el-upload-list__item is-success']//span[contains(text(),'删除')]")))
                 else:
                     result["count_e"] += 1
                     sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '缺少证明材料:" + row[15] + "'"
@@ -313,7 +313,7 @@ def enter_by_list0(elist, kind):
                 execSQL(sql)
                 d_list.remove(str(row[13]))     # 从列表中删除已成功数据
                 # 提交成功，确定按钮
-                name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
+                name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//li[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
                 name_input.click()
                 time.sleep(3)
             except TimeoutException:
@@ -333,10 +333,10 @@ def enter_by_list0(elist, kind):
                 name_input.click()
                 time.sleep(1)
 
-        except Exception:
+        except Exception as e:
             # result["err"] = 1
             # result["errMsg"] = "action failed"
-            # print(Exception)
+            # print("error:", e)
             pass
     # 关闭数据库
     cursor.close()
@@ -478,7 +478,7 @@ def enter_by_list1(elist):
                 if row[16] > '':
                     name_input = driver.find_elements(By.XPATH, "//div[@class='upload-demo']//input[@type='file']")[0]
                     name_input.send_keys(img_path + row[16])
-                    name_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//li[@class='el-upload-list item is-success')]//span[contains(text(),'删除')]")))
+                    name_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//li[@class='el-upload-list__item is-success']//span[contains(text(),'删除')]")))
                 else:
                     result["count_e"] += 1
                     sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '缺少证明材料:" + row[15] + "'"
@@ -1178,29 +1178,29 @@ def execSQL(text: str):
 
 if __name__ == '__main__':
     # 以下是测试代码
-    # username = "13651648767"
-    # password = "Pqf1823797198"
-    # register = "desk."
-    # d_list = '31568'.split(',')    # 需要处理的数据列表
+    username = "13651648767"
+    password = "Pqf1823797198"
+    register = "desk."
+    d_list = '9506'.split(',')    # 需要处理的数据列表
+    courseName = "低压电工作业"  # 课程名称
     # courseName = "低压电工作业"  # 课程名称
-    # # courseName = "低压电工作业"  # 课程名称
-    # kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
-    # if login_fr() == 0:
-    #     i = 0
-    #     while len(d_list) > 0:
-    #         # enter_by_list0(d_list, kind)
-    #         enter_by_list1(d_list)
-    #         # enter_by_list7(d_list, '290', courseName, '初证')
-    #         # enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
-    #         # enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
-    #         # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
-    #         # enter_by_list11(d_list, '0110092507105', courseName, '初证')
-    #         i += 1
-    #         if i > 3:
-    #             break
-    #     conn.close()
-    #     driver.quit()
-    #     print(result)
+    kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
+    if login_fr() == 0:
+        i = 0
+        while len(d_list) > 0:
+            enter_by_list0(d_list, kind)
+            # enter_by_list1(d_list)
+            # enter_by_list7(d_list, '290', courseName, '初证')
+            # enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+            # enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+            # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+            # enter_by_list11(d_list, '0110092507105', courseName, '初证')
+            i += 1
+            if i > 3:
+                break
+        conn.close()
+        driver.quit()
+        print(result)
     # 以上是测试代码
     d_list = sys.argv[1].split(',')    # 需要处理的数据列表
     reexamine = sys.argv[2]     # 0 初训 1 复训 9 报名表 10 成绩
