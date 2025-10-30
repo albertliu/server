@@ -1178,29 +1178,29 @@ def execSQL(text: str):
 
 if __name__ == '__main__':
     # 以下是测试代码
-    username = "13651648767"
-    password = "Pqf1823797198"
-    register = "desk."
-    d_list = '9506'.split(',')    # 需要处理的数据列表
-    courseName = "低压电工作业"  # 课程名称
+    # username = "13651648767"
+    # password = "Pqf1823797198"
+    # register = "desk."
+    # d_list = '9506'.split(',')    # 需要处理的数据列表
     # courseName = "低压电工作业"  # 课程名称
-    kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
-    if login_fr() == 0:
-        i = 0
-        while len(d_list) > 0:
-            enter_by_list0(d_list, kind)
-            # enter_by_list1(d_list)
-            # enter_by_list7(d_list, '290', courseName, '初证')
-            # enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
-            # enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
-            # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
-            # enter_by_list11(d_list, '0110092507105', courseName, '初证')
-            i += 1
-            if i > 3:
-                break
-        conn.close()
-        driver.quit()
-        print(result)
+    # # courseName = "低压电工作业"  # 课程名称
+    # kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
+    # if login_fr() == 0:
+    #     i = 0
+    #     while len(d_list) > 0:
+    #         enter_by_list0(d_list, kind)
+    #         # enter_by_list1(d_list)
+    #         # enter_by_list7(d_list, '290', courseName, '初证')
+    #         # enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+    #         # enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+    #         # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+    #         # enter_by_list11(d_list, '0110092507105', courseName, '初证')
+    #         i += 1
+    #         if i > 3:
+    #             break
+    #     conn.close()
+    #     driver.quit()
+    #     print(result)
     # 以上是测试代码
     d_list = sys.argv[1].split(',')    # 需要处理的数据列表
     reexamine = sys.argv[2]     # 0 初训 1 复训 9 报名表 10 成绩
