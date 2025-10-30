@@ -149,7 +149,6 @@ def enter_by_list0(elist, kind):
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
     sql = "exec getApplyListByList '" + ','.join(elist) + "'"  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
-    oldname = ""
 
     # 初训菜单
     if len(driver.find_elements(By.XPATH, "//li[contains(text(),'初训报名')]")) == 0:
@@ -246,9 +245,17 @@ def enter_by_list0(elist, kind):
                 # 选择相应的证明种类：工作证明、居住证、社保证明
                 name_input = driver.find_elements(By.XPATH, "//span[contains(text(),'" + row[15] + "')]/preceding-sibling::span//span[@class='el-radio__inner']")[0].click()
                 # 上传文件
-                name_input = driver.find_elements(By.XPATH, "//div[@class='upload-demo']//input[@type='file']")[0]
                 if row[16] > '':
+                    name_input = driver.find_elements(By.XPATH, "//div[@class='upload-demo']//input[@type='file']")[0]
                     name_input.send_keys(img_path + row[16])
+                    name_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//li[@class='el-upload-list item is-success')]//span[contains(text(),'删除')]")))
+                else:
+                    result["count_e"] += 1
+                    sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '缺少证明材料:" + row[15] + "'"
+                    execSQL(sql)
+                    d_list.remove(str(row[13]))     # 从列表中删除失败数据
+                    time.sleep(1)
+                    continue
                     
             # 填写单位名称
             name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'单位名称')]/following-sibling::div//input")[0]
@@ -468,9 +475,17 @@ def enter_by_list1(elist):
                 # 选择相应的证明种类：工作证明、居住证、社保证明
                 name_input = driver.find_elements(By.XPATH, "//span[contains(text(),'" + row[15] + "')]/preceding-sibling::span//span[@class='el-radio__inner']")[0].click()
                 # 上传文件
-                name_input = driver.find_elements(By.XPATH, "//div[@class='upload-demo']//input[@type='file']")[0]
                 if row[16] > '':
+                    name_input = driver.find_elements(By.XPATH, "//div[@class='upload-demo']//input[@type='file']")[0]
                     name_input.send_keys(img_path + row[16])
+                    name_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//li[@class='el-upload-list item is-success')]//span[contains(text(),'删除')]")))
+                else:
+                    result["count_e"] += 1
+                    sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '缺少证明材料:" + row[15] + "'"
+                    execSQL(sql)
+                    d_list.remove(str(row[13]))     # 从列表中删除失败数据
+                    time.sleep(1)
+                    continue
                     
             # 填写单位名称
             name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'单位名称')]/following-sibling::div//input")[0]

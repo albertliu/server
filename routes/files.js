@@ -2146,9 +2146,9 @@ Date.prototype.Format = function(formatStr)
 }*/
 
 async function compressBase64(base64Data, size) {
-  // 压缩图片，宽度300pix
+  // 压缩图片，宽度500pix
   return sharp(new Buffer.from(base64Data, 'base64'))
-    .resize({ width: size || 300 })
+    .resize({ width: size || 500 })
     .toBuffer()
     .then(data => { 
       return data;
