@@ -313,7 +313,7 @@ def enter_by_list0(elist, kind):
                 execSQL(sql)
                 d_list.remove(str(row[13]))     # 从列表中删除已成功数据
                 # 提交成功，确定按钮
-                name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//li[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
+                name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-message-box__btns']/button/span[contains(text(),'确定')]/..")))
                 name_input.click()
                 time.sleep(3)
             except TimeoutException:
