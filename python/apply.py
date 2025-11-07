@@ -236,8 +236,8 @@ def enter_by_list0(elist, kind):
             # name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'单位/街道地址')]/following-sibling::div//input")[0]
             # clean_send(name_input, row[7])
             # 清空邮编
-            # name_input = driver.find_elements(By.XPATH, "//form[@class='el-form']//p[contains(text(),'人员初证报名')]/following-sibling::div//label[contains(text(),'邮编')]/following-sibling::div//input")[0]
-            # clean_send(name_input, '000000')
+            name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'邮编')]/following-sibling::div//input")[0]
+            clean_send(name_input, '000000')
             # 判断是否本地户籍
             area = driver.find_elements(By.XPATH, "//span[contains(text(),'非本地户籍')]/preceding-sibling::span")[0]
             if area.get_attribute("class") == "el-radio__input is-checked":
