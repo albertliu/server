@@ -11,9 +11,9 @@ ALTER DATABASE elearning SET RECOVERY FULL
 --set datefirst 1  --将星期一设为第一天
 
 select * from dictionaryDoc where kind like '%material%' order by kind, ID
-select * from dictionaryDoc where kind like '%schedule%' order by kind, ID
+select * from dictionaryDoc where kind like '%examResult%' order by kind, ID
 select * from dictionaryDoc where kind like '%online%' order by kind, ID
-select * from dictionaryDoc where item like '%预备%' order by kind, ID
+select * from dictionaryDoc where item like '%合格%' order by kind, ID
 --delete from dictionaryDoc where mID=1298
 insert into dictionaryDoc(ID,item,kind,description,memo) values('0','公开','servicePrivate','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('1','私有','servicePrivate','','')
@@ -3244,7 +3244,7 @@ BEGIN
 					select @payNow = 1
 				declare @saler varchar(50)
 				exec [setStudentSaler] @username, @fromID, @saler output
-
+				select @fromID = @saler
 				--添加课程  石化内部项目，设为不签名
 				insert into studentCourseList(username,courseID,refID,payNow,title,price,type,signatureType,hours,closeDate,projectID,classID,SNo,reexamine,checked,checkDate,checker,currDiplomaID,currDiplomaDate,fromID,fromKind,source,host,registerID) select @username,courseID,@refID,@payNow,@title,@price,@type,iif(@type=1,0,1),hours,dateadd(d,period,getDate()),@projectID,@classID,@SNo,@reexamine,@checked,@checkDate,@checker,@currDiplomaID,@currDiplomaDate,@saler,@fromKind,@source,@host,@username from courseInfo where courseID=@courseID
 				select @ID=max(ID) from studentCourseList where refID=@refID
@@ -4971,9 +4971,9 @@ BEGIN
 		if not exists(select 1 from studentInfo where username=@username)	-- 新纪录
 		begin
 			if @tax>''
-				select @unit=unitName, @address=address,@host=host from unitInfo where taxNo=@tax
+				select @unit=unitName, @address=address from unitInfo where taxNo=@tax
 			else if @unit>''
-				select @tax=taxNo, @address=address,@host=host from unitInfo where unitName=@unit
+				select @tax=taxNo, @address=address from unitInfo where unitName=@unit
 			else if @host='shm'
 				select @unit=a.unitName,@tax=a.taxNo, @address=a.address from unitInfo a, deptInfo b where b.host='shm' and b.deptID=@dept1 and a.unitName=b.deptName
 			else if @host='spc' and @kindID=0
@@ -6226,7 +6226,7 @@ ALTER FUNCTION [dbo].[getRetireDayDiff]
 RETURNS int 
 AS
 BEGIN
-	declare @re int, @retireAge int, @agencyID int, @retireDay int, @birthday smalldatetime, @sex int, @age int
+	declare @re int, @retireAge int, @agencyID int, @retireDay int, @birthday smalldatetime, @sex int, @age int, @type int
 	select @agencyID=agencyID,@re=0 from certificateInfo where certID=@certID
 	if @agencyID=1 and @certID<>'C16'
 	begin
@@ -6234,9 +6234,10 @@ BEGIN
 			select @sex = cast(substring(@username,17,1) as int) % 2, @birthday=substring(@username,7,8), @age = (year(getDate())*10000 + month(getDate())*100 + day(getDate()) - substring(@username,7,4)*10000 - substring(@username,11,2)*100 - substring(@username,13,2))/10000
 		else
 			select @sex=sex, @birthday=birthday, @age=age from studentInfo where username=@username
-		select @retireAge=(case when @sex=1 then 60 when @certID='C16' or @certID='C17' then 55 else 50 end)
+		select @retireAge=(case when @sex=1 then 60 when @certID='C16' or @certID='C17' then 55 else 50 end), @type=(case when @sex=1 then 0 when @certID='C16' or @certID='C17' then 1 else 2 end)
 		if @age>=18
-			select @re=iif(datediff(d,getDate(),DATEADD(yy,@retireAge,@birthday))>60,0,1)
+			select @re=iif(datediff(d,getDate(),dbo.delayRetirementDate(@birthday,@sex,@type))>60,0,1)
+			--select @re=iif(datediff(d,getDate(),DATEADD(yy,@retireAge,@birthday))>60,0,1)
 		else
 			select @re=2
 	end
@@ -6989,7 +6990,7 @@ BEGIN
 		--if @certID in('C1','C2','C22','C23')
 		else
 			--SELECT ID,(case when @certID='C2' then '易燃易爆危险物品从业人员' when @certID='C31' then '动火作业' else certName end) as title,diplomaID,username,name,sexName,birthday,certID,(case when @certID='C31' then '动火作业' else certName end) as certName,startDate,endDate,term,(case when host<>'spc' and host<>'shm' then unit when host='spc' and kindID=1 then dept1Name when host='spc' and dept1=9 then '上海石油分公司物流中心' else hostName end) as hostName,(case when host='spc' and dept1=9 and job='' then '油品储运工' else job end) as job,educationName,'No.' + replace(space(7-len(serial))+cast(serial as varchar),' ','0') as diplomaNo,photo_filename,[dbo].[fn_formatDate](class_startDate,0) as class_startDate,[dbo].[fn_formatDate](class_endDate,0) as class_endDate FROM v_diplomaInfo where batchID=@batchID order by diplomaID
-			SELECT ID,(case when @certID='C2' then '易燃易爆危险物品从业人员' else certName end) as title,diplomaID,username,name,sexName,birthday,certID,certName,startDate,endDate,term,(case when host<>'spc' and host<>'shm' then unit when host='spc' and kindID=1 then dept1Name when host='spc' and dept1=9 then '上海石油分公司物流中心' else hostName end) as hostName,(case when host='spc' and dept1=9 and job='' then '油品储运工' else job end) as job,educationName,'No.' + replace(space(7-len(serial))+cast(serial as varchar),' ','0') as diplomaNo,photo_filename,[dbo].[fn_formatDate](class_startDate,0) as class_startDate,[dbo].[fn_formatDate](class_endDate,0) as class_endDate FROM v_diplomaInfo where batchID=@batchID order by diplomaID
+			SELECT ID,(case when @certID='C2' then '易燃易爆危险物品从业人员' else certName end) as title,diplomaID,username,name,sexName,birthday,certID,certName,startDate,endDate,term,(case when host<>'spc' then unit when host='spc' and kindID=1 then dept1Name when host='spc' and dept1=9 then '上海石油分公司物流中心' else hostName end) as hostName,(case when host='spc' and dept1=9 and job='' then '油品储运工' else job end) as job,educationName,'No.' + replace(space(7-len(serial))+cast(serial as varchar),' ','0') as diplomaNo,photo_filename,[dbo].[fn_formatDate](class_startDate,0) as class_startDate,[dbo].[fn_formatDate](class_endDate,0) as class_endDate FROM v_diplomaInfo where batchID=@batchID order by diplomaID
 	end
 END
 GO
@@ -9737,12 +9738,18 @@ GO
 
 -- CREATE DATE: 2023-05-26
 -- 学员付款
-CREATE PROCEDURE [dbo].[enterPay]
+ALTER PROCEDURE [dbo].[enterPay]
 	@enterID int,@amount decimal(18,2),@pay_kind int,@pay_type int,@memo nvarchar(500), @registerID varchar(50)
 AS
 BEGIN
-	update studentCourseList set pay_kindID=@pay_kind, pay_type=@pay_type, pay_status=1, amount=@amount, datePay=getDate(), pay_checkDate=getDate(), pay_memo=@memo, pay_checker=@registerID where ID=@enterID
-	exec writeOpLog '','付款','enter',@registerID,@memo,@enterID
+	declare @re int, @msg nvarchar(50)
+	if @registerID > '' and @registerID <> 'undefined'
+	begin
+		update studentCourseList set pay_kindID=@pay_kind, pay_type=@pay_type, pay_status=1, amount=@amount, datePay=getDate(), pay_checkDate=getDate(), pay_memo=@memo, pay_checker=@registerID where ID=@enterID
+		exec writeOpLog '','付款','enter',@registerID,@memo,@enterID
+		select @re=1, @msg='操作成功'
+	end
+	select isnull(@re,0) as status, isnull(@msg,'经办人信息丢失，请重新登录后再操作') as msg
 END
 GO
 
@@ -10321,19 +10328,29 @@ ALTER PROCEDURE [dbo].[getSalesRptDetail]
 AS
 BEGIN
 	declare @d1 varchar(50), @d2 varchar(50)
+	create table #tbl (ID int, autoPay int, username varchar(50),name nvarchar(50), amount decimal(18,2), datePay varchar(50), pay_typeName nvarchar(100), courseName nvarchar(100), pay_memo nvarchar(100), invoice varchar(50), courseID varchar(50), pay_type int)
 	select @d1 = left(@startDate,7) + '-01', @d2 = iif(@endDate='',EOMONTH(@startDate),@endDate)
 	if @kind=0
-		select ID,autoPay,username as '身份证', name as '姓名', amount as '金额', datePay as '日期', pay_typeName as '类型', courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo from v_studentCourseList where datePay=@startDate and pay_type<>3 and host in('znxf','spc','shm') and fromID=@sales
-		union all select ID,autoPay,username, name, amount, dateReceive, pay_typeName, courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo from v_studentCourseList where dateReceive=@startDate and pay_type=3 and host in('znxf','spc','shm') and fromID=@sales
-		union all select ID,0,username, name, -refund_amount, dateRefund, '退款', courseName, refund_memo from v_studentCourseList where dateRefund=@startDate and host in('znxf','spc','shm') and fromID=@sales and refund_amount>0
+		insert into #tbl
+		select ID,autoPay,username as '身份证', name as '姓名', amount as '金额', datePay as '日期', pay_typeName as '类型', courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo,invoice, courseID, pay_type from v_studentCourseList where datePay=@startDate and pay_type<>3 and host in('znxf','spc','shm') and fromID=@sales
+		union all select ID,autoPay,username, name, amount, dateReceive, pay_typeName, courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo,invoice, courseID, pay_type from v_studentCourseList where dateReceive=@startDate and pay_type=3 and host in('znxf','spc','shm') and fromID=@sales
+		union all select ID,0,username, name, -refund_amount, dateRefund, '退款', courseName, refund_memo,invoice, courseID, pay_type from v_studentCourseList where dateRefund=@startDate and host in('znxf','spc','shm') and fromID=@sales and refund_amount>0
 	if @kind=1
-		select ID,autoPay,username as '身份证', name as '姓名', amount as '金额', datePay as '日期', pay_typeName as '类型', courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo from v_studentCourseList where datePay>=@d1 and datePay<=@d2 and pay_type<>3 and host in('znxf','spc','shm') and fromID=@sales
-		union all select ID,autoPay,username, name, amount, dateReceive, pay_typeName, courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo from v_studentCourseList where dateReceive>=@d1 and dateReceive<=@d2 and pay_type=3 and host in('znxf','spc','shm') and fromID=@sales
-		union all select ID,0,username, name, -refund_amount, dateRefund, '退款', courseName, refund_memo from v_studentCourseList where dateRefund>=@d1 and dateRefund<=@d2 and host in('znxf','spc','shm') and fromID=@sales and refund_amount>0
+		insert into #tbl
+		select ID,autoPay,username as '身份证', name as '姓名', amount as '金额', datePay as '日期', pay_typeName as '类型', courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo,invoice, courseID, pay_type from v_studentCourseList where datePay>=@d1 and datePay<=@d2 and pay_type<>3 and host in('znxf','spc','shm') and fromID=@sales
+		union all select ID,autoPay,username, name, amount, dateReceive, pay_typeName, courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo,invoice, courseID, pay_type from v_studentCourseList where dateReceive>=@d1 and dateReceive<=@d2 and pay_type=3 and host in('znxf','spc','shm') and fromID=@sales
+		union all select ID,0,username, name, -refund_amount, dateRefund, '退款', courseName, refund_memo,invoice, courseID, pay_type from v_studentCourseList where dateRefund>=@d1 and dateRefund<=@d2 and host in('znxf','spc','shm') and fromID=@sales and refund_amount>0
 	if @kind=2
-		select ID,autoPay,username as '身份证', name as '姓名', amount as '金额', datePay as '日期', pay_typeName as '类型', courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo from v_studentCourseList where checkDate=@startDate and host in('znxf','spc','shm') and fromID=@sales
+		insert into #tbl
+		select ID,autoPay,username as '身份证', name as '姓名', amount as '金额', datePay as '日期', pay_typeName as '类型', courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo,invoice, courseID, pay_type from v_studentCourseList where checkDate=@startDate and host in('znxf','spc','shm') and fromID=@sales
 	if @kind=3
-		select ID,autoPay,username as '身份证', name as '姓名', amount as '金额', datePay as '日期', pay_typeName as '类型', courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo from v_studentCourseList where checkDate>=@d1 and checkDate<=@d2 and host in('znxf','spc','shm') and fromID=@sales
+		insert into #tbl
+		select ID,autoPay,username as '身份证', name as '姓名', amount as '金额', datePay as '日期', pay_typeName as '类型', courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo,invoice, courseID, pay_type from v_studentCourseList where checkDate>=@d1 and checkDate<=@d2 and host in('znxf','spc','shm') and fromID=@sales
+
+	if @kind<2
+		insert into  #tbl select b.ID,b.autoPay,b.username, b.name, b.amount, b.datePay, b.pay_typeName, b.courseName, iif(b.unit>'',b.unit,hostName+dept1Name) + ':' + b.pay_memo,b.invoice, b.courseID, b.pay_type from #tbl a, v_studentCourseList b where a.invoice=b.invoice and a.pay_type=3 and a.ID<>b.ID
+
+	select ID,autoPay,username as '身份证', name as '姓名', amount as '金额', datePay as '日期', pay_typeName as '类型', courseName, pay_memo,invoice, courseID, pay_type from #tbl order by invoice, datePay desc
 END
 GO
 
@@ -11793,6 +11810,23 @@ BEGIN
 		--return students list for send mobile message
 		select b.name,b.username,b.mobile,@certName as certName, b.ID as enterID,b.name + '：消防设施操作员考试将重做大调整，请于2025-10-31前完成考试申报以便调整前取证。逾期不提供新标准的重新培训' as item from #temp a, v_studentCourseList b where a.username=b.username and b.classID=@batchID
 	end
+END
+GO
+
+-- CREATE DATE: 2025-10-30
+-- 根据给定的参数，更新某个申报记录。
+-- USE CASE: exec updateApplyInfo '123','student_education'...
+ALTER PROCEDURE [dbo].[updateApplyInfo]
+	@ID int, @status int, @examDate varchar(50), @step nvarchar(50), @memo nvarchar(500), @memo1 nvarchar(500), @score1 varchar(50), @score2 varchar(50),@upload int,@uploadPhoto int,@registerID varchar(50)
+AS
+BEGIN
+	if exists(select 1 from applyInfo where ID=@ID)
+	begin
+		update applyInfo set status=@status,examDate=dbo.whenull(@examDate,''),step=dbo.whenull(@step,''), memo=dbo.whenull(@memo,''), memo1=dbo.whenull(@memo1,''),score1=dbo.whenull(@score1,0),score2=dbo.whenull(@score2,0),upload=@upload,uploadPhoto=@uploadPhoto where ID=@ID
+		-- 写操作日志
+		exec writeOpLog '','修改申报记录','updateApplyInfo',@registerID,@memo,@ID
+	end
+	select isnull(@ID,0) as re
 END
 GO
 

@@ -44,6 +44,8 @@ host = ""
 register = "操作员"
 username = ""
 password = ""
+# 成绩单/成绩合格电子凭证
+kind = 0
 
 
 def enter_by_list0(elist, kindID, refID):
@@ -76,6 +78,8 @@ def enter_by_list0(elist, kindID, refID):
             name_input = driver.find_elements(By.XPATH, "//td/div/input[@type='password']")[0]  # 密码
             # clean_send(name_input, row[1])
             clean_send(name_input, "Aa12345=")
+            global kind
+            kind = 0
 
             # 循环获取验证码，知道输入的验证码正确
             while True:
@@ -104,8 +108,10 @@ def enter_by_list0(elist, kindID, refID):
                         continue  # 如果验证码校验失败，则重新获取验证码
                     # if wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'成绩单')]"))):
                     if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩单')]"):
+                        kind = 1
                         break   # 登录成功，则跳出循环，不再获取验证码
                     if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩合格电子凭证')]"):
+                        kind = 2
                         break   # 登录成功，则跳出循环，不再获取验证码
                     # if wait.until(EC.presence_of_element_located((By.XPATH, "//p[contains(text(),'查无成绩')]"))):
                     if driver.find_elements(By.XPATH, "//p[contains(text(),'查无成绩')]"):
@@ -121,13 +127,16 @@ def enter_by_list0(elist, kindID, refID):
 
             if c == 1:
                 continue
-            if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩单')]") or driver.find_elements(By.XPATH, "//div[contains(text(),'成绩合格电子凭证')]"):
+            # if driver.find_elements(By.XPATH, "//div[contains(text(),'成绩单')]") or driver.find_elements(By.XPATH, "//div[contains(text(),'成绩合格电子凭证')]"):
+            if kind > 0:
                 score1 = ""
                 score2 = ""
                 score2a = ""
                 examDate = ""
                 if ((row[5] == "C20" or row[5] == "C20A") and driver.find_elements(By.XPATH, "//td[contains(text(), '四级/中级工')]")) or (row[5] == "C21" and driver.find_elements(By.XPATH, "//td[contains(text(), '五级/初级工')]")):
-                    if driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td"):
+                    if kind == 1 and driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td"):
+                        score1 = driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td")[0].get_attribute('innerText')
+                    if kind == 2 and driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td/span"):
                         score1 = driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td")[0].get_attribute('innerText')
                     if driver.find_elements(By.XPATH, "//td[contains(text(), '技能成绩')]/following-sibling::td/span"):
                         score2a = driver.find_elements(By.XPATH, "//td[contains(text(), '技能成绩')]/following-sibling::td/span")[0].get_attribute('innerText')
