@@ -48,7 +48,7 @@ router.get('/logout', function (req, res, next) {
 
 //6. get_student
 router.get('/get_student', function (req, res, next) {
-  sqlstr = "select * from v_studentInfo where username='" + req.query.username + "'";
+  sqlstr = "select *,[dbo].[getStudentNewMessageCount]('" + req.query.username + "') as newMessage from v_studentInfo where username='" + req.query.username + "'";
   params = {};
   //console.log("params:", params);
   db.excuteSQL(sqlstr, params, function (err, data) {
@@ -80,7 +80,7 @@ router.get('/getStudentCourseList', function (req, res, next) {
     sqlstr = "select * from dbo.getCourseListByTeacher(@teacher,@username)";
     params = {"teacher": req.session.user.teacher, "username": req.session.user.username};
   }else{
-    sqlstr = "select ID,username,classID,file4,courseName,reexamineName,reexamine,type,checkName,status,statusName,completion,hours,startDate,endDate,pre,signatureType,signature,agencyID,regDate,payNow,pay_status,invoice,autoPay,examScore,examTimes,[dbo].[getPassCondition](ID) as pass_condition,dbo.getCoursePaperID(ID, refID) AS paperID,dbo.getCourseHelps(ID) AS helps from v_studentCourseList where username='" + req.query.username + "' and status<2" + " order by status";
+    sqlstr = "select ID,username,classID,file4,courseName,reexamineName,reexamine,type,checkName,status,statusName,completion,hours,startDate,endDate,pre,signatureType,signature,agencyID,host,regDate,payNow,pay_status,invoice,autoPay,examScore,examTimes,[dbo].[getPassCondition](ID) as pass_condition,dbo.getCoursePaperID(ID, refID) AS paperID,dbo.getCourseHelps(ID) AS helps from v_studentCourseList where username='" + req.query.username + "' and status<2" + " order by status";
     params = {};
   }
   

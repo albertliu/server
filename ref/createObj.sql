@@ -10,16 +10,16 @@ ALTER DATABASE elearning SET RECOVERY FULL
 --De0penl99O53!4N#~9.
 --set datefirst 1  --将星期一设为第一天
 
-select * from dictionaryDoc where kind like '%material%' order by kind, ID
+select * from dictionaryDoc where kind like '%evalution%' order by kind, ID
 select * from dictionaryDoc where kind like '%examResult%' order by kind, ID
 select * from dictionaryDoc where kind like '%online%' order by kind, ID
 select * from dictionaryDoc where item like '%合格%' order by kind, ID
---delete from dictionaryDoc where mID=1298
-insert into dictionaryDoc(ID,item,kind,description,memo) values('0','公开','servicePrivate','','')
-insert into dictionaryDoc(ID,item,kind,description,memo) values('1','私有','servicePrivate','','')
-insert into dictionaryDoc(ID,item,kind,description,memo) values('2','报账','accountKind','','')
-insert into dictionaryDoc(ID,item,kind,description,memo) values('3','台胞证','IDkind','','')
-insert into dictionaryDoc(ID,item,kind,description,memo) values('5','其他','IDkind','','')
+--delete from dictionaryDoc where kind='evalution'
+insert into dictionaryDoc(ID,item,kind,description,memo) values('0','好','evalution','','')
+insert into dictionaryDoc(ID,item,kind,description,memo) values('1','较好','evalution','','')
+insert into dictionaryDoc(ID,item,kind,description,memo) values('2','尚可','evalution','','')
+insert into dictionaryDoc(ID,item,kind,description,memo) values('3','差','evalution','','')
+insert into dictionaryDoc(ID,item,kind,description,memo) values('5','其他','evalution','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('6','六','week','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('8','社保证明','material','student_social','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('0','个人','fromKind','','')
@@ -1211,6 +1211,24 @@ CREATE TABLE [dbo].[help_videoInfo](
 	[seconds] int NULL,	
 	[vod] [varchar](500) NULL,
 	[status] [int] NULL default(0)
+) ON [PRIMARY]
+GO
+
+--学员评议记录
+CREATE TABLE [dbo].[evalutionFormInfo](
+	[ID] int IDENTITY(1,1) NOT NULL,
+	[enterID][int] NOT NULL,
+	[F1] [int] NULL default(0),
+	[F2] [int] NULL default(0),
+	[F3] [int] NULL default(0),
+	[F4] [int] NULL default(0),
+	[F5] [int] NULL default(0),
+	[F6] [int] NULL default(0),
+	[F7] [int] NULL default(0),
+	[status] [int] NULL default(0),
+	[memo] [nvarchar](500) NULL,
+	[regDate] [datetime] NULL,
+	[registerID] [varchar](50) NULL
 ) ON [PRIMARY]
 GO
 
@@ -2989,7 +3007,7 @@ AS
 BEGIN
 	SET NOCOUNT ON;
 	DECLARE @logMemo varchar(500),@event varchar(50),@userID int,@re int
-	select @logMemo = '',@dept1Name=REPLACE(@dept1Name,' ',''), @tax= UPPER(replace(dbo.whenull(@tax,''),' ','')), @address=REPLACE(dbo.whenull(@address,''),' ',''), @re=0	--0 success
+	select @name=replace(@name,' ',''),@logMemo = '',@dept1Name=REPLACE(@dept1Name,' ',''), @tax= UPPER(replace(dbo.whenull(@tax,''),' ','')), @address=REPLACE(dbo.whenull(@address,''),' ',''), @re=0	--0 success
 	if @limitDate = '' or @limitDate = 'null' or @limitDate= 'undefined'
 		set @limitDate = null
 	if @dept1 = '' or @dept1 = 'null' or @dept1= 'undefined' or @dept1= '0'
@@ -3109,7 +3127,7 @@ AS
 BEGIN
 	SET NOCOUNT ON;
 	DECLARE @logMemo varchar(500),@event varchar(50),@userID int,@age int,@birthday0 varchar(50),@re int
-	select @logMemo = '',@dept1Name=REPLACE(@dept1Name,' ',''), @re=0	--0 success
+	select @name=replace(@name,' ',''),@logMemo = '',@dept1Name=REPLACE(@dept1Name,' ',''), @re=0	--0 success
 	if @limitDate = '' or @limitDate = 'null' or @limitDate= 'undefined'
 		set @limitDate = null
 	if @dept1 = '' or @dept1 = 'null' or @dept1= 'undefined' or @dept1= '0'
@@ -4934,7 +4952,7 @@ AS
 BEGIN
 	declare @password varchar(50),@kindID int,@companyID varchar(50),@dept1 varchar(50),@dept2 varchar(50),@fromID varchar(50),@price int,@unit varchar(100),@educationID int,@certID varchar(50),@courseID varchar(50),@projectID varchar(50),@host varchar(50),@err int,@exist int,@existOther int,@null int,@Tai int,@msg varchar(50)
 	declare @retireDay int, @enterID int, @refID int
-	select @dept1=0, @dept2=0, @unit=null, @educationID=0,@err=0,@exist=0,@existOther=0,@null=0,@oldNo=(case when @oldNo>0 then @oldNo else 0 end),@Tai=charindex('台',@username),@host='znxf',@username = upper(@username), @tax= UPPER(replace(dbo.whenull(@tax,''),' ','')), @address=REPLACE(dbo.whenull(@address,''),' ','')
+	select @name=replace(@name,' ',''),@dept1=0, @dept2=0, @unit=null, @educationID=0,@err=0,@exist=0,@existOther=0,@null=0,@oldNo=(case when @oldNo>0 then @oldNo else 0 end),@Tai=charindex('台',@username),@host='znxf',@username = upper(@username), @tax= UPPER(replace(dbo.whenull(@tax,''),' ','')), @address=REPLACE(dbo.whenull(@address,''),' ','')
 	select @password = item,@kindID=0 from dictionaryDoc where kind='studentPasswd'
 	select @educationID=ID from dictionaryDoc where kind='education' and item=@education
 	if @currDiplomaDate='' or @currDiplomaDate='null' or @currDiplomaDate='undefined' set @currDiplomaDate=''
@@ -5660,12 +5678,13 @@ ALTER PROCEDURE [dbo].[setProjectStatus]
 	@ID int,@status int,@username varchar(50)
 AS
 BEGIN
+	declare @event varchar(50),@mem varchar(500)
+	select @mem=projectID + ':' + projectName from projectInfo where ID=@ID
 	if @status=9
 		delete from projectInfo where ID=@ID
 	else
 		update projectInfo set status=@status where ID=@ID
 	-- 写操作日志
-	declare @event varchar(50),@mem varchar(500)
 	--exec writeOpLog @host,@event,'user',@registerID,@memo,@refID
 	select @event=item,@mem='' from dictionaryDoc where kind='statusIssue' and ID=@status
 	exec writeOpLog '',@event,'project',@username,@mem,@ID
@@ -8803,11 +8822,12 @@ ALTER PROCEDURE [autoSetClassSchedule]
 	@classID varchar(50), @mark varchar(50), @registerID varchar(50)
 AS
 BEGIN
-	declare @startDate smalldatetime, @courseID varchar(50), @online int, @n int,@seq int,@kindID int,@typeID int,@hours int,@period varchar(50),@item nvarchar(100), @theDate smalldatetime,@teacher varchar(50),@classroom varchar(50),@re int,@point int
+	declare @startDate smalldatetime, @courseID varchar(50), @online int, @n int, @t int,@seq int,@kindID int,@typeID int,@hours int,@period varchar(50),@item nvarchar(100), @theDate smalldatetime,@teacher varchar(50),@classroom varchar(50),@re int,@point int
 	if @mark='A'
-		select @startDate = startDate, @courseID=courseID, @n=0,@teacher=teacher,@classroom=classroom from generateApplyInfo where ID=@classID
+		select @startDate = startDate, @courseID=courseID, @teacher=teacher,@classroom=classroom from generateApplyInfo where ID=@classID
 	if @mark='B'
-		select @startDate = dateStart, @courseID=courseID, @n=0,@teacher=teacher,@classroom=classroom from classInfo where ID=@classID
+		select @startDate = dateStart, @courseID=courseID, @teacher=teacher,@classroom=classroom from classInfo where ID=@classID
+	select @n=0, @t=2
 
 	if not exists(select 1 from faceDetectInfo where keyID in(select ID from classSchedule where classID=@classID))
 	begin
@@ -8820,18 +8840,20 @@ BEGIN
 		While @@fetch_status=0 
 		Begin
 			--计算当前日期
-			select @theDate = dateadd(d,@n,@startDate)
+			if @t=0 and @typeID=0
+				select @n = @n + 1	--连续两个上午之间，进入下一天
+			select @theDate = dateadd(d,@n,@startDate), @t = @typeID
 			--确定该日期及时段里教师是否有空，如果没有空，则随机选取其他有空的教师
 			--if @teacher > '' and exists(select 1 from classSchedule where theDate=@theDate and typeID=@typeID and teacher=@teacher and online=0)
 			--begin
 			--	select @teacher = ''
 			--	select top 1 @teacher = teacherID from dbo.getFreeTeacherList(@theDate,@classID,@mark) order by freePoint desc
 			--end
-
+			
 			insert into classSchedule(mark,classID,courseID,seq,kindID,typeID,online,point,hours,period,theDate,theWeek,item,address,teacher,registerID)
 				select @mark,@classID,@courseID,@seq,@kindID,@typeID,@online,@point,@hours,@period,@theDate,datepart(weekday,@theDate),@item,@classroom,@teacher,@registerID
 			if @typeID=1
-				select @n = @n + 1	--排完下午课进入下一天
+				select @n = @n + 1	--排完下午课，进入下一天
 			fetch next from rc into @seq,@kindID,@typeID,@online,@hours,@period,@item,@point
 		End
 		Close rc 
@@ -10150,7 +10172,8 @@ GO
 
 -- CREATE DATE: 2023-02-16
 -- 处理第三方题库(从网上爬取)小鹅通
--- USE CASE: exec [dealQuestionOther] 
+-- USE CASE: exec [dealQuestionOther]
+-- truncate table questionOther
 -- select * from [questionOther]
 -- select distinct kindID,questionName,answer,A,B,C,D,E,F from [questionOther]
 -- insert questionOther1 select * from [questionOther]
@@ -10348,7 +10371,7 @@ BEGIN
 		select ID,autoPay,username as '身份证', name as '姓名', amount as '金额', datePay as '日期', pay_typeName as '类型', courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo,invoice, courseID, pay_type from v_studentCourseList where checkDate>=@d1 and checkDate<=@d2 and host in('znxf','spc','shm') and fromID=@sales
 
 	if @kind<2
-		insert into  #tbl select b.ID,b.autoPay,b.username, b.name, b.amount, b.datePay, b.pay_typeName, b.courseName, iif(b.unit>'',b.unit,hostName+dept1Name) + ':' + b.pay_memo,b.invoice, b.courseID, b.pay_type from #tbl a, v_studentCourseList b where a.invoice=b.invoice and a.pay_type=3 and a.ID<>b.ID
+		insert into  #tbl select b.ID,b.autoPay,b.username, b.name, b.amount, b.datePay, b.pay_typeName, b.courseName, iif(b.unit>'',b.unit,hostName+dept1Name) + ':' + b.pay_memo,b.invoice, b.courseID, b.pay_type from #tbl a, v_studentCourseList b where a.invoice=b.invoice and a.pay_type=3 and a.invoice>'' and b.ID not in(select ID from #tbl)
 
 	select ID,autoPay,username as '身份证', name as '姓名', amount as '金额', datePay as '日期', pay_typeName as '类型', courseName, pay_memo,invoice, courseID, pay_type from #tbl order by invoice, datePay desc
 END
@@ -11094,6 +11117,27 @@ BEGIN
 END
 GO
 
+--CREATE Date:2025-12-25
+--根据给定日期，列出特种作业每门课程的鉴定结果。日期按照开班日期计算，包括总数、合格、不合格、缺考情况。
+--结果中给出汇总数据
+--mark: data/file
+ALTER PROCEDURE [dbo].[getRptExamResult]
+	@startDate varchar(50), @endDate varchar(50), @mark varchar(50)
+AS
+BEGIN
+	select @endDate = dbo.whenull(@endDate,convert(varchar(20),getDate(),23))
+	declare @tb table(kindID float,courseID varchar(50) default(''), courseName nvarchar(100) default(''), qty int, qty1 int, qty2 int, qty3 int )
+	insert into @tb 
+		select 0, courseID, courseName, count(*) as qty, sum(iif(status=1,1,0)) as qty1, sum(iif(status=2,1,0)) as qty2, sum(iif(status=3,1,0)) as qty3 from v_applyInfo where startDate between @startDate and @endDate group by courseID, courseName
+	update @tb set courseName=b.shortName from @tb a, courseInfo b where a.courseID=b.courseID
+	insert into @tb(kindID, courseName, qty, qty1, qty2, qty3) select 100,'合计',sum(qty),sum(qty1),sum(qty2),sum(qty3) from @tb
+	if @mark='data'
+		select iif(courseID>'',cast(ROW_NUMBER() OVER (ORDER BY kindID,courseID) as varchar),'') as 'No',* from @tb order by kindID,courseID
+	if @mark='file'
+		select iif(courseID>'',cast(ROW_NUMBER() OVER (ORDER BY kindID,courseID) as varchar),'') as 'No',courseName as '课程名称',qty as '总人数',qty1 as '合格',qty2 as '不合格',qty3 as '缺考' from @tb order by kindID,courseID
+END
+GO
+
 -- CREATE DATE: 2024-10-15
 -- 查询班级课表
 -- USE CASE: exec [getClassScheduleList] '123'
@@ -11691,7 +11735,7 @@ BEGIN
 	declare @re int, @msg nvarchar(4000),@startDate smalldatetime,@endDate smalldatetime,@courseID varchar(50)
 	select @startDate=startDate,@endDate=endDate,@courseID=courseID,@msg='',@re=0 from generateApplyInfo where ID=@classID
 	--开班日期必须是下个月
-	if month(getDate())>=month(@startDate)
+	if convert(varchar(7),getDate(),23)>=convert(varchar(7),@startDate,23)
 		select @msg = @msg + '培训日期必须为下个月；'
 	--培训周期
 	if exists(select 1 from courseInfo where courseID=@courseID and period>datediff(d,@startDate,@endDate)+1)
@@ -11830,4 +11874,99 @@ BEGIN
 END
 GO
 
+-- CREATE DATE: 2025-06-25
+-- 根据给定的参数，添加或者更新学员评议表
+-- USE CASE: exec [updateEvalutionFormInfo] 1,'P1','xxxx'...
+ALTER PROCEDURE [dbo].[updateEvalutionFormInfo]
+	@ID int,@enterID int,@F1 int,@F2 int, @F3 int, @F4 int, @F5 int, @F6 int, @F7 int,@memo varchar(500),@registerID varchar(50)
+AS
+BEGIN
+	declare @logMemo nvarchar(500)
+	select @memo=dbo.whenull(@memo,'')
+	if @ID=0	-- 新纪录
+	begin
+		insert into evalutionFormInfo(enterID,F1,F2, F3, F4, F5, F6, F7,memo,registerID) values(@enterID,@F1,@F2, @F3, @F4, @F5, @F6, @F7,@memo,@registerID)
+		select @ID=max(ID) from evalutionFormInfo where registerID=@registerID
+	end
+	else
+	begin
+		update evalutionFormInfo set F1=@F1,F2=@F2, F3=@F3, F4=@F4, F5=@F5, F6=@F6, F7=@F7,memo=@memo,regDate=getDate() where ID=@ID
+		update studentCourseList set evalution=2 where ID=@enterID
+	end
+	
+	-- 写操作日志
+	select @logMemo = @memo
+	exec writeOpLog '','学员评议表','updateEvalutionFormInfo',@registerID,@logMemo,@ID
+	select @ID as re
+END
+GO
+
+--CREATE Date:2026-01-08
+--根据给定的学员username，查找其所有证书文件，合并输出（以|为间隔）。
+ALTER PROCEDURE [dbo].[getStudentDiplomas]
+	@username varchar(50), @name nvarchar(50)
+AS
+BEGIN
+	declare @re varchar(4000), @p int, @status int, @item varchar(500)
+	select @re='',@status=0
+	if not exists(select 1 from studentInfo where name=@name)
+		select @status=2
+	if not exists(select 1 from studentInfo where username=@username)
+		select @status=1
+
+	if @status=0
+	begin
+		declare rc cursor for select isnull([filename],'') as item from diplomaInfo where username=@username
+		open rc
+		fetch next from rc into @item
+		While @@fetch_status=0 
+		Begin 
+			select @re = @re + '**' + @item
+			fetch next from rc into @item
+		End
+		Close rc 
+		Deallocate rc
+		if @re>''
+			select @re = right(@re,len(@re)-2)
+	end
+	select isnull(@re,'') as re, @status as status
+END
+GO
+
+-- =============================================
+-- CREATE Date: 2026-01-13
+-- Description:	根据名单添加学员评议表
+-- @selList: 名单，用逗号分隔的 kindID=B: username  kindID=A applyInfo.ID
+-- Use Case:	exec [setEvalutionList] '...'
+-- =============================================
+ALTER PROCEDURE [dbo].[setEvalutionList] 
+	@selList varchar(4000), @kindID varchar(50), @classID varchar(50), @registerID varchar(50)
+AS
+BEGIN
+	--将名单导入到临时表
+	create table #temp(id varchar(50))
+	declare @n int, @j int, @event nvarchar(50)
+	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0
+	while @n>@j
+	begin
+		insert into #temp(id) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
+		select @j = @j + 1
+	end
+
+	if @kindID='A'
+		update #temp set id=b.enterID from #temp a, applyInfo b where a.id=b.ID
+
+	if @kindID='B'
+		update #temp set id=b.ID from #temp a, studentCourseList b where a.id=b.username and b.classID=@classID
+
+	--添加评议表，不得重复
+	insert into evalutionFormInfo(enterID,registerID) select id,@registerID from #temp where id not in(select id from evalutionFormInfo)
+	update studentCourseList set evalution=1 where ID in(select id from #temp)
+
+	-- 写操作日志
+	select @event='添加学员评议表'
+	exec writeOpLog '', @event,'setEvalutionList',@registerID,@selList,0
+	select 0 as re
+END
+GO
 
