@@ -1336,13 +1336,13 @@ GO
 -- USE CASE: select * from dbo.[getStudentCertRestList]('120107196604032113')
 ALTER FUNCTION [dbo].[getStudentCertRestList]
 (	
-	@username varchar(50)
+	@username varchar(50),@host varchar(50)
 )
 RETURNS @tab TABLE (ID int, certID varchar(50),certName varchar(100),mark int,reexamine int)
 AS
 BEGIN
-	declare @kindID int,@host varchar(50),@deptID varchar(20),@c555 int
-	select @kindID=kindID, @host=host, @deptID=dept1 from studentInfo where username=@username
+	declare @kindID int,@deptID varchar(20),@c555 int
+	select @kindID=kindID, @host=dbo.whenull(@host,host), @deptID=dept1 from studentInfo where username=@username
 	select @c555=c555 from deptInfo where deptID=@deptID
 	select @deptID=isnull(@deptID,'')
 
@@ -2410,13 +2410,13 @@ GO
 -- USE CASE: select * from dbo.[getStudentProjectRestList]('120107196604032113')
 ALTER FUNCTION [dbo].[getStudentProjectRestList]
 (	
-	@username varchar(50)
+	@username varchar(50),@host varchar(50)
 )
 RETURNS @tab TABLE (projectID varchar(50),projectName varchar(100))
 AS
 BEGIN
-	declare @kindID int,@host varchar(50),@deptID int
-	select @kindID=kindID, @host=host, @deptID=isnull(dept1,0) from studentInfo where username=@username
+	declare @kindID int,@deptID int
+	select @kindID=kindID, @host=dbo.whenull(@host, host), @deptID=isnull(dept1,0) from studentInfo where username=@username
 
 	if @kindID=0	--系统内员工
 	begin

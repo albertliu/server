@@ -114,7 +114,7 @@ router.get('/getStudentCertPickList', function (req, res, next) {
 
 //8a. getStudentCertRestList
 router.get('/getStudentCertRestList', function (req, res, next) {
-  sqlstr = "select * from dbo.getStudentCertRestList('" + req.query.username + "') order by mark, certID";
+  sqlstr = "select * from dbo.getStudentCertRestList('" + req.query.username + "','" + (req.query.host || "") + "') order by mark, certID";
   params = {};
   db.excuteSQL(sqlstr, params, function (err, data) {
     if (err) {
