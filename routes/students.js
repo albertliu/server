@@ -48,7 +48,7 @@ router.get('/logout', function (req, res, next) {
 
 //6. get_student
 router.get('/get_student', function (req, res, next) {
-  sqlstr = "select *,[dbo].[getStudentNewMessageCount]('" + req.query.username + "') as newMessage from v_studentInfo where username='" + req.query.username + "'";
+  sqlstr = "select *,[dbo].[getStudentNewMessageCount]('" + req.query.username + "') as newMessage,[dbo].[getStudentNewEvalution]('" + req.query.username + "') as newEvalution from v_studentInfo where username='" + req.query.username + "'";
   params = {};
   //console.log("params:", params);
   db.excuteSQL(sqlstr, params, function (err, data) {

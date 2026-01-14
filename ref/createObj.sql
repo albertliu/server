@@ -3213,7 +3213,7 @@ BEGIN
 	if @currDiplomaID='' or @currDiplomaID='null' set @currDiplomaID=null
 	select @fromID=dbo.whenull(@fromID,null), @ID=0, @username=upper(@username), @source=null
 	--@fromID如果没有.后缀，添加上去。
-	select @event='在线报名',@refID=0,@re=0,@host=iif(@url>'',@url,host),@checked=0,@SNo=0,@dept1=dept1,@dept2=dept2,@payNow=0,@title='',@fromID=iif(charindex('.',@fromID)>0,@fromID,iif(@fromID>'',@fromID+'.',@fromID)),@fromKind=fromKind from studentInfo where username=@username
+	select @event='在线报名',@refID=0,@re=0,@host=iif(@url>'',@url,'znxf'),@checked=0,@SNo=0,@dept1=dept1,@dept2=dept2,@payNow=0,@title='',@fromID=iif(charindex('.',@fromID)>0,@fromID,iif(@fromID>'',@fromID+'.',@fromID)),@fromKind=fromKind from studentInfo where username=@username
 	if @host='spc'
 	begin
 		if exists(select 1 from deptInfo where deptID=@dept2)
@@ -11890,8 +11890,8 @@ BEGIN
 	end
 	else
 	begin
-		update evalutionFormInfo set F1=@F1,F2=@F2, F3=@F3, F4=@F4, F5=@F5, F6=@F6, F7=@F7,memo=@memo,regDate=getDate() where ID=@ID
-		update studentCourseList set evalution=2 where ID=@enterID
+		update evalutionFormInfo set status=1,F1=@F1,F2=@F2, F3=@F3, F4=@F4, F5=@F5, F6=@F6, F7=@F7,memo=@memo,regDate=getDate() where ID=@ID
+		update studentCourseList set evalution=2 where ID=(select enterID from evalutionFormInfo where ID=@ID)
 	end
 	
 	-- 写操作日志
@@ -11967,6 +11967,33 @@ BEGIN
 	select @event='添加学员评议表'
 	exec writeOpLog '', @event,'setEvalutionList',@registerID,@selList,0
 	select 0 as re
+END
+GO
+
+--CREATE Date:2026-01-13
+--返回学员新评议表数量
+ALTER FUNCTION [dbo].[getStudentNewEvalutionCount](@username varchar(50))
+RETURNS int
+AS
+BEGIN
+	declare @re int
+	select @re = 0
+	select @re = count(*) from evalutionFormInfo a, studentCourseList b where b.username=@username and a.enterID=b.ID and a.status=0
+	return @re
+END
+GO
+
+--CREATE Date:2026-01-13
+--返回学员新评议表ID
+ALTER FUNCTION [dbo].[getStudentNewEvalution](@username varchar(50))
+RETURNS nvarchar(100)
+AS
+BEGIN
+	declare @re nvarchar(100)
+	select @re = max(a.ID) from evalutionFormInfo a, studentCourseList b where b.username=@username and a.enterID=b.ID and a.status=0
+	if @re>''
+		select @re = @re+'|'+c.shortName from evalutionFormInfo a, studentCourseList b, v_courseInfo c where a.enterID=b.ID and b.courseID=c.courseID and a.ID=@re
+	return isnull(@re,'')
 END
 GO
 
