@@ -830,13 +830,17 @@ router.post('/uploadBase64img', async function (req, res, next) {
       uploadFolder = "students/signature/";
       fn = req.body.username;
       break;
+    case "user_letter_signature":
+      uploadFolder = "companies/signature/";
+      fn = req.body.username;
+      break;
     default:
       uploadFolder = "others/";
       fn = req.body.username;
   }
   uploadFolder = uploadHome + uploadFolder;
   createFolder(uploadFolder);
-  fn = uploadFolder + fn + (upID=="student_letter_signature"? ".png":".jpg");
+  fn = uploadFolder + fn + (upID.indexOf("_letter_signature")>-1 ? ".png" : ".jpg");
 
   var base64Data = imgData.replace(/^data:image\/\w+;base64,/, "");
   var dataBuffer = "";
