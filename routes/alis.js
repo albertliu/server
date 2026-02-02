@@ -248,7 +248,7 @@ async function compressBase64(data, size) {
     let base64Data = data.split(',')[1];
     // 压缩图片，宽度200pix
     return sharp(new Buffer.from(base64Data, 'base64'))
-      .resize({ width: size || 200 })
+      .resize({ width: size || 400 })
       .toBuffer()
       .then(data => { 
         return data;
