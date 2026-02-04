@@ -910,7 +910,18 @@ def enter_by_list9(elist, classID, courseName, reex):
                 d_list.remove(str(row[13]))     # 从列表中删除无文件数据
                 continue
             wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div[contains(@title, '点击上传考核申请材料')]/div")))
-            # search_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div[contains(@title, '点击上传考核申请材料')]/div")[0]
+            # 检查姓名是否一致
+            s1 = ""
+            s2 = driver.find_elements(By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div[contains(@title, '点击上传考核申请材料')]/following-sibling::div//span[@class='s2']")[0].text
+            if s2 != row[0]:
+                s1 = '<p style="color:red;"> 姓名与原登记不符：' + s2 + '</p>'
+                # 保存结果
+                result["count_e"] += 1
+                sql = "exec setApplyUploadMemo " + str(row[13]) + ", '" + s1 + "'"
+                execSQL(sql)
+                d_list.remove(str(row[13]))     # 从列表中删除错误数据
+                continue
+
             search_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div[contains(@title, '点击上传考核申请材料')]/div")))
             search_btn.click()
             # search_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//img")[0]

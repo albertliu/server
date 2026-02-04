@@ -9663,6 +9663,16 @@ BEGIN
 END
 GO
 
+-- CREATE DATE: 2026-02-04
+-- 上传资料说明
+CREATE PROCEDURE [dbo].[setApplyUploadMemo]
+	@ID int, @memo nvarchar(500)
+AS
+BEGIN
+	update applyInfo set memo1=isnull(memo1,'')+'<br>'+isnull(memo,''),memo = @memo + ' ' + convert(varchar(20),getDate(),120) where ID=@ID
+END
+GO
+
 -- CREATE DATE: 2023-05-30
 -- 上传照片
 CREATE PROCEDURE [dbo].[setApplyPhotoUpload]
@@ -10292,13 +10302,13 @@ BEGIN
 		(select * from v_classSchedule where mark='A' and online=0 and (typeID=0 or typeID=@checkinMark) and classID = @classID) a 
 		left outer join 
 		(select d.file1,d.file2,c.refID from checkinInfo c, faceDetectInfo d where c.enterID=d.refID and c.refID=d.keyID and c.kindID=1 and d.kindID=2 and c.enterID=@enterID) b
-		on a.ID=b.refID
+		on a.ID=b.refID order by theDate
 	else
 		select a.theDate as theDate,a.item,a.teacherName,a.kindName,a.classID, b.file1, b.file2 from 
 		(select * from v_classSchedule where mark='A' and online=0) a 
 		inner join 
 		(select d.file1,d.file2,c.refID from checkinInfo c, faceDetectInfo d where c.enterID=d.refID and c.refID=d.keyID and c.kindID=1 and d.kindID=2 and c.enterID=@enterID) b
-		on a.ID=b.refID
+		on a.ID=b.refID order by theDate
 END
 GO
 
@@ -10319,7 +10329,7 @@ BEGIN
 	(select * from v_classSchedule where mark='A' and classID <>@classID and theDate between @start and @end) a 
 	inner join 
 	(select d.file1,d.file2,c.refID from checkinInfo c, faceDetectInfo d where c.enterID=d.refID and c.refID=d.keyID and c.kindID=1 and d.kindID=2 and c.enterID in(select ID from studentCourseList where username=@username and courseID=@courseID)) b
-	on a.ID=b.refID
+	on a.ID=b.refID order by theDate
 END
 GO
 
@@ -12084,7 +12094,7 @@ ALTER PROCEDURE [dbo].[setEnterRemoveClass]
 AS
 BEGIN
 	declare @event nvarchar(50)
-	update studentCourseList set classID=null, SNo='0' where ID=@enterID
+	update studentCourseList set classID='', SNo='0' where ID=@enterID
 
 	-- 写操作日志
 	select @event='退出培训班级'
