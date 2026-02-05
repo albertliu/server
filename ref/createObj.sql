@@ -12127,3 +12127,29 @@ BEGIN
 END
 GO
 
+-- CREATE DATE: 2024-04-27
+-- 检查某个班级的评议表数量：已发出/已完成
+-- @kindID: A 申报班  B 培训班
+CREATE FUNCTION [dbo].[getClassEvalutionCount]
+(	
+	@classID int, @kindID varchar(50)
+)
+RETURNS varchar(50)
+AS
+BEGIN
+	declare @re varchar(50), @qty1 int, @qty2 int
+	SELECT @re='',@qty1=0,@qty2=0
+	if @kindID='B'	--培训班
+	begin
+		select @qty1=sum(iif(evalution>0,1,0)),  @qty2=sum(iif(evalution=2,1,0)) from studentCourseList where ID=@classID
+	end
+	if @kindID='A'	--申报班
+	begin
+		select @qty1=sum(iif(evalution>0,1,0)),  @qty2=sum(iif(evalution=2,1,0)) from studentCourseList where ID in(select enterID from applyInfo where refID=@classID)
+	end
+	if @qty1>0
+		select @re=cast(@qty1 as varchar) + '/' + cast(@qty2 as varchar)
+	RETURN @re
+END
+GO
+

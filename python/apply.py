@@ -458,6 +458,12 @@ def enter_by_list1(elist):
             tt = name_input.get_attribute('value')
             if tt != row[0]:
                 s1 = '<p style="color:red;"> 姓名与原登记不符：' + tt + '</p>'
+                result["count_e"] += 1
+                sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '报名信息：" + s1 + "'"
+                execSQL(sql)
+                d_list.remove(str(row[13]))     # 从列表中删除失败数据
+                time.sleep(1)
+                continue
             # 选择文化程度
             # 点击下拉框
             name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'文化程度')]/following-sibling::div//input")[0].click()
