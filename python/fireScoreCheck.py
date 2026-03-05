@@ -133,7 +133,8 @@ def enter_by_list0(elist, kindID, refID):
                 score2 = ""
                 score2a = ""
                 examDate = ""
-                if ((row[5] == "C20" or row[5] == "C20A" or row[5] == "C20B") and driver.find_elements(By.XPATH, "//td[contains(text(), '四级/中级工')]")) or (row[5] == "C21" and driver.find_elements(By.XPATH, "//td[contains(text(), '五级/初级工')]")):
+                # 职业方向  C20/C20B:消防设施监控操作	C20A:消防设施检测维修保养
+                if ((row[5] == "C20" or row[5] == "C20B") and driver.find_elements(By.XPATH, "//td[contains(text(), '四级/中级工')]") and driver.find_elements(By.XPATH, "//td[contains(text(), '监控操作')]")) or (row[5] == "C20A" and driver.find_elements(By.XPATH, "//td[contains(text(), '四级/中级工')]") and driver.find_elements(By.XPATH, "//td[contains(text(), '维修保养')]")) or (row[5] == "C21" and driver.find_elements(By.XPATH, "//td[contains(text(), '五级/初级工')]")):
                     if kind == 1 and driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td"):
                         score1 = driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td")[0].get_attribute('innerText')
                     if kind == 2 and driver.find_elements(By.XPATH, "//td[contains(text(), '理论成绩')]/following-sibling::td/span"):

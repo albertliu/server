@@ -97,7 +97,7 @@ function streamToString (stream) {
 // base64Data: 带有data:image/jpeg;base64,前缀的完整数据
 router.post('/uploadFaceDetectOSS', async function (req, res, next) {
   let compareResult = 0;
-  const msgRe = ["请先上传证件照片","比对成功","比对失败，请平视摄像头。","网络错误，请稍后再试","照片读取失败，请重试","数据处理失败，请重试"];
+  const msgRe = ["请先上传证件照片","比对成功","比对失败，请平视摄像头。","比对错误，请稍后再试","照片读取失败，请重试","数据处理失败，请重试"];
   let errCode = ":EC";
   try {
     errCode += "1";
@@ -107,7 +107,7 @@ router.post('/uploadFaceDetectOSS', async function (req, res, next) {
     // const base64DataFromRequest = Buffer.from(req.body).toString('base64');
     // console.log("req.body.base64Data:", req.body.base64Data.length);
     //压缩图片
-    let buff = await compressBase64(req.body.base64Data);
+    let buff = await compressBase64(req.body.base64Data, 200);
     // console.log("buff:", buff.toString('base64'));
     //保存文件命名
     let ossFileName = req.body.refID + "-" + (new Date().getTime()) + ".jpg"; // 自动生成文件名：refID为studentVideoList.ID

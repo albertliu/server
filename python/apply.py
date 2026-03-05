@@ -59,8 +59,8 @@ def login_fr():
     aim_url = {
         'login_url':
         r'https://zwdtuser.sh.gov.cn/uc/login/login.jsp?redirect_uri=https%3a%2f%2fks.51safe.com.cn%2faks_platform%2fauth%2fgetToken%3f',
-        'username': username,   # 13651648767
-        'password': password,   # Pqf1823797198
+        'username': username,   # 13918051550
+        'password': password,   # Yan@sun0707
         'homepage': 'studentList?pid=3'
     }
     # 打开链接

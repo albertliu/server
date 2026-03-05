@@ -41,6 +41,23 @@ delete from dictionaryDoc where mID=243
 -- table
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
+CREATE TABLE stock_basic (
+    ts_code      varchar(50),  -- TS股票代码
+    symbol       varchar(50),              -- 股票代码
+    name         nvarchar(50),              -- 股票名称
+    area         nvarchar(50),              -- 地域
+    industry     nvarchar(50),              -- 行业
+    fullname     nvarchar(50),              -- 股票全称
+    enname       varchar(500),              -- 英文全称
+    market       nvarchar(50),              -- 市场类型（主板/创业板等）
+    exchange     varchar(50),              -- 交易所代码
+    curr_type    varchar(50),              -- 交易货币
+    list_status  varchar(50),              -- 上市状态 L上市
+    list_date    varchar(50),              -- 上市日期
+    delist_date  varchar(50),              -- 退市日期
+    is_hs        varchar(50),               -- 是否沪深港通标的
+    update_time  smalldatetime default(getDate())  -- 更新时间戳
+);
 
 --第三方题库数据
 CREATE TABLE [dbo].[questionOther](
@@ -4489,19 +4506,19 @@ GO
 -- CREATE DATE: 2020-05-24
 -- 根据给定的参数，添加或者更新单位信息
 -- USE CASE: exec updateHostInfo 1,1,'xxxx'...
-CREATE PROCEDURE [dbo].[updateHostInfo]
-	@hostID int,@hostNo  nvarchar(50),@hostName nvarchar(100),@title nvarchar(100),@kindID int,@status int,@linker  nvarchar(50),@phone nvarchar(50),@email nvarchar(50),@address nvarchar(50),@memo nvarchar(500),@registerID varchar(50)
+ALTER PROCEDURE [dbo].[updateHostInfo]
+	@hostID int,@hostNo  nvarchar(50),@hostName nvarchar(100),@title nvarchar(100),@kindID int,@status int,@linker  nvarchar(50),@phone nvarchar(50),@email nvarchar(50),@address nvarchar(50),@account varchar(50),@passwd varchar(50),@memo nvarchar(500),@registerID varchar(50)
 AS
 BEGIN
 	if @hostID=0	-- 新纪录
 	begin
-		insert into hostInfo(hostNo,hostName,title,kindID,status,linker,phone,email,address,memo,registerID) values(@hostNo,@hostName,@title,@kindID,@status,@linker,@phone,@email,@address,@memo,@registerID)
+		insert into hostInfo(hostNo,hostName,title,kindID,status,linker,phone,email,address,accountA,passwdA,memo,registerID) values(@hostNo,@hostName,@title,@kindID,@status,@linker,@phone,@email,@address,@account,@passwd,@memo,@registerID)
 		--初始化数据
 		exec initialHost @hostNo
 	end
 	else
 	begin
-		update hostInfo set hostNo=@hostNo,kindID=@kindID,hostName=@hostName,title=@title,status=@status,linker=@linker,phone=@phone,email=@email,address=@address,memo=@memo where hostID=@hostID
+		update hostInfo set hostNo=@hostNo,kindID=@kindID,hostName=@hostName,title=@title,status=@status,linker=@linker,phone=@phone,email=@email,address=@address,accountA=@account,passwdA=@passwd,memo=@memo where hostID=@hostID
 	end
 END
 GO
@@ -10263,7 +10280,7 @@ BEGIN
 	declare @start varchar(50), @end varchar(50)
 	if exists(select 1 from applyInfo where enterID=@enterID)
 	begin
-		select @start=convert(varchar(20),min(theDate),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) from applyInfo where enterID=@enterID)
+		select @start=convert(varchar(20),min(theDate),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) from applyInfo where enterID=@enterID) and std=1
 		SELECT @start as dateStart, @end as dateEnd, name, username, certName, reexamine, a.host, b.hostName FROM v_applyInfo a, hostInfo b where a.host=b.hostNo and a.enterID=@enterID
 	end
 END
@@ -10279,7 +10296,7 @@ BEGIN
 	declare @start varchar(50), @end varchar(50)
 	if exists(select 1 from generateApplyInfo where ID=@classID)
 	begin
-		select @start=convert(varchar(20),min(theDate),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = @classID
+		select @start=convert(varchar(20),min(theDate),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = @classID and std=1
 		SELECT applyID, @start as dateStart, @end as dateEnd, courseName as certName, reexamine, a.host, isnull(b.hostName,'') as hostName FROM v_generateApplyInfo a left outer join hostInfo b on a.host=b.hostNo where a.ID=@classID
 	end
 END
@@ -12152,4 +12169,6 @@ BEGIN
 	RETURN @re
 END
 GO
+
+
 
