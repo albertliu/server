@@ -1313,6 +1313,22 @@ router.post('/setInvoiceGroup', function(req, res) {
   });
 });
 
+//4. 将一批学员的发票设为一组
+router.post('/setInvoiceGroupCancel', function(req, res) {
+  sqlstr = "setInvoiceGroupCancel";
+  params = { selList:req.body.selList, kind:req.body.kind, classID:req.body.classID, registerID:req.body.registerID };
+  // console.log('setInvoiceGroup',params);
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      return res.send({ "status": 9, "msg": "操作失败。" });
+    }
+    let response = data.recordset[0] || [];
+  // console.log("responsed2:", response);
+    return res.send(response);
+  });
+});
+
 //4. 
 router.get('/getTrainingProofInfo', function (req, res, next) {
   sqlstr = "getTrainingProofInfo";

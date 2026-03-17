@@ -5861,7 +5861,7 @@ ALTER PROCEDURE [dbo].[pickStudents2Class]
 	@classID varchar(50), @selList varchar(4000), @oldClassID varchar(50), @registerID varchar(50)
 AS
 BEGIN
-	declare @re int, @ID int, @cID int, @pNo varchar(50), @mark varchar(50)
+	declare @re int, @ID int, @cID int, @pNo varchar(50), @mark varchar(50), @logMemo nvarchar(500)
 	select @pNo = ''
 	select @cID=ID from classInfo where classID=@classID
 
@@ -5887,6 +5887,9 @@ BEGIN
 			if @classID>''
 				exec lookRefSNo @cID, '', '', @pNo output, @mark output
 			update studentCourseList set classID=@classID, SNo=@pNo where ID=@ID
+			-- 写操作日志
+			select @logMemo=@oldClassID + '->' + @classID
+			exec writeOpLog '','更换班级','pickStudents2Class',@registerID,@logMemo,@ID
 			select @re=@re+1
 			fetch next from rc into @ID
 		End
@@ -11313,8 +11316,9 @@ GO
 
 -- =============================================
 -- CREATE Date: 2023-06-01
--- Description:	根据名单提取报名数据
+-- Description:	根据名单提设置团体发票
 -- @selList: 名单，用逗号分隔的kind A applyID  B username
+-- 已有发票的不能重新绑定
 -- Use Case:	exec [setInvoiceGroup] '...'
 -- =============================================
 ALTER PROCEDURE [dbo].[setInvoiceGroup] 
@@ -11339,8 +11343,48 @@ BEGIN
 	SELECT @qty=@@ROWCOUNT
 
 	-- 写操作日志
-	select @event='设置/取消免签'
+	select @event='设置团体发票'
 	exec writeOpLog '', @event,'setInvoiceGroup',@registerID,@selList,@invoice
+	select 0 as status, '操作成功' as msg, @qty as qty
+END
+GO
+
+-- =============================================
+-- CREATE Date: 2026-03-17
+-- Description:	解绑团体发票
+-- @selList: 名单，用逗号分隔的kind A applyID  B username
+-- Use Case:	exec [setInvoiceGroupCancel] '...'
+-- =============================================
+ALTER PROCEDURE [dbo].[setInvoiceGroupCancel] 
+	@selList varchar(4000), @kind varchar(50), @classID varchar(50), @registerID varchar(50)
+AS
+BEGIN
+	--将名单导入到临时表
+	create table #temp(id varchar(50))
+	declare @n int, @j int, @event nvarchar(50), @date varchar(50), @qty as int, @invoice varchar(50), @enterID int
+	select @date=dateInvoice from studentCourseList where invoice=@invoice and amount>0
+	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0, @qty=0
+	while @n>@j
+	begin
+		insert into #temp(id) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
+		select @j = @j + 1
+	end
+
+	if @kind='A'
+	begin
+		select @invoice=a.invoice, @enterID=a.ID from studentCourseList a, #temp b, applyInfo c where b.id=c.id and a.id=c.enterID
+		update studentCourseList set invoice='',dateInvoice=null where invoice = @invoice and ID<>@enterID
+	end
+	if @kind='B'
+	begin
+		select @invoice=a.invoice, @enterID=a.ID from studentCourseList a, #temp b where a.username=b.id and a.classID=@classID
+		update studentCourseList set invoice='',dateInvoice=null where invoice = @invoice and ID<>@enterID
+	end
+	SELECT @qty=@@ROWCOUNT
+
+	-- 写操作日志
+	select @event='解绑团体发票'
+	exec writeOpLog '', @event,'setInvoiceGroupCancel',@registerID,@selList,@invoice
 	select 0 as status, '操作成功' as msg, @qty as qty
 END
 GO
