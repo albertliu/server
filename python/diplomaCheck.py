@@ -54,16 +54,16 @@ def enter_by_list0(elist, kindID, refID):
     rs = cursor.fetchall()
 
     # 打开网址
-    # driver.get(url)
+    url = r'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/inquirySpecialCertificate?personTypeCode=03'
+    driver.get(url)
 
     # 浏览器全屏，可有可无
     # driver.maximize_window()
 
     for row in rs:
         try:
-            url = r'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/inquirySpecialCertificate?personTypeCode=03'
             if row[5] == "C16" or row[5] == "C17":
-                url = r'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/inputQuery'
+                url = r'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/safetyManagement?personTypeCode=02'
             driver.execute_script("window.open('" + url + "','_self');")
             # 查找验证码的元素
             wait = WebDriverWait(driver, 5)
@@ -107,7 +107,7 @@ def enter_by_list0(elist, kindID, refID):
 
                 # 验证码获取失败，再重新获取
                 # 我的网页的情况是当在登录页面时，url里带有login，如果登录成功，则没有login字符串，所以这里采用这样条件来判断是否登录成功
-                if "queryResults" in driver.current_url:  # 根据自己的实际网页情况，编写不同的判断条件
+                if "Results" in driver.current_url:  # 根据自己的实际网页情况，编写不同的判断条件
                     break   # 登录成功，则跳出循环，不再获取验证码
                 else:
                     # 刷新验证码
@@ -197,14 +197,14 @@ def enter_by_list1(username, name, courseName):
 
             # 验证码获取失败，再重新获取
             # 我的网页的情况是当在登录页面时，url里带有login，如果登录成功，则没有login字符串，所以这里采用这样条件来判断是否登录成功
-            if "queryResults" in driver.current_url:  # 根据自己的实际网页情况，编写不同的判断条件
+            if "Results" in driver.current_url:  # 根据自己的实际网页情况，编写不同的判断条件
                 break   # 登录成功，则跳出循环，不再获取验证码
             else:
                 # 刷新验证码
                 driver.find_elements(By.XPATH, "//img[@class='code_img']")[0].click()
                 continue  # 如果验证码校验失败，则重新获取验证码
 
-        wait.until(EC.presence_of_element_located((By.XPATH, "//uni-text/span[contains(text(), '特种作业操作证查询结果')]")))
+        wait.until(EC.presence_of_element_located((By.XPATH, "//uni-text/span[contains(text(), '查询结果')]")))
         # 查找作业项目
         name_input = driver.find_elements(By.XPATH, "//td[contains(text(), '" + courseName + "')]")
         if len(name_input) > 0:
@@ -292,7 +292,7 @@ if __name__ == '__main__':
     # username = "13817866150"
     # password = "123456Asdf"
     # register = "desk."
-    # enter_by_list0('512221197606053091,421102198810310515,310230198310061254,430281198804285810,341124199903047819,32032419860706099X,513723199008164437,620503199201067416,533521199902061539,411528199011055018,310229199403310415,310229198612294410,341225200405123935,612323199504118617,320922199912233011,31011519821029561X,341225197703046152,310108198311101630,320821197309233913,360313199610303510,342601198409092410,340321200102127313,413021197505205013,342921199012260718,340321200109087334,410825200112183512,510722199604122058,341222199808192391,370923198803132837,360122199806156618,341282199001165516,341222198809204695,530125199907043111,330122198709223217,342923199701144811,610422199012113219,360481199609060816,362330199709103533,130425198011026316,320623198803087495,321322199205240472,310225198701074414,371322199207204351,310229198803034435,52250119960925363X,341227198811055635,341621200107102753,341223197801202814,510525199507150098,411528199004052230,341282200307075551', 2, 1036)
+    # enter_by_list0('310113198006251414', 2, 4283)
     # enter_by_list1('321281198711034057', '高正友', '低压电工作业')
     # 以上是测试代码
     kind = sys.argv[2]     # 0 applyID  1 enterID  2 username  
