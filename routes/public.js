@@ -1167,7 +1167,7 @@ router.post('/enterPay', function (req, res) {
     }
     const re = (data.recordset? data.recordset[0]:{});
     let url = pyUrl + '/NNOpenSDK.py ' + re["host"] + ' ' + req.body.kindID + ' ' + re["enterOrder"] + ' ' + re["amount"] + ' ' + re["item"] + ' ' + re["name"] + ' ' + 'system.';
-    console.log('url code:', url);
+    // console.log('url code:', url);
     shell.exec(url, function (code, stdout, stderr) {
       // console.log('Exit code:', code);
       // console.log('Program output:', stdout);    

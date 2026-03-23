@@ -46,13 +46,12 @@ password = ""
 
 
 def enter_by_list0(elist, kindID, refID):
-    # 根据指定开班编号及名单（kindID:0 applyID  1 enterID)查询应复训日期。
+    # 根据指定开班编号及名单（kindID:0 applyID  1 enterID)查询特种作业应复训日期。
     # 获取名单完整信息
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
     sql = "exec getStudentListByList '" + elist + "', " + str(kindID) + ", " + str(refID)  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
     rs = cursor.fetchall()
-    url = r'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/inquirySpecialCertificate?personTypeCode=03'
 
     # 打开网址
     driver.get(url)
@@ -62,6 +61,9 @@ def enter_by_list0(elist, kindID, refID):
 
     for row in rs:
         try:
+            url = r'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/inquirySpecialCertificate?personTypeCode=03'
+            if row[5] == "C16" or row[5] == "C17":
+                url = r'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/inputQuery'
             driver.execute_script("window.open('" + url + "','_self');")
             # 查找验证码的元素
             wait = WebDriverWait(driver, 5)
@@ -112,11 +114,11 @@ def enter_by_list0(elist, kindID, refID):
                     driver.find_elements(By.XPATH, "//img[@class='code_img']")[0].click()
                     continue  # 如果验证码校验失败，则重新获取验证码
 
-            wait.until(EC.presence_of_element_located((By.XPATH, "//uni-text/span[contains(text(), '特种作业操作证查询结果')]")))
+            wait.until(EC.presence_of_element_located((By.XPATH, "//uni-text/span[contains(text(), '查询结果')]")))
             # 查找作业项目
             name_input = driver.find_elements(By.XPATH, "//td[contains(text(), '" + row[3] + "')]")
             if len(name_input) > 0:
-                checkDate = driver.find_elements(By.XPATH, "//td[contains(text(), '" + row[3] + "')]/../../tr/td[contains(text(), '应复审日期')]/following-sibling::td")[0].text
+                checkDate = driver.find_elements(By.XPATH, "//td[contains(text(), '" + row[3] + "')]/../../tr/td[contains(text(), '有效期结束日期')]/following-sibling::td")[0].text
                 # 保存结果
                 result["count_s"] += 1
                 # @enterID int, @date varchar(50), @registerID varchar(50)

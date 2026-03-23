@@ -1126,16 +1126,18 @@ CREATE TABLE [dbo].[invoiceInfo](
 	[ID] int IDENTITY(1,1) NOT NULL,
 	[kind] [nvarchar](50),	    --发票种类
 	[invCode] [varchar](50) NULL,	--发票代码
-	[invID] [varchar](50) NULL,		--发票号码
+	[enterID] int NOT NULL,		--发票号码
 	[taxNo] [varchar](50) NULL,	--税号
-	[taxUnit] [varchar](50) NULL,		--发票抬头
+	[taxUnit] [nvarchar](100) NULL,		--发票抬头
 	[invDate] [datetime] NULL,  --导入日期
-	[item] [nvarchar](50) NULL,  --项目
+	[item] [nvarchar](100) NULL,  --项目
 	[amount] decimal(18,2) NULL default(0),		--发票金额
 	[cancel] [int] NULL default(0),	    --0 有效  1 作废
 	[cancelDate] [datetime] NULL,  --作废日期
 	[payType] [nvarchar](50) NULL,  --支付方式
 	[payStatus] [int] NULL default(0),	    --支付状态 0 已付  1 应收
+	[autoPay] [int] NULL default(0),	    --自助支付 0 否  1 是
+	[autoInvoice] [int] NULL default(0),	    --自助开票 0 否  1 是
 	[operator] [nvarchar](50) NULL,  --开票人
 	[memo] [nvarchar](500) NULL,
 	[checkDate] [datetime] NULL,  --收款确认日期
@@ -1150,6 +1152,7 @@ CREATE TABLE [dbo].[autoPayInfo](
 	[ID] int IDENTITY(1,1) NOT NULL,
 	[kind] [int] NULL DEFAULT (0),	    --类别: 0 pay, 1 invoice, 2 refund
 	[enterID] [int] NULL DEFAULT (0),
+	[enterOrder] [varchar](50) NULL,		
 	[amount] [decimal](18, 2) default(0),		--金额
 	[payStatus] [int] NULL DEFAULT (0),	--0--待支付 1--已支付 2--支付失败 3--关闭 4--退款中 5--退款成功 6--退款失败
 	[payTime] [datetime] NULL,  --日期
@@ -1171,6 +1174,7 @@ CREATE TABLE [dbo].[autoPayReturn](
 	[ID] int IDENTITY(1,1) NOT NULL,
 	[kind] [varchar](50) NULL,
 	[memo] [nvarchar](4000) NULL,
+	[memo1] [nvarchar](4000) NULL,
 	[regDate] [datetime] NULL default(getDate())
 ) ON [PRIMARY]
 GO
@@ -10760,11 +10764,11 @@ BEGIN
 	end
 
 	if @kindID=0
-		select a.ID,name,username,certName,a.enterID,a.certID from v_applyInfo a, #temp b where a.ID=b.id order by a.ID
+		select a.ID,name,username,iif(a.certID in('C16','C17'),replace(certName,'危险化学品经营单位',''),certName),a.enterID,a.certID from v_applyInfo a, #temp b where a.ID=b.id order by a.ID
 	if @kindID=1
-		select a.ID,name,username,certName,a.ID as enterID,a.certID from v_studentCourseList a, #temp b where a.ID=b.id order by a.ID
+		select a.ID,name,username,iif(a.certID in('C16','C17'),replace(certName,'危险化学品经营单位',''),certName),a.ID as enterID,a.certID from v_studentCourseList a, #temp b where a.ID=b.id order by a.ID
 	if @kindID=2
-		select a.ID,name,username,certName,a.ID as enterID,a.certID from v_studentCourseList a, #temp b, classInfo c where a.username=b.id and a.classID=c.classID and c.ID=@refID order by a.ID
+		select a.ID,name,username,iif(a.certID in('C16','C17'),replace(certName,'危险化学品经营单位',''),certName),a.ID as enterID,a.certID from v_studentCourseList a, #temp b, classInfo c where a.username=b.id and a.classID=c.classID and c.ID=@refID order by a.ID
 END
 GO
 
@@ -10806,7 +10810,10 @@ AS
 BEGIN
 	if @enterID>0
 	begin
-		update studentCourseList set currDiplomaDate=[dbo].[whenull](@date,null), currDiplomaID=registerID + convert(varchar(20),getDate(),23) where ID=@enterID
+		select @date=left(@date,10)
+		update studentCourseList set currDiplomaDate=[dbo].[whenull](@date,null), currDiplomaID=@registerID + ' ' + convert(varchar(20),getDate(),23) where ID=@enterID
+		-- 写操作日志
+		exec writeOpLog '','复训日期查询','setDiplomaCheckDate',@registerID,@date,@enterID
 	end
 END
 GO
