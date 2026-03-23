@@ -54,7 +54,7 @@ def enter_by_list0(elist, kindID, refID):
     rs = cursor.fetchall()
 
     # 打开网址
-    driver.get(url)
+    # driver.get(url)
 
     # 浏览器全屏，可有可无
     # driver.maximize_window()
