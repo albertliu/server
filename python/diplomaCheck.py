@@ -56,14 +56,17 @@ def enter_by_list0(elist, kindID, refID):
     # 打开网址
     url = r'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/inquirySpecialCertificate?personTypeCode=03'
     driver.get(url)
+    safy = 0
+    d = ["应复审日期", "有效期结束日期"]
 
     # 浏览器全屏，可有可无
     # driver.maximize_window()
 
     for row in rs:
         try:
-            if row[5] == "C16" or row[5] == "C17":
+            if row[5] == "C16" or row[5] == "C17":  # 安全生产
                 url = r'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/safetyManagement?personTypeCode=02'
+                safy = 1
             driver.execute_script("window.open('" + url + "','_self');")
             # 查找验证码的元素
             wait = WebDriverWait(driver, 5)
@@ -118,7 +121,7 @@ def enter_by_list0(elist, kindID, refID):
             # 查找作业项目
             name_input = driver.find_elements(By.XPATH, "//td[contains(text(), '" + row[3] + "')]")
             if len(name_input) > 0:
-                checkDate = driver.find_elements(By.XPATH, "//td[contains(text(), '" + row[3] + "')]/../../tr/td[contains(text(), '有效期结束日期')]/following-sibling::td")[0].text
+                checkDate = driver.find_elements(By.XPATH, "//td[contains(text(), '" + row[3] + "')]/../../tr/td[contains(text(), '" + d[safy] + "')]/following-sibling::td")[0].text
                 # 保存结果
                 result["count_s"] += 1
                 # @enterID int, @date varchar(50), @registerID varchar(50)
