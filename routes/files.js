@@ -2153,7 +2153,7 @@ async function compressBase64(base64Data, size) {
   // 压缩图片，宽度300pix
   return sharp(new Buffer.from(base64Data, 'base64'))
     .resize({ width: size || 300 })
-    .jpeg({ quality: 100 }) // 压缩质量 1-100
+    .jpeg({ quality: 80 }) // 压缩质量 1-100
     .toBuffer()
     .then(data => { 
       return data;

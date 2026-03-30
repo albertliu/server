@@ -1372,7 +1372,7 @@ BEGIN
 		INSERT INTO @tab
 		SELECT * FROM
 		(
-			SELECT a.ID,a.certID,a.certName,0 as mark,a.reexamine from v_certificateInfo a, projectInfo b where a.certID=b.certID and b.host=@host and b.status=1 and (dbo.pf_inStrArray(b.dept,',',@deptID)=1 or @deptID='') 	--已开课外部认证项目
+			SELECT a.ID,a.certID,a.certName,0 as mark,a.reexamine from v_certificateInfo a, projectInfo b where a.certID=b.certID and b.host=@host and b.status=1 and a.status=0 and (dbo.pf_inStrArray(b.dept,',',@deptID)=1 or @deptID='') 	--已开课外部认证项目
 			union
 			SELECT ID,certID,certName,0 as mark,reexamine from v_certificateInfo where host=@host and status=0 and kindID=0 and type=1 and (mark=0 or mark=1)	--所有内部认证项目（公共）
 			union
@@ -10689,7 +10689,7 @@ BEGIN
 		select @sql = @sql0 + 'noReceive=2 and amount>0 and dateInvoice>=''' + @startDate1 + ''' and dateInvoice<=''' + @endDate1 + ''' and amount>0' + @where
 
 	SET @sql = N'
-	declare @tb table(ID int,autoPay int,autoInvoice int,[客户订单号] varchar(50),username varchar(50), name nvarchar(50), [金额] int, datePay varchar(50), pay_typeName nvarchar(50), shortName nvarchar(50),noReceive int,[发票号码] varchar(50),dateInvoice varchar(50), title nvarchar(200), pay_memo nvarchar(500),invoicePDF varchar(2000))
+	declare @tb table(ID int,autoPay int,autoInvoice int,[客户订单号] varchar(50),username varchar(50), name nvarchar(50), [金额] decimal(18,2), datePay varchar(50), pay_typeName nvarchar(50), shortName nvarchar(50),noReceive int,[发票号码] varchar(50),dateInvoice varchar(50), title nvarchar(200), pay_memo nvarchar(500),invoicePDF varchar(2000))
 	insert into @tb
 	' + @sql + 
 	' update @tb set [客户订单号]=b.outOrderNo from @tb a, autoPayInfo b where a.ID=b.enterID and b.kind=0' + 

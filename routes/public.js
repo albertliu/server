@@ -1361,6 +1361,21 @@ router.get('/getUnitTrainingProofInfo', function (req, res, next) {
   });
 });
 
+//4. 船舶版本更新记录
+router.post('/shipUpdateReturn', function (req, res, next) {
+  sqlstr = "setShipUpdateReturn";
+  params = req.body.params;
+  // console.log(params);
+  db.excuteProc(sqlstr, params, function (err, data) {
+    if (err) {
+      console.log(err);
+      return res.send({ "status": 9, "msg": "操作失败。" });
+    }
+    let response = (data.recordset? data.recordset[0]:{});
+    return res.send(response);
+  });
+});
+
 //4. comm proc whit params, return josn data
 router.post('/postCommInfo', function (req, res, next) {
   sqlstr = req.body.proc;
