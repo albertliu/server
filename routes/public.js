@@ -1371,7 +1371,7 @@ router.post('/shipUpdateReturn', function (req, res, next) {
       console.log(err);
       return res.send({ "status": 9, "msg": "操作失败。" });
     }
-    let response = (data.recordset? data.recordset[0]:{});
+    let response = { "status": 0, "msg": "操作成功。" };
     return res.send(response);
   });
 });
