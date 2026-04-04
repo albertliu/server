@@ -109,6 +109,9 @@ var storage = multer.diskStorage({
       case "invoice_pdf":
         uploadFolder = "students/invoices/";
         break;
+      case "classArchive":
+        uploadFolder = "class/images/";
+        break;
       case "question_image":
       case "question_imageA":
       case "question_imageB":
@@ -214,6 +217,10 @@ var storage = multer.diskStorage({
         fn = req.query.username + '-' + Date.now();   //
         key = req.query.username;
         break;
+      case "classArchive":   //class images
+        fn = req.query.username + '-' + Date.now();   //
+        key = req.query.username;
+        break;
       case "question_image":
       case "question_imageA":
       case "question_imageB":
@@ -313,8 +320,8 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     register = currUser;
   }
   let size = (file.size/1024).toFixed(0);
-  params = { "upID": upID, "key": key, "file": response.file, fsize: size, "multiple": 0, "registerID": register };
-  //console.log("params:", params);
+  params = { "upID": upID, "key": key, "mark":req.query.refID || "", "file": response.file, fsize: size, "description":req.body.description || "", "multiple": 0, "registerID": register };
+  console.log("params:", params);
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);

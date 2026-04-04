@@ -10,7 +10,7 @@ ALTER DATABASE elearning SET RECOVERY FULL
 --De0penl99O53!4N#~9.
 --set datefirst 1  --将星期一设为第一天
 
-select * from dictionaryDoc where kind like '%evalution%' order by kind, ID
+select * from dictionaryDoc where kind like '%archiveStatus%' order by kind, ID
 select * from dictionaryDoc where kind like '%examResult%' order by kind, ID
 select * from dictionaryDoc where kind like '%online%' order by kind, ID
 select * from dictionaryDoc where item like '%合格%' order by kind, ID
@@ -18,7 +18,7 @@ select * from dictionaryDoc where item like '%合格%' order by kind, ID
 insert into dictionaryDoc(ID,item,kind,description,memo) values('0','未提交','archiveStatus','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('1','已提交','archiveStatus','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('2','已审核','archiveStatus','','')
-insert into dictionaryDoc(ID,item,kind,description,memo) values('3','差','evalution','','')
+insert into dictionaryDoc(ID,item,kind,description,memo) values('3','已存档','archiveStatus','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('5','其他','evalution','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('6','六','week','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('8','社保证明','material','student_social','')
@@ -1253,6 +1253,21 @@ CREATE TABLE [dbo].[evalutionFormInfo](
 ) ON [PRIMARY]
 GO
 
+--附件信息
+CREATE TABLE [dbo].[attachmentInfo](
+	[ID] int IDENTITY(1,1) NOT NULL,
+	[title] nvarchar(500) NOT NULL,
+	[refID] varchar(50) NULL,	
+	[kindID] [varchar](50) NULL,
+	[filename] [nvarchar](500) NULL,
+	[size] [int] NULL default(0),
+	[status] [int] NULL default(0),
+	[memo] [nvarchar](500) NULL,
+	[regDate] [datetime] NULL,
+	[registerID] [varchar](50) NULL
+) ON [PRIMARY]
+GO
+
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
 -- function
@@ -1363,7 +1378,7 @@ RETURNS @tab TABLE (ID int, certID varchar(50),certName varchar(100),mark int,re
 AS
 BEGIN
 	declare @kindID int,@deptID varchar(20),@c555 int
-	select @kindID=kindID, @host=dbo.whenull(@host,host), @deptID=iif(@host<>host,0,dept1) from studentInfo where username=@username
+	select @kindID=iif(@host='spc' and host<>'spc',1,kindID), @host=dbo.whenull(@host,host), @deptID=iif(@host<>host,0,dept1) from studentInfo where username=@username
 	select @c555=c555 from deptInfo where deptID=@deptID
 	select @deptID=isnull(@deptID,'')
 
@@ -3545,7 +3560,7 @@ GO
 -- Use Case:	exec setUploadSingleFileLink 'student_photo','11111','\ss\ss\ss.jpg'
 -- =============================================
 ALTER PROCEDURE [dbo].[setUploadSingleFileLink] 
-	@upID varchar(50), @key varchar(50), @file varchar(200), @fsize int, @multiple int, @registerID varchar(50)
+	@upID varchar(50), @key varchar(50), @mark varchar(50), @file varchar(200), @fsize int, @description nvarchar(500), @multiple int, @registerID varchar(50)
 AS
 BEGIN
 	declare @re int, @kindID int, @i int, @ID int, @refID int, @event varchar(50)
@@ -3658,6 +3673,11 @@ BEGIN
 			update studentCourseList set file5=@file,needInvoice=2,dateInvoice=getDate() where ID=@key  
 			--update payInfo set dateInvoice=getDate() where ID=(select payID from payDetailInfo where enterID=@key)
 			select @i=1, @event='上传发票'
+		end
+		if @i = 0 and @upID = 'classArchive'	--班级资料附件（图片）
+		begin
+			insert into attachmentInfo(title,refID,kindID,[filename],size,registerID) values(@description,@key,@mark,@file,@fsize,@registerID)
+			select @i=1, @event='班级资料附件'
 		end
 		if @i = 0 and @upID like 'question_image%'	--题目图片
 		begin
@@ -11404,7 +11424,7 @@ ALTER FUNCTION [dbo].[getNodeInfoArchive]
 (	
 	@classID int, @kindID varchar(50)
 )
-RETURNS @tab TABLE (classID int, className nvarchar(500),applyID varchar(100),certName nvarchar(100),reexamineName nvarchar(50),startDate varchar(50), endDate varchar(50),qty int,qtyReturn int,qtyExam int,qtyPass int,summary nvarchar(2000),adviser nvarchar(50),attendanceRate decimal(18,2),signature_adviser varchar(100),signature_checker varchar(100),checkDate varchar(50),checkerID varchar(50),checkNote nvarchar(500))
+RETURNS @tab TABLE (classID int, className nvarchar(500),applyID varchar(100),certName nvarchar(100),reexamineName nvarchar(50),startDate varchar(50), endDate varchar(50),qty int,qtyReturn int,qtyExam int,qtyPass int,summary nvarchar(2000),adviser nvarchar(50),attendanceRate decimal(18,2),signature_adviser varchar(100),signature_checker varchar(100),checkDate varchar(50),checkerID varchar(50),checkNote nvarchar(500),archiver varchar(50),archiverName nvarchar(50),archiveDate varchar(50),storageDate varchar(50),storagerID varchar(50),storagerName nvarchar(50))
 AS
 BEGIN
 	declare @startDate varchar(50),@endDate varchar(50),@qtyPass int,@qtyExam int,@adviserName nvarchar(50)
@@ -11412,7 +11432,7 @@ BEGIN
 	if @kindID='B'	--培训班
 	begin
 		INSERT INTO @tab
-		select ID,className,transaction_id,certName,reexamineName,dateStart,dateEnd,qty,qtyReturn,qtyExam,qtyPass,summary,adviserName,0,signature_adviser,signature_checker,checkDate,checkerID,checkNote from v_classInfo where ID=@classID
+		select ID,className,transaction_id,certName,reexamineName,dateStart,dateEnd,qty,qtyReturn,qtyExam,qtyPass,summary,adviserName,0,signature_adviser,signature_checker,checkDate,checkerID,checkNote,archiver,archiverName,archiveDate,storageDate,storagerID,storagerName from v_classInfo where ID=@classID
 	end
 	if @kindID='A'		--申报班
 	begin
@@ -11421,7 +11441,7 @@ BEGIN
 		select @qtyExam=count(*) from applyInfo where refID=@classID and (status=1 or status=2)
 		select @adviserName=b.realName from generateApplyInfo a, userInfo b where a.adviserID=b.username and a.ID=@classID
 		INSERT INTO @tab
-		select ID,title,applyID,courseName,reexamineName,isnull(@startDate,''),isnull(@endDate,''),qty,0,@qtyExam,isnull(@qtyPass,0),summary,isnull(@adviserName,''),0,signature_adviser,signature_checker,checkDate,checkerID,checkNote from v_generateApplyInfo where ID=@classID
+		select ID,title,applyID,courseName,reexamineName,isnull(@startDate,''),isnull(@endDate,''),qty,0,@qtyExam,isnull(@qtyPass,0),summary,isnull(@adviserName,''),0,signature_adviser,signature_checker,checkDate,checkerID,checkNote,archiver,archiverName,archiveDate,storageDate,storagerID,storagerName from v_generateApplyInfo where ID=@classID
 	end
 
 	update @tab set attendanceRate=dbo.getClassAttendanceRate(@classID, @kindID)
@@ -12195,6 +12215,31 @@ BEGIN
 END
 GO
 
+-- =============================================
+-- CREATE Date: 2026-03-31
+-- Description:	将某个班级的档案存档
+-- @kindID: A 申报班  B 培训班
+-- Use Case:	exec [setStorageClass] '...'
+-- =============================================
+CREATE PROCEDURE [dbo].[setStorageClass] 
+	@classID varchar(50), @kindID varchar(50), @registerID varchar(50)
+AS
+BEGIN
+	declare @event nvarchar(50)
+	if @kindID='B'	--培训班
+	begin
+		update classInfo set storagerID=@registerID, storageDate=getDate() where ID=@classID
+	end
+	if @kindID='A'	--申报班
+	begin
+		update generateApplyInfo set storagerID=@registerID, storageDate=getDate() where ID=@classID
+	end
+	-- 写操作日志
+	select @event='班级档案存档'
+	exec writeOpLog '', @event,'setStorageClass',@registerID,@kindID,@classID
+END
+GO
+
 -- CREATE DATE: 2024-04-27
 -- 检查某个班级的评议表数量：已发出/已完成
 -- @kindID: A 申报班  B 培训班
@@ -12218,6 +12263,30 @@ BEGIN
 	if @qty1>0
 		select @re=cast(@qty1 as varchar) + '/' + cast(@qty2 as varchar)
 	RETURN @re
+END
+GO
+
+-- 返回指定班级的附件清单
+-- @kindID: A 申报班  B 培训班
+ALTER PROCEDURE [dbo].[getAttachmentList]
+	@classID varchar(50), @kindID varchar(50)
+AS
+BEGIN
+	select ID,title,filename,size from attachmentInfo where refID=@classID and kindID=@kindID and status=0
+END
+GO
+
+-- 删除附件
+ALTER PROCEDURE [dbo].[delAttachment]
+	@ID int, @registerID varchar(50)
+AS
+BEGIN
+	declare @event nvarchar(50), @memo nvarchar(500)
+	update attachmentInfo set status=1 where ID=@ID
+	-- 写操作日志
+	select @event='删除附件', @memo=title from attachmentInfo where ID=@ID
+	exec writeOpLog '', @event,'delAttachment',@registerID,@memo,@ID
+	select 0 as re
 END
 GO
 
