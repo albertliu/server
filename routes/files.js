@@ -764,7 +764,7 @@ router.post('/uploadMultiple', uploadMultiple.array('avatar', 1000), async funct
         let fn = file.filename;
         let size = (file.size/1024).toFixed(0);
         sqlstr = "setUploadSingleFileLink";
-        params = { "upID": upID, "key": fn.substr(0, fn.lastIndexOf(".")), "mark":req.query.refID || "", "file": file.path.substr(file.path.indexOf("\\")), fsize: size, "multiple": batchID, "registerID": currUser };
+        params = { "upID": upID, "key": fn.substr(0, fn.lastIndexOf(".")), "mark":req.query.refID || "", "file": file.path.substr(file.path.indexOf("\\")), fsize: size, "description":req.body.description || "", "multiple": batchID, "registerID": currUser };
         //console.log("params:", params);
         const data = await db.excuteProcAsync(sqlstr, params);
 
@@ -865,7 +865,7 @@ router.post('/uploadBase64img', async function (req, res, next) {
       fn = fn.replace("./users", "");
       //response.count = 1;
       sqlstr = "setUploadSingleFileLink";
-      params = { "upID": upID, "key": req.body.username, "mark":req.query.refID || "", "file": fn, fsize: size, "multiple": 0, "registerID": currUser };
+      params = { "upID": upID, "key": req.body.username, "mark":req.query.refID || "", "file": fn, fsize: size, "description":req.body.description || "", "multiple": 0, "registerID": currUser };
       // console.log("params:", params);
       db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
@@ -1174,7 +1174,7 @@ router.get('/generate_entryform_byProjectID', function (req, res, next) {
     //link the filename to the project
     sqlstr = "setUploadSingleFileLink";
     path2 = path2.substr(path2.indexOf("\/"));
-    params = { "upID": 'project_entryform', "key": projectID, "mark":req.query.refID || "", "file": path2, fsize: 0, "multiple": 0, "registerID": req.query.registerID };
+    params = { "upID": 'project_entryform', "key": projectID, "mark":req.query.refID || "", "file": path2, fsize: 0, "description":req.query.description || "", "multiple": 0, "registerID": req.query.registerID };
     //console.log("params:", params);
     db.excuteProc(sqlstr, params, function (err, data) {
       if (err) {
@@ -1228,7 +1228,7 @@ router.get('/generate_entryform', function (req, res, next) {
     //link the filename to the enter
     sqlstr = "setUploadSingleFileLink";
     path0 = path0.substr(path0.indexOf("\/"));
-    params = { "upID": 'enter_entryform', "key": enterID, "mark":req.query.refID || "", "file": path0, fsize: 0, "multiple": 0, "registerID": req.query.registerID };
+    params = { "upID": 'enter_entryform', "key": enterID, "mark":req.query.refID || "", "file": path0, fsize: 0, "description":req.query.description || "", "multiple": 0, "registerID": req.query.registerID };
     //console.log("params:", params);
     db.excuteProc(sqlstr, params, function (err, data) {
       if (err) {
