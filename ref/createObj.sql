@@ -1227,12 +1227,15 @@ GO
 
 --参考视频
 CREATE TABLE [dbo].[help_videoInfo](
-	[ID] int IDENTITY(1,1) NOT NULL,
-	[title] nvarchar(50) NOT NULL,
-	[seconds] int NULL,	
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[title] [nvarchar](50) NOT NULL,
+	[seconds] [int] NULL,
 	[vod] [varchar](500) NULL,
-	[status] [int] NULL default(0)
+	[certID] [varchar](50) NULL,
+	[seq] [int] NULL,
+	[status] [int] NULL
 ) ON [PRIMARY]
+
 GO
 
 --学员评议记录
@@ -1734,7 +1737,7 @@ AS
 BEGIN
 	declare @re nvarchar(max), @p int, @item nvarchar(100),@i int, @certID varchar(50), @vod varchar(500)
 	select @re = '',@i=0
-	declare rc cursor for select a.ID,isnull(a.title,'') title,a.vod from [dbo].[help_videoInfo] a, studentCourseList b, courseInfo c where b.ID=@enterID and b.courseID=c.courseID and a.certID=c.certID and a.status=0 order by a.seq
+	declare rc cursor for select a.ID,isnull(a.title,'') title,a.vod from [dbo].[help_videoInfo] a, studentCourseList b where b.ID=@enterID and a.certID=b.courseID and a.status=0 order by a.seq
 	open rc
 	fetch next from rc into @p,@item,@vod
 	While @@fetch_status=0 
@@ -9717,13 +9720,16 @@ BEGIN
 END
 GO
 
--- CREATE DATE: 2023-05-30
+-- CREATE DATE: 2023-05-30  edit at 2026-04-21
 -- 上传照片
-CREATE PROCEDURE [dbo].[setApplyPhotoUpload]
-	@ID int
+ALTER PROCEDURE [dbo].[setApplyPhotoUpload]
+	@ID int, @file varchar(100), @registerID varchar(50)
 AS
 BEGIN
-	update applyInfo set memo1=isnull(memo1,'') + '<br>' + '上传照片' + convert(varchar(20),getDate(),120) where ID=@ID
+	declare @enterID int
+	select @enterID=enterID from applyInfo where ID=@ID
+	update applyInfo set uploadPhoto=1,memo1=isnull(memo1,'') + '<br>' + '上传照片' + convert(varchar(20),getDate(),120) where ID=@ID
+	exec writeOpLog '','上传照片','setApplyPhotoUpload',@registerID,@file,@enterID
 END
 GO
 
@@ -10271,7 +10277,7 @@ GO
 
 -- CREATE DATE: 2026-01-22
 -- 处理第三方题库(杰优宝，从微信爬取)
--- USE CASE: exec [dealQuestionWeixin] 4
+-- USE CASE: exec [dealQuestionWeixin] 5
 -- truncate table questionOther
 -- select * from [questionOther]
 -- select distinct kindID,questionName,answer,A,B,C,D,E,F from [questionOther]
@@ -10479,7 +10485,7 @@ BEGIN
 		select ID,autoPay,username as '身份证', name as '姓名', amount as '金额', datePay as '日期', pay_typeName as '类型', courseName, iif(unit>'',unit,hostName+dept1Name) + ':' + pay_memo as pay_memo,invoice, courseID, pay_type from v_studentCourseList where checkDate>=@d1 and checkDate<=@d2 and host in('znxf','spc','shm') and fromID=@sales
 
 	if @kind<2
-		insert into  #tbl select b.ID,b.autoPay,b.username, b.name, b.amount, b.datePay, b.pay_typeName, b.courseName, iif(b.unit>'',b.unit,hostName+dept1Name) + ':' + b.pay_memo,b.invoice, b.courseID, b.pay_type from #tbl a, v_studentCourseList b where a.invoice=b.invoice and a.pay_type=3 and a.invoice>'' and b.ID not in(select ID from #tbl)
+		insert into  #tbl select b.ID,b.autoPay,b.username, b.name, b.amount, b.datePay, b.pay_typeName, b.courseName, iif(b.unit>'',b.unit,hostName+dept1Name) + ':' + b.pay_memo,b.invoice, b.courseID, b.pay_type from #tbl a, v_studentCourseList b where a.invoice=b.invoice and a.pay_type=3 and a.invoice>'' and b.fromID=@sales and b.ID not in(select ID from #tbl)
 
 	select ID,autoPay,username as '身份证', name as '姓名', amount as '金额', datePay as '日期', pay_typeName as '类型', courseName, pay_memo,invoice, courseID, pay_type from #tbl order by invoice, datePay desc
 END
@@ -10913,15 +10919,21 @@ AS
 BEGIN
 	declare @hostName nvarchar(100), @fname varchar(200)
 	select @theDate=dbo.whenull(@theDate,convert(varchar(20),getDate(),23))
-	create table #temp(ID int,enterID int,username varchar(50),name nvarchar(50),mobile varchar(50),completion decimal(10,2) default(0),completion_hours decimal(10,2) default(0),result int,score int default(0),score2 int default(0),pOffline int default(0),
+	create table #temp(ID int,enterID int,classID int,username varchar(50),name nvarchar(50),mobile varchar(50),completion decimal(10,2) default(0),completion_hours decimal(10,2) default(0),result int,score int default(0),score2 int default(0),pOffline int default(0),
 		examTimes int default(0),goodTimes int default(0),goodRate decimal(10,2) default(0),examTimes1 int default(0),goodTimes1 int default(0),goodRate1 decimal(10,2) default(0)
 		,examTimesLast int default(0),goodTimesLast int default(0),goodRateLast decimal(10,2) default(0),avgLast int default(0),predictedGrade int default(0),examTimes1Last int default(0),goodTimes1Last int default(0),goodRate1Last decimal(10,2) default(0),todayExamTimes int default(0),todayGoodTimes int default(0),bestScore int default(0),todayBestScore int default(0))
 	
 	--在线课程完成率
 	if @mark='A'
-		insert into #temp(ID,enterID,username,name,mobile,completion,completion_hours) select max(a.ID),b.ID,d.username,d.name,max(d.mobile),avg(c.completion),sum(c.completion*c.hours)/100.00 from applyInfo a, studentCourseList b, studentLessonList c, studentInfo d where a.enterID=b.ID and b.ID=c.refID and b.username=d.username and a.refID=@classID group by b.ID,d.username,d.name
+	begin
+		insert into #temp(ID,enterID,classID,username,name,mobile) select a.ID,b.ID,@classID,d.username,d.name,d.mobile from applyInfo a, studentCourseList b, studentInfo d where a.enterID=b.ID and b.username=d.username and a.refID=@classID
+		update #temp set completion=e.completion,completion_hours=e.completion_hours from #temp f, (select max(a.ID) as ID,avg(c.completion) as completion,sum(c.completion*c.hours)/100.00 as completion_hours from applyInfo a, studentCourseList b, studentLessonList c where a.enterID=b.ID and b.ID=c.refID and a.refID=@classID group by b.ID) e where f.ID=e.ID
+	end
 	else
-		insert into #temp(ID,enterID,username,name,mobile,completion,completion_hours) select cast(right(max(b.SNo),3) as int),b.ID,d.username,d.name,max(d.mobile),avg(c.completion),sum(c.completion*c.hours)/100.00 from studentCourseList b, studentLessonList c, studentInfo d where b.ID=c.refID and b.username=d.username and b.classID=@classID group by b.ID,d.username,d.name
+	begin
+		insert into #temp(ID,enterID,classID,username,name,mobile) select cast(right(b.SNo,3) as int),b.ID,b.applyID,d.username,d.name,d.mobile from studentCourseList b, studentInfo d where b.username=d.username and b.classID=@classID
+		update #temp set completion=e.completion,completion_hours=e.completion_hours from #temp f, (select b.ID as enterID,avg(c.completion) as completion,sum(c.completion*c.hours)/100.00 as completion_hours from studentCourseList b, studentLessonList c, studentInfo d where b.ID=c.refID and b.username=d.username and b.classID=@classID group by b.ID) e where f.enterID=e.enterID
+	end
 	
 	update #temp set examTimes=b.examTimes,goodTimes=b.goodTimes,examTimes1=b.examTimes1,goodTimes1=b.goodTimes1,bestScore=b.bestScore from #temp a, (select c.enterID,sum(iif(e.kindID=0,1,0)) as examTimes,sum(iif(d.score>=d.scorePass and e.kindID=0,1,0)) as goodTimes,sum(iif(e.kindID=1,1,0)) as examTimes1,sum(iif(d.score>=d.scorePass and e.kindID=1,1,0)) as goodTimes1, max(d.score) as bestScore from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID group by c.enterID) b where a.enterID=b.enterID
 	
@@ -10955,8 +10967,11 @@ BEGIN
 	update #temp set predictedGrade=avgLast+(100-avgLast)/2.3,goodRate=goodTimes*100.00/iif(examTimes=0,1,examTimes), goodRate1=goodTimes1*100.00/iif(examTimes1=0,1,examTimes1), goodRateLast=goodTimesLast*100.00/iif(examTimesLast=0,1,examTimesLast), goodRate1Last=goodTimes1Last*100.00/iif(examTimes1Last=0,1,examTimes1Last), completion=iif(completion>99,100,completion) where examTimes>0
 	update #temp set result=c.result,score=c.score,score2=c.score2 from #temp a, studentCourseList b, studentCertList c where a.enterID=b.ID and b.refID=c.ID
 	-- 线下考勤
-	update #temp set pOffline=b.p from #temp a, (select enterID,count(*) as p from classSchedule c, checkinInfo d where c.ID=d.refID and c.mark='A' and c.classID=@classID group by d.enterID) b where a.enterID=b.enterID
-	update #temp set pOffline=isnull(pOffline,0)+[dbo].[getEnterCheckinOutClassQty](enterID,@classID)
+	if @mark='A'
+		update #temp set pOffline=b.p from #temp a, (select enterID,count(*) as p from classSchedule c, checkinInfo d where c.ID=d.refID and c.mark='A' and c.classID=@classID group by d.enterID) b where a.enterID=b.enterID
+	else
+		update #temp set pOffline=b.p from #temp a, (select enterID,count(*) as p from studentCourseList e, classSchedule c, checkinInfo d where e.ID=d.enterID and c.ID=d.refID and c.mark='A' and e.classID=@classID and c.classID=e.applyID group by d.enterID) b where a.enterID=b.enterID
+	update #temp set pOffline=isnull(pOffline,0)+[dbo].[getEnterCheckinOutClassQty](enterID,classID)
 
 	select * from #temp order by ID
 END
