@@ -833,7 +833,7 @@ def enter_by_list8(elist, classID, courseName, reex):
 
             # 保存结果
             result["count_s"] += 1
-            sql = "exec setApplyPhotoUpload " + str(row[13] + ",'" + row[10] + "','" + register + "'")
+            sql = "exec setApplyPhotoUpload " + str(row[13]) + ",'" + row[10] + "','" + register + "'"
             execSQL(sql)
             d_list.remove(str(row[13]))     # 从列表中删除已成功数据
             time.sleep(3)
