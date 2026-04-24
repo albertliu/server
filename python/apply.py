@@ -797,8 +797,8 @@ def enter_by_list8(elist, classID, courseName, reex):
     # print(len(rs))
     for row in rs:
         try:
-            # 身份证输查找
-            if row[10] == "":   # 照片文件
+            # 如果没有身份证文件，或者文件名不包含身份证，不上传。
+            if row[10] == "" or row[10].find(row[3]) == -1:   # 照片文件
                 result["count_e"] += 1
                 d_list.remove(str(row[13]))     # 从列表中删除无照片数据
                 continue
@@ -815,6 +815,8 @@ def enter_by_list8(elist, classID, courseName, reex):
             # 上传报名表
             # print(1)
             wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//input[@type='file']")))
+            if row[10].find(row[3]) == -1:   # 照片文件
+                continue
             p = img_path + row[10]  # 照片
             name_input = driver.find_elements(By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//input[@type='file']")[0]
             time.sleep(3)
