@@ -7685,6 +7685,35 @@ BEGIN
 END
 GO
 
+-- CREATE DATE: 2026-05-07
+-- 根据给定的参数，通知学员复训日期将到期
+-- USE CASE: exec sendMsg4Review 1
+CREATE PROCEDURE [dbo].[sendMsg4Review]
+	@mark int, @registerID varchar(50)
+AS
+BEGIN
+	declare @username varchar(50),@item varchar(500),@host varchar(50)
+	--send system message
+	if exists(select 1 from [log_student_retrain_send] where mark=@mark)
+	begin
+		declare rc cursor for select username,'尊敬的' + name + '：您的' + courseName + '证书复审期限即将到期，请于' + theDate + '前完成复审报名。若超时未申报，证书将失效并转为初训','znxf' from [log_student_retrain_send] where mark=@mark
+		open rc
+		fetch next from rc into @username,@item,@host
+		While @@fetch_status=0 
+		Begin 
+			--0 回复 1 通知 2 其他
+			exec sendSysMessage @username,1,@item,@host,'system.'
+			fetch next from rc into @username,@item,@host
+		End
+		Close rc 
+		Deallocate rc
+		update [log_student_retrain_send] set send = send + 1,sendDate=getDate(),sender=@registerID where mark=@mark
+	end
+	--return students list for send mobile message
+	select name,username,mobile,courseName as certName, theDate as dt, '尊敬的' + name + '：您的' + courseName + '证书复审期限即将到期，请于' + theDate + '前完成复审报名。若超时未申报，证书将失效并转为初训' as item from [log_student_retrain_send] where mark=@mark
+END
+GO
+
 -- =============================================
 -- CREATE Date: 2021-06-26
 -- Description:	将给定的数据添加到指定购物车。
@@ -9729,7 +9758,7 @@ BEGIN
 	declare @enterID int
 	select @enterID=enterID from applyInfo where ID=@ID
 	update applyInfo set uploadPhoto=1,memo1=isnull(memo1,'') + '<br>' + '上传照片' + convert(varchar(20),getDate(),120) where ID=@ID
-	exec writeOpLog '','上传照片','setApplyPhotoUpload',@registerID,@file,@enterID
+	exec writeOpLog '','安监上传照片','setApplyPhotoUpload',@registerID,@file,@enterID
 END
 GO
 
