@@ -627,9 +627,9 @@ router.post('/send_message_review_alert', function(req, res, next) {
     }
     //return: 0 success; other error:1 the user not exist  2 the phone error.
     //console.log(req.body.SMS, params, data.recordset);
+    let re = data.recordset;
 
     if(req.body.SMS==1){ //发通知
-      let re = data.recordset;
       for (var i in re){
         if(re[i]["mobile"].length == 11){
           sendsms.sendSMS(re[i]["mobile"], re[i]["name"], re[i]["certName"], "", re[i]["dt"], "msg_review_alert");
@@ -639,14 +639,14 @@ router.post('/send_message_review_alert', function(req, res, next) {
           db.excuteProc(sqlstr, params, function (err, data1) {
             if (err) {
               console.log(err);
-              let response = { "status": 9, msg:"系统错误。" };
+              let response = { "status": 9, msg:"系统错误。", re:0 };
               return res.send(response);
             }
           });
         }
       }
     }
-    let response = { "status": 0, "msg": "操作成功。" };
+    let response = { "status": 0, "msg": "操作成功。", re:re.length };
     return res.send(response);
   });
 });
