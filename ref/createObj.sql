@@ -3450,7 +3450,7 @@ BEGIN
 	if @mark = 1
 	begin
 		select @username=username,@host=host from studentCourseList where ID=@ID
-		select @logMemo=courseID + ':' + @username from studentCourseList where refID=@ID
+		select @logMemo=courseID + ':' + @username, @refID=ID from studentCourseList where refID=@ID
 
 		--删除试题
 		delete from studentQuestionList where refID in(select paperID from studentExamList where refID=@ID and mark=@mark)
@@ -3473,7 +3473,7 @@ BEGIN
 	end
 
 	-- 写操作日志
-	exec writeOpLog '',@event,'delStudentCert',@username,@logMemo,@ID
+	exec writeOpLog '',@event,'delStudentCert',@username,@logMemo,@refID
 
 	return @re
 END
@@ -6808,6 +6808,33 @@ BEGIN
 	declare @event varchar(20)
 	select @event = '关闭/开启学习'
 	exec writeOpLog '',@event,'studentCourse',@registerID,'',@selList
+END
+GO
+
+-- CREATE DATE: 2028-05-11
+-- 根据给定的参数，批量修改班级学员的价格，并写日志
+-- selList: username
+-- USE CASE: exec setClassPrice 1
+CREATE PROCEDURE [dbo].[setClassPrice]
+	@classID varchar(50), @selList varchar(4000), @mark varchar(50), @price varchar(50), @registerID varchar(50)
+AS
+BEGIN
+	--将名单导入到临时表
+	create table #temp(enterID int, username varchar(50))
+	declare @n int, @j int
+	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0
+	while @n>@j
+	begin
+		insert into #temp(username) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
+		select @j = @j + 1
+	end
+	update #temp set enterID=b.ID from #temp a, studentCourseList b where a.username=b.username and b.classID=@classID
+
+	update studentCourseList set price=@price from studentCourseList a, #temp b where a.ID=b.enterID
+	-- 写操作日志
+	declare @event varchar(20)
+	select @event = '修改价格'
+	exec writeOpLog '',@event,'setClassPrice',@registerID,@selList,@classID
 END
 GO
 
@@ -10819,11 +10846,11 @@ BEGIN
 	end
 
 	if @kindID=0
-		select a.ID,name,username,iif(a.certID in('C16','C17'),replace(certName,'危险化学品经营单位',''),certName),a.enterID,a.certID from v_applyInfo a, #temp b where a.ID=b.id order by a.ID
+		select a.ID,name,username,iif(a.certID in('C16','C17'),replace(certName,'危险化学品经营单位',''),certName),a.enterID,a.certID,a.regDate from v_applyInfo a, #temp b where a.ID=b.id order by a.ID
 	if @kindID=1
-		select a.ID,name,username,iif(a.certID in('C16','C17'),replace(certName,'危险化学品经营单位',''),certName),a.ID as enterID,a.certID from v_studentCourseList a, #temp b where a.ID=b.id order by a.ID
+		select a.ID,name,username,iif(a.certID in('C16','C17'),replace(certName,'危险化学品经营单位',''),certName),a.ID as enterID,a.certID,a.regDate from v_studentCourseList a, #temp b where a.ID=b.id order by a.ID
 	if @kindID=2
-		select a.ID,name,username,iif(a.certID in('C16','C17'),replace(certName,'危险化学品经营单位',''),certName),a.ID as enterID,a.certID from v_studentCourseList a, #temp b, classInfo c where a.username=b.id and a.classID=c.classID and c.ID=@refID order by a.ID
+		select a.ID,name,username,iif(a.certID in('C16','C17'),replace(certName,'危险化学品经营单位',''),certName),a.ID as enterID,a.certID,a.regDate from v_studentCourseList a, #temp b, classInfo c where a.username=b.id and a.classID=c.classID and c.ID=@refID order by a.ID
 END
 GO
 
@@ -10852,6 +10879,24 @@ BEGIN
 			update studentCertList set result=@status,status=(case when @status>0 then 2 else status end),score=@score1, score1=@score1, score2=@score2, examDate=@examDate,closeDate=getDate() from studentCertList where ID=@refID
 			update studentCourseList set status=2,endDate=getDate(),closeDate=getDate() where ID=@enterID
 		end
+	end
+END
+GO
+
+-- CREATE DATE: 2025-05-14
+-- 市监局成绩查询登记
+-- USE CASE: exec [setMarketScoreCheck] 1
+CREATE PROCEDURE [dbo].[setMarketScoreCheck]
+	@enterID int, @score varchar(50), @examDate varchar(50), @registerID varchar(50)
+AS
+BEGIN
+	if @enterID>0
+	begin
+		declare @status int, @refID int
+		select @refID=refID from studentCourseList where ID=@enterID
+		select @status=(case when @score='缺考' then 3 when @score='不合格' then 2 when @score='合格' then 1 else 0 end)
+		update studentCertList set result=@status,status=(case when @status>0 then 2 else status end),score=iif(@status=1,80,0), score1=iif(@status=1,80,0), examDate=@examDate,closeDate=getDate() from studentCertList where ID=@refID
+		update studentCourseList set status=(case when @status>0 then 2 else status end),endDate=getDate(),closeDate=getDate() where ID=@enterID
 	end
 END
 GO
