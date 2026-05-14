@@ -36,7 +36,8 @@ conn = pymssql.connect(
     user="sqlrw",
     password=env_dist.get('NODE_ENV_DB_PASSWD'),
     database="elearning",
-    autocommit=True   # 自动提交
+    autocommit=True,   # 自动提交
+    tds_version="7.0"
     )
 result = {"count_s": 0, "count_e": 0, "err": 0, "errMsg": ""}
 host = ""
@@ -59,9 +60,21 @@ def enter_by_list0(elist, kindID, refID):
     wait = WebDriverWait(driver, 5)
     # 浏览器全屏，可有可无
     driver.maximize_window()
+    driver.execute_script("""
+        if (typeof JSON === 'undefined' || typeof JSON.stringify !== 'function') {
+            window.JSON = window.parent.JSON || {};
+            if (typeof JSON.stringify !== 'function') {
+                // 从空白页面重新获取完整的 JSON 对象（最安全的备选）
+                var iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                window.JSON = iframe.contentWindow.JSON;
+                document.body.removeChild(iframe);
+            }
+        }
+    """)
 
     for row in rs:
-        c = 0
         try:
             # 输入证件号码
             name_input = driver.find_element(By.ID, "sfzh")
@@ -211,7 +224,7 @@ def execSQL(text: str):
 if __name__ == '__main__':
     # 以下是测试代码
     # register = "test"
-    # enter_by_list0('310230198905271066', 2, 4149)
+    # enter_by_list0('370825198006075312', 2, 916)
     # 以上是测试代码
     enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 applyID  1 enterID  2 username  argv[3]:classInfo.ID
     print(result)

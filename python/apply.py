@@ -44,7 +44,8 @@ conn = pymssql.connect(
     user="sqlrw",
     password=env_dist.get('NODE_ENV_DB_PASSWD'),
     database="elearning",
-    autocommit=True   # 自动提交
+    autocommit=True,   # 自动提交
+    tds_version="7.0"
     )
 result = {"count_s": 0, "count_e": 0, "err": 0, "errMsg": ""}
 host = ""
