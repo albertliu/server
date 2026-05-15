@@ -1,5 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoAlertPresentException
 import time
 import numpy as np
 import base64
@@ -26,7 +27,7 @@ options.add_argument('ignore-certificate-errors')
 # options.add_argument('headless')
 driver = webdriver.Chrome(options=options)
 # 设置最大等待时间10秒
-wait = WebDriverWait(driver, 10)
+wait = WebDriverWait(driver, 3)
 # 创建连接字符串  （sqlserver默认端口为1433）
 img_path = env_dist.get('NODE_ENV_IMG')
 py_path = env_dist.get('NODE_ENV_PYTHON')
@@ -73,6 +74,7 @@ def enter_by_list0(elist, kindID, refID):
             }
         }
     """)
+    current_window = driver.current_window_handle
 
     for row in rs:
         try:
@@ -84,7 +86,7 @@ def enter_by_list0(elist, kindID, refID):
             wait.until(EC.presence_of_element_located((By.XPATH, "//div[@id='verify-title']/span[contains(text(), '请先完成安全验证')]")))
 
             n = 0   # 尝试登录，5次失败后退出
-            while n < 5:
+            while n < 50:
                 n += 1
                 # 获取主图以及需要拖动的图片
                 # 主图
@@ -94,65 +96,82 @@ def enter_by_list0(elist, kindID, refID):
                 # print("target_link:", target_link, end="\n")
                 # 需要拖动的图片
                 template_link = driver.find_element(By.ID,
-                                                    "verifySmallImg").get_attribute('style')
-                # print("template_link:", template_link, end="\n")
-                # 取background-image数据起始位置
-                str_url = 'url("'
-                url_start = template_link.find(str_url)
-                if url_start > -1:
-                    url_start += len(str_url)
-                # 取background-image数据结束位置
-                str_url = '") no-repeat;'
-                url_end = template_link.find(str_url)
-                if url_end > -1:
-                    url_end += 0  # 取到结尾
-                # print("start:", url_start, url_end, end="\n")
-                template_link = template_link[url_start:url_end].replace(
-                    "data:image/png;base64,", "")
-                # print("target:", target_link, end="\n")
-                # print("template:", template_link, end="\n")
+                                                    "verifySmallImg").get_attribute('src').replace(
+                                                    "data:image/png;base64,", "")
+
                 target_data = base64.b64decode(target_link)
-                with open(py_path + '/temp/target.jpg', 'wb') as f:
+                with open(py_path + '/temp/target_market.png', 'wb') as f:
                     f.write(target_data)
                 template_data = base64.b64decode(template_link)
-                with open(py_path + '/temp/template.png', 'wb') as f:
+                with open(py_path + '/temp/template_market.png', 'wb') as f:
                     f.write(template_data)
 
                 # 计算滑块移动距离
-                distance = match(py_path + '/temp/target.jpg', py_path + '/temp/template.png')
-                distance = distance / 400 * 398 + 4  # 这个距离自己慢慢试一下试出来的
+                distance = match(py_path + '/temp/target_market.png', py_path + '/temp/template_market.png')
                 # print(distance)
+                distance = distance * 375 / 400  # 这个距离自己慢慢试一下试出来的
 
                 # 移动滑块
-                slider = wait.until(
-                    EC.element_to_be_clickable((By.CLASS_NAME, 'slider-btn')))
+                slider = driver.find_element(By.ID, 'verifySliderBtn')
                 ActionChains(driver).click_and_hold(slider).perform()
                 ActionChains(driver).move_by_offset(xoffset=distance, yoffset=0).perform()
-                time.sleep(1)
+                # time.sleep(1)
                 ActionChains(driver).release().perform()
                 try:
-                    wait.until(EC.presence_of_element_located((By.XPATH, "//span[@id='_Title_0' and contains(text(), '考试成绩信息')]")))
-                    # 进入成绩页面
-                    if driver.find_elements(By.XPATH, "//iframe[@id='_DialogFrame_0']/td[contains(text(), '特种设备安全管理')]"):
-                        examDate = driver.find_elements(By.XPATH, "//iframe[@id='_DialogFrame_0']/td")[2].strip()[:10]
-                        if examDate >= row[3]:
-                            score = driver.find_elements(By.XPATH, "//iframe[@id='_DialogFrame_0']/td")[6]
-                            # 保存结果
-                            result["count_s"] += 1
-                            # @enterID int, @date varchar(50), @registerID varchar(50)  删除字符串首尾的空格
-                            sql = "exec setMarketScoreCheck " + str(row[4]) + ",'" + score + "', '" + examDate + "', '" + register.strip() + "'"
-                            # print(sql)
-                            execSQL(sql)
-                            return 0
-                    # 关闭成绩页面
-                    name_input = driver.find_element(By.ID, "_ButtonClose_0")
-                    name_input.click()
-                    break
-                except Exception:
-                    if n > 4:
-                        break
+                    # 切换至警告框
+                    alert1 = driver.switch_to.alert
 
-        except Exception as e:
+                    # 获取alert窗口的值
+                    # print(alert1.text)
+
+                    # 点击 确定
+                    alert1.accept()
+                    name_input = driver.find_element(By.ID, "verifyRefresh")
+                    # name_input = driver.find_element(By.ID, "verifyClose")
+                    name_input.click()
+                    # driver.switch_to.window(current_window)
+                except NoAlertPresentException:
+                    # print("No alert is present")
+                    try:
+                        wait.until(EC.presence_of_element_located((By.XPATH, "//span[@id='_Title_0' and contains(text(), '考试成绩信息')]")))
+                        # 进入成绩页面
+                        # frame = driver.find_element(By.ID, "_DialogFrame_0")
+                        driver.switch_to.frame(0)
+                        driver.execute_script("""
+                            if (typeof JSON === 'undefined' || typeof JSON.stringify !== 'function') {
+                                window.JSON = window.parent.JSON || {};
+                                if (typeof JSON.stringify !== 'function') {
+                                    // 从空白页面重新获取完整的 JSON 对象（最安全的备选）
+                                    var iframe = document.createElement('iframe');
+                                    iframe.style.display = 'none';
+                                    document.body.appendChild(iframe);
+                                    window.JSON = iframe.contentWindow.JSON;
+                                    document.body.removeChild(iframe);
+                                }
+                            }
+                        """)
+                        # tds = driver.find_elements(By.XPATH, "//td[contains(text(), '特种设备安全管理')]")
+                        tds = driver.find_elements(By.XPATH, "//td[contains(text(), '特种设备安全管理')]")
+                        if len(tds)>0:
+                            examDate = driver.find_elements(By.XPATH, "//tbody//td[contains(text(), '特种设备安全管理')]/../td")[2].text[:10]
+                            if examDate >= row[6]:
+                                score = driver.find_elements(By.XPATH, "//tbody//td[contains(text(), '特种设备安全管理')]/../td")[6].text
+                                # 保存结果
+                                result["count_s"] += 1
+                                # @enterID int, @date varchar(50), @registerID varchar(50)  删除字符串首尾的空格
+                                sql = "exec setMarketScoreCheck " + str(row[4]) + ",'" + score + "', '" + examDate + "', '" + register + "'"
+                                # print(sql)
+                                execSQL(sql)
+                        # 关闭成绩页面
+                        driver.switch_to.default_content()
+                        name_input = driver.find_element(By.ID, "_ButtonClose_0")
+                        name_input.click()
+                        n = 50
+                    except Exception:
+                        # print(e)
+                        continue
+
+        except Exception:
             # print(e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
@@ -224,7 +243,7 @@ def execSQL(text: str):
 if __name__ == '__main__':
     # 以下是测试代码
     # register = "test"
-    # enter_by_list0('370825198006075312', 2, 916)
+    # enter_by_list0('321002197501271811', 2, 3800)
     # 以上是测试代码
     enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 applyID  1 enterID  2 username  argv[3]:classInfo.ID
     print(result)
