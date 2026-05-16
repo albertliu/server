@@ -14,7 +14,7 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import TimeoutException
 import pymssql
-from datetime import date
+from datetime import datetime, timedelta
 # 如果临时文件目录不存在，则创建该目录
 new_temp_path = tempfile.gettempdir()
 # print(new_temp_path)
@@ -152,27 +152,33 @@ def enter_by_list0(elist, kindID, refID):
                         """)
                         # tds = driver.find_elements(By.XPATH, "//td[contains(text(), '特种设备安全管理')]")
                         tds = driver.find_elements(By.XPATH, "//td[contains(text(), '特种设备安全管理')]")
+                        examDate = ""
+                        score = ""
                         if len(tds)>0:
                             examDate = driver.find_elements(By.XPATH, "//tbody//td[contains(text(), '特种设备安全管理')]/../td")[2].text[:10]
+                            examDate = datetime.strptime(examDate, "%Y-%m-%d")
+                            examDate += timedelta(days=30)
+                            examDate = examDate.strftime("%Y-%m-%d")
                             if examDate >= row[6]:
                                 score = driver.find_elements(By.XPATH, "//tbody//td[contains(text(), '特种设备安全管理')]/../td")[6].text
-                                # 保存结果
-                                result["count_s"] += 1
-                                # @enterID int, @date varchar(50), @registerID varchar(50)  删除字符串首尾的空格
-                                sql = "exec setMarketScoreCheck " + str(row[4]) + ",'" + score + "', '" + examDate + "', '" + register + "'"
-                                # print(sql)
-                                execSQL(sql)
+                        # else:
+                        # 保存结果
+                        result["count_s"] += 1
+                        # @enterID int, @date varchar(50), @registerID varchar(50)  删除字符串首尾的空格
+                        sql = "exec setMarketScoreCheck " + str(row[4]) + ",'" + score + "', '" + examDate + "', '" + register + "'"
+                        # print(sql)
+                        execSQL(sql)
                         # 关闭成绩页面
                         driver.switch_to.default_content()
                         name_input = driver.find_element(By.ID, "_ButtonClose_0")
                         name_input.click()
                         n = 50
                     except Exception:
-                        # print(e)
+                        # print(Exception)
                         continue
 
         except Exception:
-            # print(e)
+            # print(Exception)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
             pass
@@ -243,7 +249,7 @@ def execSQL(text: str):
 if __name__ == '__main__':
     # 以下是测试代码
     # register = "test"
-    # enter_by_list0('321002197501271811', 2, 3800)
+    # enter_by_list0('310109198409184514', 2, 4214)
     # 以上是测试代码
     enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 applyID  1 enterID  2 username  argv[3]:classInfo.ID
     print(result)
