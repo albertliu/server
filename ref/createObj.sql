@@ -15,8 +15,8 @@ select * from dictionaryDoc where kind like '%examResult%' order by kind, ID
 select * from dictionaryDoc where kind like '%online%' order by kind, ID
 select * from dictionaryDoc where item like '%合格%' order by kind, ID
 --delete from dictionaryDoc where kind='evalution'
-insert into dictionaryDoc(ID,item,kind,description,memo) values('0','未提交','archiveStatus','','')
-insert into dictionaryDoc(ID,item,kind,description,memo) values('1','已提交','archiveStatus','','')
+insert into dictionaryDoc(ID,item,kind,description,memo) values('0','标准','lessonKind','','')
+insert into dictionaryDoc(ID,item,kind,description,memo) values('1','辅导','lessonKind','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('2','已审核','archiveStatus','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('3','已存档','archiveStatus','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('5','其他','evalution','','')
@@ -1586,7 +1586,7 @@ GO
 -- 获取某个教师的课程项目
 -- @username: 以某个demo学员的名义
 -- USE CASE: select * from dbo.[getCourseListByTeacher]('120107196604032113')
-CREATE FUNCTION [dbo].[getCourseListByTeacher]
+ALTER FUNCTION [dbo].[getCourseListByTeacher]
 (	
 	@teacher varchar(50), @username varchar(50)
 )
@@ -1646,13 +1646,14 @@ END
 
 --CREATE Date:2020-05-11
 --根据给定的学员课程，计算其完成度
-ALTER FUNCTION [dbo].[getCourseCompletion](@ID int)
+--@kindID: 0 标准  1 辅导
+ALTER FUNCTION [dbo].[getCourseCompletion](@ID int, @kindID int)
 RETURNS decimal(18,2)
 AS
 BEGIN
 	declare @re decimal(18,2)
 	select @re = 0
-	select @re = avg(completion) from v_studentLessonList where refID=@ID 
+	select @re = avg(completion) from v_studentLessonList where refID=@ID and kindID=@kindID
 
 	return isnull((case when @re>97 then 100 else @re end),0)
 END
@@ -2397,9 +2398,9 @@ returns int
 as
 begin
 	declare @re int
-	if @sales>''
+	if @sales>'' and exists(select 1 from coursePrice where kind='sales' and item=@sales)
 		select @re=[dbo].[getCoursePrice](courseID,'sales',@sales) from projectInfo where projectID=@projectID
-	else
+	if @re is null
 		select @re=price from projectInfo where projectID=@projectID
 	return isnull(@re,0)
 end
@@ -3490,15 +3491,16 @@ ALTER PROCEDURE [dbo].[update_video_currentTime]
 	@ID int, @currentTime int, @shoted int
 AS
 BEGIN
-	declare @refID int, @shotTime int, @shotNow int, @n int, @agencyID int, @check_pass int
-	select @n = 60 * 25  --(10秒通讯一次)20分钟拍照一次
+	declare @refID int, @shotTime int, @shotNow int, @n int, @agencyID int, @check_pass int, @kindID int, @courseID varchar(50)
+	select @n = 60 * 25  --(10秒通讯一次)25分钟拍照一次
 	select @refID=refID,@shotTime=iif(@shoted=1,0,shotTime+iif(@currentTime>maxTime and shotNow=0,@currentTime-maxTime,0)),@shotNow=shotNow from studentVideoList where ID=@ID
 	select @check_pass=check_pass from studentCourseList where ID=(select max(refID) from studentLessonList where ID=@refID)
-	select @agencyID=agencyID from v_courseInfo where courseID in(select courseID from studentCourseList where ID in(select refID from studentLessonList where ID=@refID))
+	select @agencyID=agencyID, @courseID=courseID from v_courseInfo where courseID in(select courseID from studentCourseList where ID in(select refID from studentLessonList where ID=@refID))
+	select @kindID=b.kindID from studentLessonList a, lessonInfo b where a.lessonID=b.lessonID and a.ID=@refID and b.courseID=@courseID
 
 	select @shotNow = iif(@shotTime>=@n or (@shotNow=1 and @shoted=0), 1, 0)
-	--安监项目且非免签的要拍照，其他不需要
-	select @shotNow = iif(@agencyID=1 and @check_pass=0,@shotNow,0)
+	--安监项目且非免签的标准课程要拍照，其他不需要
+	select @shotNow = iif(@agencyID=1 and @check_pass=0 and @kindID=0,@shotNow,0)
 	update studentVideoList set maxTime=(case when @currentTime>maxTime and @shotNow=0 then @currentTime else maxTime end),lastTime=iif(@shotNow=0,@currentTime,lastTime),shotTime=@shotTime,shotNow=@shotNow where ID=@ID
 	if @shotNow=0
 		exec update_lesson_completion @refID
