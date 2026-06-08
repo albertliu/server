@@ -1756,6 +1756,18 @@ BEGIN
 END
 GO
 
+--CREATE Date:2026-06-08
+--根据给定的学员课程ID，查找其课程包含的帮助课程数量
+CREATE FUNCTION [dbo].[getCourseHelpCount](@enterID int)
+RETURNS int
+AS
+BEGIN
+	declare @re int
+	select @re=count(*) from v_studentLessonList where refID=@enterID and lessonKindID=1
+	return isnull(@re,0)
+END
+GO
+
 -- =============================================
 -- CREATE DATE: 2025-01-09
 -- 获取考试信息  pkind:0 模拟/正式考试  1 错题集  2 总题库  3 收藏夹  4 章节练习
