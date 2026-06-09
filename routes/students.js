@@ -180,10 +180,11 @@ router.get('/getStudentLessonList', function (req, res, next) {
 
 //9. getStudentLessonListByUser
 router.get('/getStudentLessonListByUser', function (req, res, next) {
-  sqlstr = "select * from dbo.getStudentLessonListByUser('" + req.query.username + "')  order by refID,seq";
-  params = {};
+  // sqlstr = "select * from dbo.getStudentLessonListByUser('" + req.query.username + "')  order by refID,seq";
+  sqlstr = "getStudentLessonListByUsername";
+  params = {username:req.query.username};
   //console.log("params:", params);
-  db.excuteSQL(sqlstr, params, function (err, data) {
+  db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
       let response = { "status": 9 };

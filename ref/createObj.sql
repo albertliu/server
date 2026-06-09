@@ -1506,8 +1506,30 @@ RETURNS TABLE
 AS
 RETURN 
 (
-	SELECT top 100 percent a.*,dbo.getMissingItemsByCertID(b.ID) as missingItems from v_studentLessonList a, studentCourseList b where a.refID=b.ID and b.username=@username order by b.courseID,a.seq
+	SELECT top 100 percent a.*,dbo.getMissingItemsByCertID(b.ID) as missingItems from v_studentLessonList a, studentCourseList b where a.refID=b.ID and b.username=@username and b.status<2 order by b.courseID,a.seq
 )
+GO
+
+-- CREATE DATE: 2026-06-09
+-- 获取学员某个课程的课节列表，检查课表是否有缺失。
+-- USE CASE: exec dbo.[getStudentLessonListByUsername] '120107196604032113'
+CREATE PROCEDURE [dbo].[getStudentLessonListByUsername] 
+	@username varchar(50)
+AS
+BEGIN
+	if exists(select c.* from lessonInfo c, studentCourseList d where c.courseID=d.courseID and d.username=@username and d.status<2 and c.status=0 and c.lessonID not in
+(select a.lessonID from  studentLessonList a inner join studentCourseList b on a.refID=b.ID and b.username=@username and b.status<2) )
+	begin
+		--添加课表
+		insert into studentLessonList(lessonID,refID,hours,registerID) select c.lessonID,d.ID,c.hours,@username from lessonInfo c, studentCourseList d where c.courseID=d.courseID and d.username=@username and d.status<2 and c.status=0 and c.lessonID not in
+(select a.lessonID from  studentLessonList a inner join studentCourseList b on a.refID=b.ID and b.username=@username and b.status<2)
+
+		--添加视频
+		insert into studentVideoList(videoID,refID,proportion,minutes,registerID) select a.videoID,b.ID,a.proportion,a.minutes,@username from videoInfo a, studentLessonList b, studentCourseList c where a.lessonID=b.lessonID and b.refID=c.ID and c.username=@username and c.status<2 and a.status=0 and videoID not in
+(select a.videoID from studentVideoList a, studentLessonList b, studentCourseList c where b.refID=c.ID and a.refID=b.ID and c.username=@username and c.status<2)
+	end
+	SELECT top 100 percent a.*,dbo.getMissingItemsByCertID(b.ID) as missingItems from v_studentLessonList a, studentCourseList b where a.refID=b.ID and b.username=@username and b.status<2 order by b.courseID,a.seq
+END
 GO
 
 -- CREATE DATE: 2020-05-08
@@ -1653,7 +1675,7 @@ AS
 BEGIN
 	declare @re decimal(18,2)
 	select @re = 0
-	select @re = avg(completion) from v_studentLessonList where refID=@ID and kindID=@kindID
+	select @re = avg(completion) from v_studentLessonList where refID=@ID and lessonKindID=@kindID
 
 	return isnull((case when @re>97 then 100 else @re end),0)
 END
@@ -11007,7 +11029,7 @@ AS
 BEGIN
 	declare @hostName nvarchar(100), @fname varchar(200)
 	select @theDate=dbo.whenull(@theDate,convert(varchar(20),getDate(),23))
-	create table #temp(ID int,enterID int,classID int,username varchar(50),name nvarchar(50),mobile varchar(50),completion decimal(10,2) default(0),completion_hours decimal(10,2) default(0),result int,score int default(0),score2 int default(0),pOffline int default(0),
+	create table #temp(ID int,enterID int,classID int,username varchar(50),name nvarchar(50),mobile varchar(50),completion decimal(10,2) default(0),completion1 decimal(10,2) default(0),completion_hours decimal(10,2) default(0),result int,score int default(0),score2 int default(0),pOffline int default(0),
 		examTimes int default(0),goodTimes int default(0),goodRate decimal(10,2) default(0),examTimes1 int default(0),goodTimes1 int default(0),goodRate1 decimal(10,2) default(0)
 		,examTimesLast int default(0),goodTimesLast int default(0),goodRateLast decimal(10,2) default(0),avgLast int default(0),predictedGrade int default(0),examTimes1Last int default(0),goodTimes1Last int default(0),goodRate1Last decimal(10,2) default(0),todayExamTimes int default(0),todayGoodTimes int default(0),bestScore int default(0),todayBestScore int default(0))
 	
@@ -11015,7 +11037,7 @@ BEGIN
 	if @mark='A'
 	begin
 		insert into #temp(ID,enterID,classID,username,name,mobile) select a.ID,b.ID,@classID,d.username,d.name,d.mobile from applyInfo a, studentCourseList b, studentInfo d where a.enterID=b.ID and b.username=d.username and a.refID=@classID
-		update #temp set completion=e.completion,completion_hours=e.completion_hours from #temp f, (select max(a.ID) as ID,avg(c.completion) as completion,sum(c.completion*c.hours)/100.00 as completion_hours from applyInfo a, studentCourseList b, studentLessonList c where a.enterID=b.ID and b.ID=c.refID and a.refID=@classID group by b.ID) e where f.ID=e.ID
+		update #temp set completion_hours=e.completion_hours from #temp f, (select max(a.ID) as ID,sum(c.completion*c.hours)/100.00 as completion_hours from applyInfo a, studentCourseList b, studentLessonList c where a.enterID=b.ID and b.ID=c.refID and a.refID=@classID group by b.ID) e where f.ID=e.ID
 	end
 	else
 	begin
@@ -11023,6 +11045,7 @@ BEGIN
 		update #temp set completion=e.completion,completion_hours=e.completion_hours from #temp f, (select b.ID as enterID,avg(c.completion) as completion,sum(c.completion*c.hours)/100.00 as completion_hours from studentCourseList b, studentLessonList c, studentInfo d where b.ID=c.refID and b.username=d.username and b.classID=@classID group by b.ID) e where f.enterID=e.enterID
 	end
 	
+	update #temp set completion=b.completion,completion1=b.completion1 from #temp a, v_studentCourseList b where a.enterID=b.ID
 	update #temp set examTimes=b.examTimes,goodTimes=b.goodTimes,examTimes1=b.examTimes1,goodTimes1=b.goodTimes1,bestScore=b.bestScore from #temp a, (select c.enterID,sum(iif(e.kindID=0,1,0)) as examTimes,sum(iif(d.score>=d.scorePass and e.kindID=0,1,0)) as goodTimes,sum(iif(e.kindID=1,1,0)) as examTimes1,sum(iif(d.score>=d.scorePass and e.kindID=1,1,0)) as goodTimes1, max(d.score) as bestScore from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID group by c.enterID) b where a.enterID=b.enterID
 	
 	--当天练习次数
@@ -11605,7 +11628,7 @@ BEGIN
 	if @kindID='A'		--申报班
 	begin
 		-- 在线考勤
-		select @re=avg(dbo.getCourseCompletion(a.ID)), @r=sum(dbo.getEnterCheckinOutClassQty(a.ID,@classID)), @studentCount=count(*) from dbo.studentCourseList a, applyInfo b where a.ID=b.enterID and b.refID=@classID
+		select @re=avg(dbo.getCourseCompletion(a.ID,0)), @r=sum(dbo.getEnterCheckinOutClassQty(a.ID,@classID)), @studentCount=count(*) from dbo.studentCourseList a, applyInfo b where a.ID=b.enterID and b.refID=@classID
 		-- 线下考勤
 		select @r=@r+count(*) from classSchedule c, checkinInfo d where c.ID=d.refID and c.mark='A' and c.typeID=0 and c.classID=@classID
 		select @scheduleCount=count(*) from classSchedule where mark='A' and typeID=0 and online=0 and classID=@classID
