@@ -1513,7 +1513,7 @@ GO
 -- CREATE DATE: 2026-06-09
 -- 获取学员某个课程的课节列表，检查课表是否有缺失。
 -- USE CASE: exec dbo.[getStudentLessonListByUsername] '120107196604032113'
-CREATE PROCEDURE [dbo].[getStudentLessonListByUsername] 
+ALTER PROCEDURE [dbo].[getStudentLessonListByUsername] 
 	@username varchar(50)
 AS
 BEGIN
@@ -1528,7 +1528,7 @@ BEGIN
 		insert into studentVideoList(videoID,refID,proportion,minutes,registerID) select a.videoID,b.ID,a.proportion,a.minutes,@username from videoInfo a, studentLessonList b, studentCourseList c where a.lessonID=b.lessonID and b.refID=c.ID and c.username=@username and c.status<2 and a.status=0 and videoID not in
 (select a.videoID from studentVideoList a, studentLessonList b, studentCourseList c where b.refID=c.ID and a.refID=b.ID and c.username=@username and c.status<2)
 	end
-	SELECT top 100 percent a.*,dbo.getMissingItemsByCertID(b.ID) as missingItems from v_studentLessonList a, studentCourseList b where a.refID=b.ID and b.username=@username and b.status<2 order by b.courseID,a.seq
+	SELECT top 100 percent a.*,dbo.getMissingItemsByCertID(b.ID) as missingItems from v_studentLessonList a, studentCourseList b where a.refID=b.ID and b.username=@username and b.status<2 order by b.courseID,lessonKindID,a.seq
 END
 GO
 
@@ -6367,7 +6367,7 @@ GO
 -- USE CASE: exec [doEnter] 'P-20-001', 'albert'
 -- =============================================
 ALTER PROCEDURE [dbo].[doEnter] 
-	@ID int,@username varchar(50),@classID varchar(50),@price varchar(50),@amount varchar(50),@invoice varchar(50),@receipt varchar(50),@invoice_amount int,@projectID varchar(50),@title nvarchar(100),@payNow int,@needInvoice int,@kindID varchar(50),@type int,@status int,@datePay varchar(50),@dateInvoice varchar(50),@dateInvoicePick varchar(50),@pay_memo varchar(500),@currDiplomaID varchar(50),@currDiplomaDate varchar(50),@overdue int,@express int,@fromID varchar(50),@fromKind varchar(50),@source nvarchar(50),@oldNo int,@memo varchar(2000),@host varchar(50),@registerID varchar(50)
+	@ID int,@username varchar(50),@classID varchar(50),@price varchar(50),@amount varchar(50),@invoice varchar(50),@receipt varchar(50),@invoice_amount varchar(50),@projectID varchar(50),@title nvarchar(100),@payNow int,@needInvoice int,@kindID varchar(50),@type int,@status int,@datePay varchar(50),@dateInvoice varchar(50),@dateInvoicePick varchar(50),@pay_memo varchar(500),@currDiplomaID varchar(50),@currDiplomaDate varchar(50),@overdue int,@express int,@fromID varchar(50),@fromKind varchar(50),@source nvarchar(50),@oldNo int,@memo varchar(2000),@host varchar(50),@registerID varchar(50)
 AS
 BEGIN
 	declare @event varchar(50),@mem varchar(500),@cID int,@name varchar(50),@certID varchar(50),@courseID varchar(50),@refID int,@t int,@payID int,@re int,@msg varchar(50),@SNo int,@mark int,@reexamine int,@pNo varchar(50),@certName varchar(60),@unit varchar(100),@job_status int,@education int,@mobile varchar(50),@email varchar(50),@address varchar(200),@today varchar(50),@signatureType int
@@ -6376,7 +6376,7 @@ BEGIN
 	if @classID='' or @classID='null' set @classID=null
 	if @currDiplomaDate='' or @currDiplomaDate='null' set @currDiplomaDate=null
 	if @currDiplomaID='' or @currDiplomaID='null' set @currDiplomaID=null
-	select @re=0,@msg=iif(@ID=0,'报名成功。','保存成功。'),@hasLesson=0, @datePay=[dbo].[whenull](@datePay,null), @username=upper(@username), @host=[dbo].[whenull](@host,''), @receipt=[dbo].[whenull](@receipt,null),@receipt0='', @source=[dbo].[whenull](@source,null)
+	select @re=0,@msg=iif(@ID=0,'报名成功。','保存成功。'),@hasLesson=0, @datePay=[dbo].[whenull](@datePay,null), @username=upper(@username), @host=[dbo].[whenull](@host,''), @receipt=[dbo].[whenull](@receipt,null),@receipt0='', @source=[dbo].[whenull](@source,null), @invoice_amount=[dbo].[whenull](@invoice_amount,0)
 	select @cID = ID, @signatureType=signatureType, @pre=pre from classInfo where classID=@classID
 	if @source is null
 		select @source=title from hostInfo where hostNo=@host and @host<>'znxf'
@@ -7119,7 +7119,7 @@ GO
 
 -- CREATE DATE: 2021-05-13
 -- 根据给定的参数，获取该批次的证书列表
--- USE CASE: exec getDiplomaListByBatchID 1
+-- USE CASE: exec getDiplomaListByBatchID 10185
 ALTER PROCEDURE [dbo].[getDiplomaListByBatchID]
 	@batchID int
 AS
@@ -7133,11 +7133,10 @@ BEGIN
 		--if @certID in('C1','C2','C22','C23')
 		else
 			--SELECT ID,(case when @certID='C2' then '易燃易爆危险物品从业人员' when @certID='C31' then '动火作业' else certName end) as title,diplomaID,username,name,sexName,birthday,certID,(case when @certID='C31' then '动火作业' else certName end) as certName,startDate,endDate,term,(case when host<>'spc' and host<>'shm' then unit when host='spc' and kindID=1 then dept1Name when host='spc' and dept1=9 then '上海石油分公司物流中心' else hostName end) as hostName,(case when host='spc' and dept1=9 and job='' then '油品储运工' else job end) as job,educationName,'No.' + replace(space(7-len(serial))+cast(serial as varchar),' ','0') as diplomaNo,photo_filename,[dbo].[fn_formatDate](class_startDate,0) as class_startDate,[dbo].[fn_formatDate](class_endDate,0) as class_endDate FROM v_diplomaInfo where batchID=@batchID order by diplomaID
-			SELECT ID,(case when @certID='C2' then '易燃易爆危险物品从业人员' else certName end) as title,diplomaID,username,name,sexName,birthday,certID,certName,startDate,endDate,term,(case when host<>'spc' then unit when host='spc' and kindID=1 then dept1Name when host='spc' and dept1=9 then '上海石油分公司物流中心' else hostName end) as hostName,(case when host='spc' and dept1=9 and job='' then '油品储运工' else job end) as job,educationName,'No.' + replace(space(7-len(serial))+cast(serial as varchar),' ','0') as diplomaNo,photo_filename,[dbo].[fn_formatDate](class_startDate,0) as class_startDate,[dbo].[fn_formatDate](class_endDate,0) as class_endDate FROM v_diplomaInfo where batchID=@batchID order by diplomaID
+			SELECT ID,(case when @certID='C2' then '易燃易爆危险物品从业人员' else certName end) as title,diplomaID,username,name,sexName,birthday,certID,certName,startDate,endDate,term,(case when host<>'spc' or unit>'' then unit when host='spc' and kindID=1 then dept1Name when host='spc' and dept1=9 then '上海石油分公司物流中心' else hostName end) as hostName,(case when host='spc' and dept1=9 and job='' then '油品储运工' else job end) as job,educationName,'No.' + replace(space(7-len(serial))+cast(serial as varchar),' ','0') as diplomaNo,photo_filename,[dbo].[fn_formatDate](class_startDate,0) as class_startDate,[dbo].[fn_formatDate](class_endDate,0) as class_endDate FROM v_diplomaInfo where batchID=@batchID order by diplomaID
 	end
 END
 GO
-
 
 -- CREATE DATE: 2021-04-06
 -- 根据给定的参数，添加或者更新证书信息
@@ -9827,7 +9826,7 @@ GO
 
 
 -- CREATE DATE: 2023-02-16
--- 生成一个班级的班级/申报报名表
+-- 生成一个班级的班级/申报报名表/培训证明/授权委托书
 -- @mark: A 申报班  B 培训班
 -- USE CASE: exec [generate_emergency_exam_materials_byclass] 1
 ALTER PROCEDURE [dbo].[generate_emergency_exam_materials_byclass]
@@ -9844,7 +9843,7 @@ BEGIN
 		select @j = @j + 1
 	end
 
-	if @keyID=2		--班级
+	if @keyID=2		--班级存档
 	begin
 		if @mark='A'
 			update studentCourseList set file1='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
@@ -9853,7 +9852,10 @@ BEGIN
 	end
 	if @keyID=5		--报名表
 		update studentCourseList set file2='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
-	--exec writeOpLog @fn,'generate_emergency_exam_materials_byclass',@registerID,@keyID,@batchID
+	if @keyID=6		--培训证明
+		update studentCourseList set file6='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
+	if @keyID=7		--授权委托书
+		update studentCourseList set file7='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
 	if @mark='A'
 		select a.ID,name,username,enterID,entryform from v_applyInfo a, #temp b where a.ID=b.id and a.signature>'' order by a.ID
 	else
@@ -10402,11 +10404,13 @@ ALTER PROCEDURE [dbo].[getTrainingProofInfo]
 	@enterID int
 AS
 BEGIN
-	declare @start varchar(50), @end varchar(50)
+	declare @start varchar(50), @end varchar(50),@hours int
 	if exists(select 1 from applyInfo where enterID=@enterID)
 	begin
 		select @start=convert(varchar(20),min(theDate),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) from applyInfo where enterID=@enterID) and std=1
-		SELECT @start as dateStart, @end as dateEnd, name, username, certName, reexamine, a.host, b.hostName FROM v_applyInfo a, hostInfo b where a.host=b.hostNo and a.enterID=@enterID
+		select @hours = sum(a.hours) from [dbo].[schedule] a, studentCourseList b where a.courseID=b.courseID and b.ID=@enterID
+		--SELECT @start as dateStart, @end as dateEnd, name, username, a.sexName, certName, reexamine, b.hostNo as host, b.hostName, a.certKind, @hours as hours, dbo.getEnterAttendance(@enterID) as attendance, a.photo_filename FROM v_applyInfo a, hostInfo b where a.host=b.hostNo and a.enterID=@enterID
+		SELECT @start as dateStart, @end as dateEnd, name, username, a.sexName, certName, reexamine, b.hostNo as host, b.hostName, a.certKind, @hours as hours, dbo.getEnterAttendance(@enterID) as attendance, a.photo_filename FROM v_applyInfo a, hostInfo b where b.hostNo='znxf' and a.enterID=@enterID
 	end
 END
 GO
@@ -10423,6 +10427,22 @@ BEGIN
 	begin
 		select @start=convert(varchar(20),min(theDate),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = @classID and std=1
 		SELECT applyID, @start as dateStart, @end as dateEnd, courseName as certName, reexamine, a.host, isnull(b.hostName,'') as hostName FROM v_generateApplyInfo a left outer join hostInfo b on a.host=b.hostNo where a.ID=@classID
+	end
+END
+GO
+
+-- CREATE DATE: 2026-06-12
+-- 返回授权委托书（安监项目）
+-- USE CASE: exec [getTrainingPowerAttorney] 90774
+ALTER PROCEDURE [dbo].[getTrainingPowerAttorney]
+	@enterID int
+AS
+BEGIN
+	declare @start varchar(50), @end varchar(50)
+	if exists(select 1 from applyInfo where enterID=@enterID)
+	begin
+		select @start=convert(varchar(20),min(theDate),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) from applyInfo where enterID=@enterID) and std=1
+		SELECT @start as dateStart, @end as dateEnd, name, username, certName, reexamine, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then 1 else 0 end)  as kind, (case when charindex('安全生产管理人员',certName)>0 then 1 else 0 end) as type, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then left(certName,charindex('单位',certName)+1) else '' end)  as item, a.mobile, b.hostNo as host, b.hostName, b.regNo, b.linker, b.phone, b.ime as agent_ID, a.signature FROM v_applyInfo a, hostInfo b where b.hostNo='znxf' and a.enterID=@enterID
 	end
 END
 GO
@@ -11610,6 +11630,23 @@ BEGIN
 	end
 
 	RETURN
+END
+GO
+
+-- CREATE DATE: 2026-06-14
+--计算某个申报班学员的实际培训课时（线上+线下）但不超过规定课时
+CREATE FUNCTION getEnterAttendance
+(	
+	@enterID int
+)
+RETURNS decimal(18,2)
+AS
+BEGIN
+	declare @re decimal(18,2), @hours int, @hoursOnline int
+	select @re=0, @hours=sum(b.hours), @hoursOnline=sum(iif(b.online=1,b.hours,0)) from studentCourseList a, [dbo].[schedule] b where a.courseID=b.courseID and a.ID=@enterID and b.status=0
+	select @re=dbo.getCourseCompletion(@enterID,0) * @hoursOnline / 100 + count(*)*8 from checkinInfo where enterID=@enterID
+	select @re=isnull(iif(@re>@hours,@hours,@re),0)
+	return @re
 END
 GO
 

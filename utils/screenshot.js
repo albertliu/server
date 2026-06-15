@@ -30,7 +30,7 @@ const shotImg = {
     try {
       // 设置浏览器视窗
       await page.setViewport({
-        width: w || 2160,
+        width: w || 1500,
         height: h || 1020
       })
       await page.goto(pdf_string, {
@@ -45,8 +45,8 @@ const shotImg = {
       });
       await browser.close(); //关闭 
     } catch (err) {
-      await browser.close(); //关闭
       console.log("shot err:", err);
+      await browser.close(); //关闭
     }
 }
 

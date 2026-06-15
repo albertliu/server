@@ -1564,11 +1564,11 @@ router.get('/generate_emergency_materials', function (req, res, next) {
 });
 
 //22d. generate_emergency_exam_materials_byclass
-//同时一个班级的归档/报名表 keyID: 2/5
+//同时一个班级的归档/报名表/培训证明/授权委托书 keyID: 2/5/6/7
 //status: 0 成功  9 其他  msg, emergency item
 router.post('/generate_emergency_exam_materials_byclass', function (req, res, next) {
   let path = "";
-  let f = ['','','班级归档资料.pdf','','','报名表.jpg']
+  let f = ['','','班级归档资料.pdf','','','报名表.jpg','培训证明.jpg','授权委托书.jpg']
   let keyID = req.query.keyID;
   let mark = req.query.mark || 'A';
 
@@ -1590,13 +1590,25 @@ router.post('/generate_emergency_exam_materials_byclass', function (req, res, ne
       let kindID = req.query.kindID || 0;
       for (var i in dat) {
         //班级归档资料
-        sqlstr = env + "/entryform_" + dat[i]["entryform"] + ".asp?public=1&nodeID=" + dat[i]["enterID"] + "&refID=" + dat[i]["username"] + "&host=" + req.query.host + "&kindID=" + kindID + "&status=" + req.query.refID + "&keyID=";
-        path = 'users/upload/students/firemanMaterials/' + mark + dat[i]["ID"] + '_' + dat[i]["name"] + '_' + dat[i]["username"];
         if(keyID==2){ //班级存档资料\考站资料生成pdf文件
+          sqlstr = env + "/entryform_" + dat[i]["entryform"] + ".asp?public=1&nodeID=" + dat[i]["enterID"] + "&refID=" + dat[i]["username"] + "&host=" + req.query.host + "&kindID=" + kindID + "&status=" + req.query.refID + "&keyID=";
+          path = 'users/upload/students/firemanMaterials/' + mark + dat[i]["ID"] + '_' + dat[i]["name"] + '_' + dat[i]["username"];
           await pdf.genPDF([sqlstr + keyID], [path + f[keyID]], '800', (mark=='B'?'900':'1080'), '', false, 1, false);
         }
         if(keyID==5){ //申报资料生成jpg文件
-          await shotimg.genImg(sqlstr + keyID, path + f[keyID], (kindID==0?2160:2800), 1020);
+          sqlstr = env + "/entryform_" + dat[i]["entryform"] + ".asp?public=1&nodeID=" + dat[i]["enterID"] + "&refID=" + dat[i]["username"] + "&host=" + req.query.host + "&kindID=" + kindID + "&status=" + req.query.refID + "&keyID=";
+          path = 'users/upload/students/firemanMaterials/' + mark + dat[i]["ID"] + '_' + dat[i]["name"] + '_' + dat[i]["username"];
+          await shotimg.genImg(sqlstr + keyID, path + f[keyID], (kindID==0?1300:2800), 1020);
+        }
+        if(keyID==6){ //培训证明生成jpg文件
+          sqlstr = env + "/trainingProofPerson.asp?public=1&keyID=2&nodeID=" + dat[i]["enterID"] + "&keyID=";
+          path = 'users/upload/students/firemanMaterials/' + mark + dat[i]["ID"] + '_' + dat[i]["name"] + '_' + dat[i]["username"];
+          await shotimg.genImg(sqlstr + keyID, path + f[keyID], 680, 800);
+        }
+        if(keyID==7){ //授权委托书生成jpg文件
+          sqlstr = env + "/trainingPowerAttorney.asp?public=1&keyID=2&nodeID=" + dat[i]["enterID"] + "&keyID=";
+          path = 'users/upload/students/firemanMaterials/' + mark + dat[i]["ID"] + '_' + dat[i]["name"] + '_' + dat[i]["username"];
+          await shotimg.genImg(sqlstr + keyID, path + f[keyID], 800, 1020);
         }
       }
       // console.log("len:", response);
