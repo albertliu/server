@@ -947,8 +947,17 @@ def enter_by_list9(elist, classID, courseName, reex):
             # 确定按钮
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确 认')]/..")))
             name_input.click()
-            while name_input.is_displayed() and name_input.is_enabled():    # 等待确认按钮消失
-                pass
+            # 等待按钮消失
+            while True:
+                try:
+                    # 尝试获取按钮的属性，如果按钮已经消失，会抛出异常
+                    name_input.get_attribute("class")  # 你可以选择任何属性，只要能触发异常即可
+                    time.sleep(1)  # 等待1秒后重试
+                except Exception:
+                    # print("按钮已消失")
+                    break
+            # while name_input.is_displayed() and name_input.is_enabled():    # 等待确认按钮消失
+            #     pass
             # time.sleep(5)
             # print(3)
 
@@ -959,7 +968,7 @@ def enter_by_list9(elist, classID, courseName, reex):
             d_list.remove(str(row[13]))     # 从列表中删除已成功数据
             time.sleep(1)
 
-        except Exception:
+        except Exception as e:
             # print("exceptZ:", e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
@@ -1201,7 +1210,7 @@ if __name__ == '__main__':
     # username = "13918051550"
     # password = "Yan@sun0707"
     # register = "desk."
-    # d_list = '42796'.split(',')    # 需要处理的数据列表
+    # d_list = '42082'.split(',')    # 需要处理的数据列表
     # courseName = "危险化学品经营单位安全生产管理人员"  # 课程名称
     # # courseName = "低压电工作业"  # 课程名称
     # kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
@@ -1211,8 +1220,8 @@ if __name__ == '__main__':
     #         # enter_by_list0(d_list, kind)
     #         # enter_by_list1(d_list)
     #         # enter_by_list7(d_list, '290', courseName, '初证')
-    #         enter_by_list8(d_list, '0110092606207', courseName, '复审')
-    #         # enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+    #         # enter_by_list8(d_list, '0110092606207', courseName, '复审')
+    #         enter_by_list9(d_list, '0110092605105', courseName, '初证')
     #         # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list11(d_list, '0110092507105', courseName, '初证')
     #         i += 1
@@ -1220,7 +1229,7 @@ if __name__ == '__main__':
     #             break
     #     conn.close()
     #     driver.quit()
-        # print(result)
+    #     print(result)
     # 以上是测试代码
     d_list = sys.argv[1].split(',')    # 需要处理的数据列表
     reexamine = sys.argv[2]     # 0 初训 1 复训 9 报名表 10 成绩

@@ -1598,7 +1598,7 @@ router.post('/generate_emergency_exam_materials_byclass', function (req, res, ne
         if(keyID==5){ //报名表生成jpg文件
           sqlstr = env + "/entryform_" + dat[i]["entryform"] + ".asp?public=1&nodeID=" + dat[i]["enterID"] + "&refID=" + dat[i]["username"] + "&host=" + req.query.host + "&kindID=" + kindID + "&status=" + req.query.refID + "&keyID=";
           path = 'users/upload/students/firemanMaterials/' + mark + dat[i]["ID"] + '_' + dat[i]["name"] + '_' + dat[i]["username"];
-          await shotimg.genImg(sqlstr + keyID, path + f[keyID], (kindID==0?1300:2800), 1020);
+          await shotimg.genImg(sqlstr + keyID, path + f[keyID], (dat[i]["entryform"] != "C16"?1300:2160), 1020);
         }
         if(keyID==6){ //培训证明生成jpg文件
           sqlstr = env + "/trainingProofPerson.asp?public=1&keyID=2&nodeID=" + dat[i]["enterID"] + "&keyID=";
