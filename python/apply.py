@@ -348,18 +348,18 @@ def enter_by_list0(elist, kind):
 
 
 def enter_by_list1(elist):
-    # 根据指定名单（enterID list)去报名。复训
+    # 根据指定名单（enterID list)去报名。换证
     # 获取名单完整信息
     cursor = conn.cursor()  # 使用cursor()方法获取操作游标
     sql = "exec getApplyListByList '" + ','.join(elist) + "'"  # 数据库查询语句
     cursor.execute(sql)  # 执行sql语句
 
     # 复训菜单
-    if len(driver.find_elements(By.XPATH, "//li[contains(text(),'复训报名')]")) == 0:
+    if len(driver.find_elements(By.XPATH, "//li[contains(text(),'换证报名')]")) == 0:
         driver.find_elements(By.XPATH, "//span[contains(text(),'报名管理')]")[0].click()  # 点击报名管理菜单
         time.sleep(1)
     else:
-        driver.find_elements(By.XPATH, "//li[contains(text(),'复训报名')]")[0].click()  # 点击复训报名菜单
+        driver.find_elements(By.XPATH, "//li[contains(text(),'换证报名')]")[0].click()  # 点击换证报名菜单
         time.sleep(1)
     rs = cursor.fetchall()
     # print(len(rs))

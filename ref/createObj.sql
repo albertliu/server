@@ -2893,11 +2893,11 @@ AS
 RETURN 
 (
 	--在线考试
-	select a.paperID,b.kindID,'在线' as kindName,a.status,a.statusName,b.certName,b.startDate,a.minutes,b.endDate,b.address,c.username,d.name from v_studentExamList a, v_passcardInfo b, studentCourseList c, studentInfo d where a.refID=b.ID and b.enterID=c.ID and c.username=d.username and b.kindID=1 and b.startDate>=convert(varchar(20),getDate(),23) and b.passNo>'' and b.username=@username
+	select a.paperID,b.kindID,'在线' as kindName,a.status,a.statusName,b.certName,b.startDate,a.minutes,b.endDate,b.address,c.username,d.name from v_studentExamList a, v_passcardInfo b, studentCourseList c, studentInfo d where a.refID=b.ID and b.enterID=c.ID and c.username=d.username and b.kindID=1 and b.endDate>=convert(varchar(20),getDate(),23) and b.passNo>'' and b.username=@username
 
 	--学校线下考试
 	union
-	select 0,0,'线下',0,'准备',b.certName,b.startDate,0,b.endDate,b.address,c.username,d.name from v_passcardInfo b, studentCourseList c, studentInfo d where b.enterID=c.ID and c.username=d.username and b.kindID=0 and b.startDate>=convert(varchar(20),getDate(),23) and b.passNo>'' and b.username=@username
+	select 0,0,'线下',0,'准备',b.certName,b.startDate,0,b.endDate,b.address,c.username,d.name from v_passcardInfo b, studentCourseList c, studentInfo d where b.enterID=c.ID and c.username=d.username and b.kindID=0 and b.endDate>=convert(varchar(20),getDate(),23) and b.passNo>'' and b.username=@username
 
 	--第三方线下考试
 	union
@@ -4494,17 +4494,17 @@ GO
 -- 根据给定的参数，添加或者更新视频
 -- USE CASE: exec updateVideoInfo 1,1,'xxxx'...
 ALTER PROCEDURE [dbo].[updateVideoInfo]
-	@ID int,@videoID varchar(50),@videoName nvarchar(100),@minutes float,@proportion int,@type varchar(50),@author varchar(50),@lessonID varchar(50),@kindID int,@status int,@memo nvarchar(500),@registerID varchar(50)
+	@ID int,@videoID varchar(50),@videoName nvarchar(100),@vod varchar(500),@minutes float,@proportion int,@type varchar(50),@author varchar(50),@lessonID varchar(50),@kindID int,@status int,@memo nvarchar(500),@registerID varchar(50)
 AS
 BEGIN
 	declare @host varchar(20)
 	if @ID=0	-- 新纪录
 	begin
-		insert into videoInfo(VideoID,videoName,minutes,lessonID,proportion,type,author,kindID,status,memo,registerID) values(@videoID,@videoName,@minutes,@lessonID,@proportion,@type,@author,@kindID,@status,@memo,@registerID)
+		insert into videoInfo(VideoID,videoName,vod,minutes,lessonID,proportion,type,author,kindID,status,memo,registerID) values(@videoID,@videoName,@vod,@minutes,@lessonID,@proportion,@type,@author,@kindID,@status,@memo,@registerID)
 	end
 	else
 	begin
-		update videoInfo set kindID=@kindID,videoID=@videoID,minutes=@minutes,videoName=@videoName,status=@status,lessonID=@lessonID,proportion=@proportion,type=@type,author=@author,memo=@memo where ID=@ID
+		update videoInfo set kindID=@kindID,videoID=@videoID,vod=@vod,minutes=@minutes,videoName=@videoName,status=@status,lessonID=@lessonID,proportion=@proportion,type=@type,author=@author,memo=@memo where ID=@ID
 	end
 END
 GO
@@ -11635,16 +11635,18 @@ GO
 
 -- CREATE DATE: 2026-06-14
 --计算某个申报班学员的实际培训课时（线上+线下）但不超过规定课时
-CREATE FUNCTION getEnterAttendance
+ALTER FUNCTION getEnterAttendance
 (	
 	@enterID int
 )
 RETURNS decimal(18,2)
 AS
 BEGIN
-	declare @re decimal(18,2), @hours int, @hoursOnline int
+	declare @re decimal(18,2), @hours int, @hoursOnline int, @classID int, @qty int
+	select @classID=refID from applyInfo where enterID=@enterID
+	select @qty=dbo.getEnterCheckinOutClassQty(@enterID,@classID)
 	select @re=0, @hours=sum(b.hours), @hoursOnline=sum(iif(b.online=1,b.hours,0)) from studentCourseList a, [dbo].[schedule] b where a.courseID=b.courseID and a.ID=@enterID and b.status=0
-	select @re=dbo.getCourseCompletion(@enterID,0) * @hoursOnline / 100 + count(*)*8 from checkinInfo where enterID=@enterID
+	select @re=dbo.getCourseCompletion(@enterID,0) * @hoursOnline / 100 + ((@qty+count(*))*8) from checkinInfo where enterID=@enterID
 	select @re=isnull(iif(@re>@hours,@hours,@re),0)
 	return @re
 END
