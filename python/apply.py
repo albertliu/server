@@ -1047,7 +1047,7 @@ def enter_by_list9A(elist, classID, courseName, reex):
                 continue
             wait.until(EC.presence_of_element_located((By.XPATH, "//td/div[contains(text(), '" + row[3] + "')]")))
 
-            search_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//td/div[contains(text(), '" + row[3] + "')]/../../td/div/button/span[contains(@title, '上传培训证明')]/..")))
+            search_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//td/div[contains(text(), '" + row[3] + "')]/../..//button/span[contains(text(), '上传培训证明')]/..")))
             search_btn.click()
             # search_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//img")[0]
             # search_btn.click()
@@ -1064,22 +1064,12 @@ def enter_by_list9A(elist, classID, courseName, reex):
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确定')]/..")))
             name_input.click()
             # 等待按钮消失
-            while True:
-                try:
-                    # 尝试获取按钮的属性，如果按钮已经消失，会抛出异常
-                    name_input.get_attribute("class")  # 你可以选择任何属性，只要能触发异常即可
-                    time.sleep(1)  # 等待1秒后重试
-                except Exception:
-                    # print("按钮已消失")
-                    break
-            # while name_input.is_displayed() and name_input.is_enabled():    # 等待确认按钮消失
-            #     pass
-            # time.sleep(5)
-            # print(3)
+            while name_input.text == '确定':
+                time.sleep(1)  # 等待1秒后重试
 
             # 保存结果
             result["count_s"] += 1
-            sql = "exec setApplyUploadProofPerson " + str(row[13]) + "','" + register + "'"
+            sql = "exec setApplyUploadProofPerson " + str(row[13]) + ",'" + register + "'"
             execSQL(sql)
             d_list.remove(str(row[13]))     # 从列表中删除已成功数据
             time.sleep(1)
@@ -1088,6 +1078,7 @@ def enter_by_list9A(elist, classID, courseName, reex):
             # print("exceptZ:", e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
+            pass
 
     # 关闭数据库
     cursor.close()
@@ -1153,7 +1144,7 @@ def enter_by_list9B(elist, classID, courseName, reex):
                 continue
             wait.until(EC.presence_of_element_located((By.XPATH, "//td/div[contains(text(), '" + row[3] + "')]")))
 
-            search_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//td/div[contains(text(), '" + row[3] + "')]/../../td/div/button/span[contains(@title, '上传委托书')]/..")))
+            search_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//td/div[contains(text(), '" + row[3] + "')]/../..//button/span[contains(text(), '上传委托书')]/..")))
             search_btn.click()
             # search_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//img")[0]
             # search_btn.click()
@@ -1170,18 +1161,8 @@ def enter_by_list9B(elist, classID, courseName, reex):
             name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确定')]/..")))
             name_input.click()
             # 等待按钮消失
-            while True:
-                try:
-                    # 尝试获取按钮的属性，如果按钮已经消失，会抛出异常
-                    name_input.get_attribute("class")  # 你可以选择任何属性，只要能触发异常即可
-                    time.sleep(1)  # 等待1秒后重试
-                except Exception:
-                    # print("按钮已消失")
-                    break
-            # while name_input.is_displayed() and name_input.is_enabled():    # 等待确认按钮消失
-            #     pass
-            # time.sleep(5)
-            # print(3)
+            while name_input.text == '确定':
+                time.sleep(1)  # 等待1秒后重试
 
             # 保存结果
             result["count_s"] += 1
@@ -1194,6 +1175,7 @@ def enter_by_list9B(elist, classID, courseName, reex):
             # print("exceptZ:", e)
             # result["err"] = 1
             # result["errMsg"] = "action failed"
+            pass
 
     # 关闭数据库
     cursor.close()
@@ -1422,9 +1404,9 @@ if __name__ == '__main__':
     # username = "13918051550"
     # password = "Yan@sun0707"
     # register = "desk."
-    # d_list = '42082'.split(',')    # 需要处理的数据列表
-    # courseName = "危险化学品经营单位安全生产管理人员"  # 课程名称
-    # # courseName = "低压电工作业"  # 课程名称
+    # d_list = '42213'.split(',')    # 需要处理的数据列表
+    # # courseName = "危险化学品经营单位安全生产管理人员"  # 课程名称
+    # courseName = "低压电工作业"  # 课程名称
     # kind = ('' if courseName.find('危险化学品') < 0 else '安全干部')
     # if login_fr() == 0:
     #     i = 0
@@ -1433,7 +1415,8 @@ if __name__ == '__main__':
     #         # enter_by_list1(d_list)
     #         # enter_by_list7(d_list, '290', courseName, '初证')
     #         # enter_by_list8(d_list, '0110092606207', courseName, '复审')
-    #         enter_by_list9(d_list, '0110092605105', courseName, '初证')
+    #         # enter_by_list9(d_list, '0110092605105', courseName, '初证')
+    #         enter_by_list9A(d_list, '0110102606123', courseName, '初证')
     #         # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list11(d_list, '0110092507105', courseName, '初证')
     #         i += 1
