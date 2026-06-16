@@ -13,7 +13,8 @@ ALTER DATABASE elearning SET RECOVERY FULL
 select * from dictionaryDoc where kind like '%archiveStatus%' order by kind, ID
 select * from dictionaryDoc where kind like '%examResult%' order by kind, ID
 select * from dictionaryDoc where kind like '%online%' order by kind, ID
-select * from dictionaryDoc where item like '%合格%' order by kind, ID
+select * from dictionaryDoc where item like '%复审%' order by kind, ID
+
 --delete from dictionaryDoc where kind='evalution'
 insert into dictionaryDoc(ID,item,kind,description,memo) values('0','标准','lessonKind','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('1','辅导','lessonKind','','')
@@ -23,7 +24,8 @@ insert into dictionaryDoc(ID,item,kind,description,memo) values('5','其他','eval
 insert into dictionaryDoc(ID,item,kind,description,memo) values('6','六','week','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('8','社保证明','material','student_social','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('0','个人','fromKind','','')
-update dictionaryDoc set item='实操' where mID=1297
+update dictionaryDoc set item='换证' where item like '%复审%'
+update dictionaryDoc set item='复审' where item like '%换证%'
 update dictionaryDoc set item='线上' where mID=1291
 update dictionaryDoc set item='研究生及以上' where mID=242
 update dictionaryDoc set item='本科或同等学历' where mID=241
@@ -2893,7 +2895,7 @@ AS
 RETURN 
 (
 	--在线考试
-	select a.paperID,b.kindID,'在线' as kindName,a.status,a.statusName,b.certName,b.startDate,a.minutes,b.endDate,b.address,c.username,d.name from v_studentExamList a, v_passcardInfo b, studentCourseList c, studentInfo d where a.refID=b.ID and b.enterID=c.ID and c.username=d.username and b.kindID=1 and b.endDate>=convert(varchar(20),getDate(),23) and b.passNo>'' and b.username=@username
+	select a.paperID,b.kindID,'在线' as kindName,a.status,a.statusName,b.certName,b.startDate,a.minutes,b.endDate,b.address,c.username,d.name from v_studentExamList a, v_passcardInfo b, studentCourseList c, studentInfo d where a.refID=b.ID and b.enterID=c.ID and c.username=d.username and b.kindID=1 and b.endDate>=convert(varchar(20),getDate(),23) and b.passNo>'' and b.username=@username and a.status<2
 
 	--学校线下考试
 	union
@@ -9747,7 +9749,7 @@ GO
 -- CREATE Date: 2023-06-01
 -- Description:	根据名单提取报名数据
 -- @selList: 名单，用逗号分隔的ID in applyInfo
--- Use Case:	exec [getApplyListByList] '...'
+-- Use Case:	exec [getApplyListByList] '42082'
 -- =============================================
 ALTER PROCEDURE [dbo].[getApplyListByList] 
 	@selList varchar(4000)
@@ -9764,7 +9766,7 @@ BEGIN
 		select @j = @j + 1
 	end
 	--update #temp set punit=c.hostName from #temp a, v_applyInfo d, studentInfo b, hostInfo c where a.id=d.id and d.username=b.username and c.hostNo=b.host
-	select name,sexName,educationName,username,mobile,a.unit,iif(job='','管理',job) as job,link_address,IDdateStart,IDdateEnd,photo_filename as file1,certName,c.linker,a.ID,file2, (case when employe_filename>'' then N'工作证明' when job_filename>'' then N'居住证' when social_filename>'' then N'社保' else '' end) as jobcert, (case when employe_filename>'' then employe_filename when job_filename>'' then job_filename when social_filename>'' then social_filename else '' end) as jobfile,a.tax from v_applyInfo a, #temp b, hostInfo c where a.ID=b.id and a.host=c.hostNo order by passNo,a.ID
+	select name,sexName,educationName,username,mobile,a.unit,iif(job='','管理',job) as job,link_address,IDdateStart,IDdateEnd,photo_filename as file1,certName,c.linker,a.ID,file2, (case when employe_filename>'' then N'工作证明' when job_filename>'' then N'居住证' when social_filename>'' then N'社保' else '' end) as jobcert, (case when employe_filename>'' then employe_filename when job_filename>'' then job_filename when social_filename>'' then social_filename else '' end) as jobfile,a.tax,file6,file7 from v_applyInfo a, #temp b, hostInfo c where a.ID=b.id and a.host=c.hostNo order by passNo,a.ID
 END
 GO
 
@@ -9793,11 +9795,40 @@ GO
 
 -- CREATE DATE: 2023-05-30
 -- 上传报名表记录
-CREATE PROCEDURE [dbo].[setApplyUpload]
-	@ID int
+ALTER PROCEDURE [dbo].[setApplyUpload]
+	@ID int, @registerID varchar(50)
 AS
 BEGIN
+	declare @enterID int
+	select @enterID=enterID from applyInfo where ID=@ID
 	update applyInfo set upload=1,memo1=isnull(memo1,'') + '<br>' + '上传报名表' + convert(varchar(20),getDate(),120) where ID=@ID
+	exec writeOpLog '','安监上传报名表','setApplyUpload',@registerID,'',@enterID
+END
+GO
+
+-- CREATE DATE: 2026-06-16
+-- 上传报个人证明
+CREATE PROCEDURE [dbo].[setApplyUploadProofPerson]
+	@ID int, @registerID varchar(50)
+AS
+BEGIN
+	declare @enterID int
+	select @enterID=enterID from applyInfo where ID=@ID
+	update applyInfo set uploadProof=1,memo1=isnull(memo1,'') + '<br>' + '上传个人证明' + convert(varchar(20),getDate(),120) where ID=@ID
+	exec writeOpLog '','安监上传个人证明','setApplyUploadProofPerson',@registerID,'',@enterID
+END
+GO
+
+-- CREATE DATE: 2026-06-16
+-- 上传委托书
+CREATE PROCEDURE [dbo].[setApplyUploadPOA]
+	@ID int, @registerID varchar(50)
+AS
+BEGIN
+	declare @enterID int
+	select @enterID=enterID from applyInfo where ID=@ID
+	update applyInfo set uploadPOA=1,memo1=isnull(memo1,'') + '<br>' + '上传委托书' + convert(varchar(20),getDate(),120) where ID=@ID
+	exec writeOpLog '','安监上传委托书','setApplyUploadPOA',@registerID,'',@enterID
 END
 GO
 
@@ -9846,16 +9877,16 @@ BEGIN
 	if @keyID=2		--班级存档
 	begin
 		if @mark='A'
-			update studentCourseList set file1='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
+			update studentCourseList set file1='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id and a.signature>''
 		else
-			update studentCourseList set file1='/upload/students/firemanMaterials/' + @mark + cast(a.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, studentInfo b, #temp c where a.username=b.username and a.username=c.id and a.classID=@batchID
+			update studentCourseList set file1='/upload/students/firemanMaterials/' + @mark + cast(a.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, studentInfo b, #temp c where a.username=b.username and a.username=c.id and a.classID=@batchID and a.signature>''
 	end
 	if @keyID=5		--报名表
-		update studentCourseList set file2='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
+		update studentCourseList set file2='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id and a.signature>''
 	if @keyID=6		--培训证明
-		update studentCourseList set file6='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
+		update studentCourseList set file6='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id and a.signature>''
 	if @keyID=7		--授权委托书
-		update studentCourseList set file7='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id
+		update studentCourseList set file7='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id and a.signature>''
 	if @mark='A'
 		select a.ID,name,username,enterID,entryform from v_applyInfo a, #temp b where a.ID=b.id and a.signature>'' order by a.ID
 	else
@@ -10442,7 +10473,7 @@ BEGIN
 	if exists(select 1 from applyInfo where enterID=@enterID)
 	begin
 		select @start=convert(varchar(20),min(theDate),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) from applyInfo where enterID=@enterID) and std=1
-		SELECT @start as dateStart, @end as dateEnd, name, username, certName, reexamine, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then 1 else 0 end)  as kind, (case when charindex('安全生产管理人员',certName)>0 then 1 else 0 end) as type, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then left(certName,charindex('单位',certName)+1) else '' end)  as item, a.mobile, b.hostNo as host, b.hostName, b.regNo, b.linker, b.phone, b.ime as agent_ID, a.signature FROM v_applyInfo a, hostInfo b where b.hostNo='znxf' and a.enterID=@enterID
+		SELECT @start as dateStart, @end as dateEnd, name, username, certName, certID, reexamine, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then 1 else 0 end)  as kind, (case when charindex('安全生产管理人员',certName)>0 then 1 else 0 end) as type, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then left(certName,charindex('单位',certName)+1) else '' end)  as item, a.mobile, b.hostNo as host, b.hostName, b.regNo, b.linker, b.phone, b.ime as agent_ID, a.signature FROM v_applyInfo a, hostInfo b where b.hostNo='znxf' and a.enterID=@enterID
 	end
 END
 GO

@@ -963,7 +963,7 @@ def enter_by_list9(elist, classID, courseName, reex):
 
             # 保存结果
             result["count_s"] += 1
-            sql = "exec setApplyUpload " + str(row[13])
+            sql = "exec setApplyUpload " + str(row[13]) + "','" + register + "'"
             execSQL(sql)
             d_list.remove(str(row[13]))     # 从列表中删除已成功数据
             time.sleep(1)
@@ -982,6 +982,218 @@ def enter_by_list9(elist, classID, courseName, reex):
                 result["err"] = 1
                 result["errMsg"] = "安监系统超时退出"
                 break
+
+    # 关闭数据库
+    cursor.close()
+    # conn.close()
+    # print("window:", driver.window_handles)
+    # driver.quit()
+    return result
+
+
+def enter_by_list9A(elist, classID, courseName, reex):
+    # 根据指定开班编号及名单（enterID list)上传个人证明。
+    # 获取名单完整信息
+    cursor = conn.cursor()  # 使用cursor()方法获取操作游标
+    sql = "exec getApplyListByList '" + ','.join(elist) + "'"  # 数据库查询语句
+    cursor.execute(sql)  # 执行sql语句
+
+    # 开班管理菜单
+    # if len(driver.find_elements(By.XPATH, "//li[contains(text(),'班级管理')]")) == 0:
+    driver.find_elements(By.XPATH, "//span[contains(text(),'开班管理')]")[0].click()  # 点击开班管理菜单
+    time.sleep(1)
+    # else:
+    # driver.find_elements(By.XPATH, "//li[contains(text(),'班级管理')]")[0].click()  # 点击班级管理菜单
+    name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//li[contains(text(),'班级管理')]")))
+    name_input.click()
+    time.sleep(1)
+    # 选择课程
+    # 点击下拉框
+    name_input = driver.find_elements(By.XPATH, "//form//label[contains(text(),'资格类型')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
+    time.sleep(1)
+    # 点击符合要求的项目
+    name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + courseName + "')]")))
+    name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + courseName + "')]")[0].click()
+    time.sleep(1)
+    # 选择类型
+    # 点击下拉框
+    name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//form//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")))
+    name_input = driver.find_elements(By.XPATH, "//form//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
+    time.sleep(1)
+    # 点击符合要求的类型
+    name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + reex + "')]")[0].click()
+    # 开班编号
+    name_input = driver.find_elements(By.XPATH, "//form//label[contains(text(),'开班编号')]/following-sibling::div/div//input")[0]
+    clean_send(name_input, classID)
+    # 查找按钮
+    search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '查询')]")[0]
+    search_btn.click()
+    time.sleep(1)
+    # wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'" + classID + "')]")))
+    driver.find_elements(By.XPATH, "//div[contains(text(),'" + classID + "')]")[0].click()  # 点击班级记录
+    # 考核申请材料上传
+    search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '修改班级成员')]")[0]
+    search_btn.click()
+    time.sleep(1)
+    wait.until(EC.presence_of_element_located((By.XPATH, "//p[contains(text(), '班级成员列表')]")))
+    rs = cursor.fetchall()
+    # print(len(rs))
+    for row in rs:
+        try:
+            # 身份证输查找
+            if row[18] == "":   # 个人证明文件
+                result["count_e"] += 1
+                d_list.remove(str(row[13]))     # 从列表中删除无文件数据
+                continue
+            wait.until(EC.presence_of_element_located((By.XPATH, "//td/div[contains(text(), '" + row[3] + "')]")))
+
+            search_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//td/div[contains(text(), '" + row[3] + "')]/../../td/div/button/span[contains(@title, '上传培训证明')]/..")))
+            search_btn.click()
+            # search_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//img")[0]
+            # search_btn.click()
+            # 上传个人证明
+            # print(1)
+            wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '点击上传')]/../following-sibling::input[@type='file']")))
+            p = img_path + row[18]  # 个人证明
+            name_input = driver.find_elements(By.XPATH, "//span[contains(text(), '点击上传')]/../following-sibling::input[@type='file']")[0]
+            time.sleep(5)
+            name_input.send_keys(p)
+            time.sleep(5)
+            # print(2)
+            # 确定按钮
+            name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确定')]/..")))
+            name_input.click()
+            # 等待按钮消失
+            while True:
+                try:
+                    # 尝试获取按钮的属性，如果按钮已经消失，会抛出异常
+                    name_input.get_attribute("class")  # 你可以选择任何属性，只要能触发异常即可
+                    time.sleep(1)  # 等待1秒后重试
+                except Exception:
+                    # print("按钮已消失")
+                    break
+            # while name_input.is_displayed() and name_input.is_enabled():    # 等待确认按钮消失
+            #     pass
+            # time.sleep(5)
+            # print(3)
+
+            # 保存结果
+            result["count_s"] += 1
+            sql = "exec setApplyUploadProofPerson " + str(row[13]) + "','" + register + "'"
+            execSQL(sql)
+            d_list.remove(str(row[13]))     # 从列表中删除已成功数据
+            time.sleep(1)
+
+        except Exception as e:
+            # print("exceptZ:", e)
+            # result["err"] = 1
+            # result["errMsg"] = "action failed"
+
+    # 关闭数据库
+    cursor.close()
+    # conn.close()
+    # print("window:", driver.window_handles)
+    # driver.quit()
+    return result
+
+
+def enter_by_list9B(elist, classID, courseName, reex):
+    # 根据指定开班编号及名单（enterID list)上传委托书。
+    # 获取名单完整信息
+    cursor = conn.cursor()  # 使用cursor()方法获取操作游标
+    sql = "exec getApplyListByList '" + ','.join(elist) + "'"  # 数据库查询语句
+    cursor.execute(sql)  # 执行sql语句
+
+    # 开班管理菜单
+    # if len(driver.find_elements(By.XPATH, "//li[contains(text(),'班级管理')]")) == 0:
+    driver.find_elements(By.XPATH, "//span[contains(text(),'开班管理')]")[0].click()  # 点击开班管理菜单
+    time.sleep(1)
+    # else:
+    # driver.find_elements(By.XPATH, "//li[contains(text(),'班级管理')]")[0].click()  # 点击班级管理菜单
+    name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//li[contains(text(),'班级管理')]")))
+    name_input.click()
+    time.sleep(1)
+    # 选择课程
+    # 点击下拉框
+    name_input = driver.find_elements(By.XPATH, "//form//label[contains(text(),'资格类型')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
+    time.sleep(1)
+    # 点击符合要求的项目
+    name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + courseName + "')]")))
+    name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + courseName + "')]")[0].click()
+    time.sleep(1)
+    # 选择类型
+    # 点击下拉框
+    name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//form//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")))
+    name_input = driver.find_elements(By.XPATH, "//form//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
+    time.sleep(1)
+    # 点击符合要求的类型
+    name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']/div/div/ul[@class='el-scrollbar__view el-select-dropdown__list']/li/span[contains(text(),'" + reex + "')]")[0].click()
+    # 开班编号
+    name_input = driver.find_elements(By.XPATH, "//form//label[contains(text(),'开班编号')]/following-sibling::div/div//input")[0]
+    clean_send(name_input, classID)
+    # 查找按钮
+    search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '查询')]")[0]
+    search_btn.click()
+    time.sleep(1)
+    # wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'" + classID + "')]")))
+    driver.find_elements(By.XPATH, "//div[contains(text(),'" + classID + "')]")[0].click()  # 点击班级记录
+    # 考核申请材料上传
+    search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '修改班级成员')]")[0]
+    search_btn.click()
+    time.sleep(1)
+    wait.until(EC.presence_of_element_located((By.XPATH, "//p[contains(text(), '班级成员列表')]")))
+    rs = cursor.fetchall()
+    # print(len(rs))
+    for row in rs:
+        try:
+            # 身份证输查找
+            if row[19] == "":   # 委托书文件
+                result["count_e"] += 1
+                d_list.remove(str(row[13]))     # 从列表中删除无文件数据
+                continue
+            wait.until(EC.presence_of_element_located((By.XPATH, "//td/div[contains(text(), '" + row[3] + "')]")))
+
+            search_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//td/div[contains(text(), '" + row[3] + "')]/../../td/div/button/span[contains(@title, '上传委托书')]/..")))
+            search_btn.click()
+            # search_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//img")[0]
+            # search_btn.click()
+            # 上传委托书
+            # print(1)
+            wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '点击上传')]/../following-sibling::input[@type='file']")))
+            p = img_path + row[19]  # 委托书
+            name_input = driver.find_elements(By.XPATH, "//span[contains(text(), '点击上传')]/../following-sibling::input[@type='file']")[0]
+            time.sleep(5)
+            name_input.send_keys(p)
+            time.sleep(5)
+            # print(2)
+            # 确定按钮
+            name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确定')]/..")))
+            name_input.click()
+            # 等待按钮消失
+            while True:
+                try:
+                    # 尝试获取按钮的属性，如果按钮已经消失，会抛出异常
+                    name_input.get_attribute("class")  # 你可以选择任何属性，只要能触发异常即可
+                    time.sleep(1)  # 等待1秒后重试
+                except Exception:
+                    # print("按钮已消失")
+                    break
+            # while name_input.is_displayed() and name_input.is_enabled():    # 等待确认按钮消失
+            #     pass
+            # time.sleep(5)
+            # print(3)
+
+            # 保存结果
+            result["count_s"] += 1
+            sql = "exec setApplyUploadPOA " + str(row[13]) + "','" + register + "'"
+            execSQL(sql)
+            d_list.remove(str(row[13]))     # 从列表中删除已成功数据
+            time.sleep(1)
+
+        except Exception as e:
+            # print("exceptZ:", e)
+            # result["err"] = 1
+            # result["errMsg"] = "action failed"
 
     # 关闭数据库
     cursor.close()
@@ -1264,6 +1476,10 @@ if __name__ == '__main__':
                     enter_by_list8(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
                 if reexamine == '9':    # 上传资料
                     enter_by_list9(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+                if reexamine == '9A':    # 上传个人证明
+                    enter_by_list9A(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
+                if reexamine == '9B':    # 上传个人证明
+                    enter_by_list9B(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
                 if reexamine == '10':   # 查询成绩
                     enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
                 if reexamine == '11':   # 查询考试安排
