@@ -1220,7 +1220,7 @@ if __name__ == '__main__':
     #             break
     #     conn.close()
     #     driver.quit()
-        print(result)
+        # print(result)
     # 以上是测试代码
     d_list = sys.argv[1].split(',')    # 需要处理的数据列表
     reexamine = sys.argv[2]     # 0 初训 1 复训 9 报名表 10 成绩
