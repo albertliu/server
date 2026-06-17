@@ -1056,15 +1056,16 @@ def enter_by_list9A(elist, classID, courseName, reex):
             wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '点击上传')]/../following-sibling::input[@type='file']")))
             p = img_path + row[18]  # 个人证明
             name_input = driver.find_elements(By.XPATH, "//span[contains(text(), '点击上传')]/../following-sibling::input[@type='file']")[0]
-            time.sleep(5)
+            time.sleep(1)
             name_input.send_keys(p)
-            time.sleep(5)
+            time.sleep(3)
             # print(2)
             # 确定按钮
-            name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确定')]/..")))
+            name_input = driver.find_elements(By.XPATH, "//div[@aria-label='上传培训证明']//button/span[contains(text(),'确定')]/..")[0]
             name_input.click()
+            name_input = driver.find_elements(By.XPATH, "//div[@aria-label='上传培训证明']/..")[0]
             # 等待按钮消失
-            while name_input.text == '确定':
+            while name_input.is_displayed():
                 time.sleep(1)  # 等待1秒后重试
 
             # 保存结果
@@ -1153,20 +1154,21 @@ def enter_by_list9B(elist, classID, courseName, reex):
             wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '点击上传')]/../following-sibling::input[@type='file']")))
             p = img_path + row[19]  # 委托书
             name_input = driver.find_elements(By.XPATH, "//span[contains(text(), '点击上传')]/../following-sibling::input[@type='file']")[0]
-            time.sleep(5)
+            time.sleep(1)
             name_input.send_keys(p)
-            time.sleep(5)
+            time.sleep(3)
             # print(2)
             # 确定按钮
-            name_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//button/span[contains(text(),'确定')]/..")))
+            name_input = driver.find_elements(By.XPATH, "//div[@aria-label='上传委托书']//button/span[contains(text(),'确定')]/..")[0]
             name_input.click()
+            name_input = driver.find_elements(By.XPATH, "//div[@aria-label='上传委托书']/..")[0]
             # 等待按钮消失
-            while name_input.text == '确定':
+            while name_input.is_displayed():
                 time.sleep(1)  # 等待1秒后重试
 
             # 保存结果
             result["count_s"] += 1
-            sql = "exec setApplyUploadPOA " + str(row[13]) + "','" + register + "'"
+            sql = "exec setApplyUploadPOA " + str(row[13]) + ",'" + register + "'"
             execSQL(sql)
             d_list.remove(str(row[13]))     # 从列表中删除已成功数据
             time.sleep(1)
@@ -1416,7 +1418,8 @@ if __name__ == '__main__':
     #         # enter_by_list7(d_list, '290', courseName, '初证')
     #         # enter_by_list8(d_list, '0110092606207', courseName, '复审')
     #         # enter_by_list9(d_list, '0110092605105', courseName, '初证')
-    #         enter_by_list9A(d_list, '0110102606123', courseName, '初证')
+    #         # enter_by_list9A(d_list, '0110102606123', courseName, '初证')
+    #         enter_by_list9B(d_list, '0110102606123', courseName, '初证')
     #         # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list11(d_list, '0110092507105', courseName, '初证')
     #         i += 1
