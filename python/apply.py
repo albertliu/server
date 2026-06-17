@@ -963,7 +963,7 @@ def enter_by_list9(elist, classID, courseName, reex):
 
             # 保存结果
             result["count_s"] += 1
-            sql = "exec setApplyUpload " + str(row[13]) + "','" + register + "'"
+            sql = "exec setApplyUpload " + str(row[13]) + ",'" + register + "'"
             execSQL(sql)
             d_list.remove(str(row[13]))     # 从列表中删除已成功数据
             time.sleep(1)
