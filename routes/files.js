@@ -1640,6 +1640,12 @@ router.get('/generate_material_zip', function (req, res, next) {
       if(req.query.type=="e"){ 
         sqlstr = "select file2 as file1,name from v_studentCourseList where classID=@ID and file2>''";   //获取指定班级下的报名表
       }
+      if(req.query.type=="proof"){ 
+        sqlstr = "select file6 as file1,name from v_studentCourseList where classID=@ID and file6>''";   //获取指定班级下的个人证明
+      }
+      if(req.query.type=="poa"){ 
+        sqlstr = "select file7 as file1,name from v_studentCourseList where classID=@ID and file7>''";   //获取指定班级下的委托书
+      }
     }else{
       if(req.query.type=="m"){
         sqlstr = "select file1,'' as name from studentCourseList where applyID=@ID and file1>''";   //获取指定申报下的存档材料
@@ -1649,6 +1655,12 @@ router.get('/generate_material_zip', function (req, res, next) {
       }
       if(req.query.type=="e"){
         sqlstr = "select file2 as file1,'' as name from studentCourseList where applyID=@ID and file2>''";   //获取指定申报下的报名表
+      }
+      if(req.query.type=="proof"){ 
+        sqlstr = "select file6 as file1,name from v_studentCourseList where applyID=@ID and file6>''";   //获取指定班级下的个人证明
+      }
+      if(req.query.type=="poa"){ 
+        sqlstr = "select file7 as file1,name from v_studentCourseList where applyID=@ID and file7>''";   //获取指定班级下的委托书
       }
     }
     

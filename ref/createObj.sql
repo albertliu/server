@@ -6973,12 +6973,20 @@ BEGIN
 		update classInfo set pzip=@zip where classID=@refID
 	if @kind='class' and @type='e'
 		update classInfo set ezip=@zip where classID=@refID
+	if @kind='class' and @type='proof'
+		update classInfo set proofzip=@zip where classID=@refID
+	if @kind='class' and @type='poa'
+		update classInfo set poazip=@zip where classID=@refID
 	if @kind='apply' and @type='m'
 		update generateApplyInfo set zip=@zip where ID=@refID
 	if @kind='apply' and @type='p'
 		update generateApplyInfo set pzip=@zip where ID=@refID
 	if @kind='apply' and @type='e'
 		update generateApplyInfo set ezip=@zip where ID=@refID
+	if @kind='apply' and @type='proof'
+		update generateApplyInfo set proofzip=@zip where ID=@refID
+	if @kind='apply' and @type='poa'
+		update generateApplyInfo set poazip=@zip where ID=@refID
 END
 GO
 
@@ -10473,7 +10481,7 @@ BEGIN
 	if exists(select 1 from applyInfo where enterID=@enterID)
 	begin
 		select @start=convert(varchar(20),min(theDate),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) from applyInfo where enterID=@enterID) and std=1
-		SELECT @start as dateStart, @end as dateEnd, name, username, certName, certID, reexamine, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then 1 else 0 end)  as kind, (case when charindex('安全生产管理人员',certName)>0 then 1 else 0 end) as type, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then left(certName,charindex('单位',certName)+1) else '' end)  as item, a.mobile, b.hostNo as host, b.hostName, b.regNo, b.linker, b.phone, b.ime as agent_ID, a.signature FROM v_applyInfo a, hostInfo b where b.hostNo='znxf' and a.enterID=@enterID
+		SELECT isnull(@start,'') as dateStart, isnull(@end,'') as dateEnd, name, username, certName, certID, reexamine, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then 1 else 0 end)  as kind, (case when charindex('安全生产管理人员',certName)>0 then 1 else 0 end) as type, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then left(certName,charindex('单位',certName)+1) else '' end)  as item, a.mobile, b.hostNo as host, b.hostName, b.regNo, b.linker, b.phone, b.ime as agent_ID, a.signature FROM v_applyInfo a, hostInfo b where b.hostNo='znxf' and a.enterID=@enterID
 	end
 END
 GO
