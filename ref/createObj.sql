@@ -10447,7 +10447,7 @@ BEGIN
 	if exists(select 1 from applyInfo where enterID=@enterID)
 	begin
 		select @start=convert(varchar(20),min(theDate),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) from applyInfo where enterID=@enterID) and std=1
-		select @hours = sum(a.hours) from [dbo].[schedule] a, studentCourseList b where a.courseID=b.courseID and b.ID=@enterID
+		select @hours = c.hours from [dbo].[schedule] a, studentCourseList b, courseInfo c where a.courseID=b.courseID and b.courseID=c.courseID and b.ID=@enterID
 		--SELECT @start as dateStart, @end as dateEnd, name, username, a.sexName, certName, reexamine, b.hostNo as host, b.hostName, a.certKind, @hours as hours, dbo.getEnterAttendance(@enterID) as attendance, a.photo_filename FROM v_applyInfo a, hostInfo b where a.host=b.hostNo and a.enterID=@enterID
 		SELECT @start as dateStart, @end as dateEnd, name, username, a.sexName, certName, reexamine, b.hostNo as host, b.hostName, a.certKind, @hours as hours, dbo.getEnterAttendance(@enterID) as attendance, a.photo_filename FROM v_applyInfo a, hostInfo b where b.hostNo='znxf' and a.enterID=@enterID
 	end
@@ -10481,7 +10481,7 @@ BEGIN
 	if exists(select 1 from applyInfo where enterID=@enterID)
 	begin
 		select @start=convert(varchar(20),min(theDate),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) from applyInfo where enterID=@enterID) and std=1
-		SELECT isnull(@start,'') as dateStart, isnull(@end,'') as dateEnd, name, username, certName, certID, reexamine, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then 1 else 0 end)  as kind, (case when charindex('安全生产管理人员',certName)>0 then 1 else 0 end) as type, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then left(certName,charindex('单位',certName)+1) else '' end)  as item, a.mobile, b.hostNo as host, b.hostName, b.regNo, b.linker, b.phone, b.ime as agent_ID, a.signature FROM v_applyInfo a, hostInfo b where b.hostNo='znxf' and a.enterID=@enterID
+		SELECT isnull(@start,'') as dateStart, isnull(@end,'') as dateEnd, name, username, certName, certID, reexamine, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then 1 else 0 end)  as kind, (case when charindex('安全生产管理人员',certName)>0 then 1 else 0 end) as type, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then left(certName,charindex('单位',certName)+1) else '' end)  as item, a.mobile, b.hostNo as host, b.hostName, b.regNo, b.linker, b.phone, b.ime as agent_ID, a.signature, convert(varchar(20),getDate(),23) as today FROM v_applyInfo a, hostInfo b where b.hostNo='znxf' and a.enterID=@enterID
 	end
 END
 GO

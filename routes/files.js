@@ -1814,12 +1814,12 @@ router.get('/get_trainProof_shot', async function (req, res, next) {
     // console.log("str:", sqlstr);
     // let img = await shotimg.genImg(sqlstr, "", 50);
     // res.send(img);
-    // let path = 'users/upload/students/trainingProof/unit' + req.query.nodeID + '.png';
-    let path = 'users/upload/students/trainingProof/unit' + req.query.nodeID + '.pdf';
+    let path = 'users/upload/students/trainingProof/unit' + req.query.nodeID + '.png';
+    // let path = 'users/upload/students/trainingProof/unit' + req.query.nodeID + '.pdf';
     let filename = path.replace("users/", "/");
     // shotimg.genImg(sqlstr, path, 700, 800);
-    pdf.genPDF([sqlstr], [path], '96mm', '140mm', '', false, 0.5, false);
-
+    // pdf.genPDF([sqlstr], [path], '96mm', '140mm', '', false, 0.5, false);
+    await shotimg.genImg(sqlstr, path, 680, 800);
     //return publish file path
     sqlstr = "updateTrainingProof";
     //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
