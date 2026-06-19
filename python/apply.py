@@ -243,6 +243,11 @@ def enter_by_list0(elist, kind):
             area = driver.find_elements(By.XPATH, "//span[contains(text(),'非本地户籍')]/preceding-sibling::span")[0]
             if area.get_attribute("class") == "el-radio__input is-checked":
                 # 非本地户籍需要上传证明材料
+                if row[15] == "":    # if no education item, pass
+                    sql = "exec setApplyMemo " + str(row[13]) + ", '报名失败', '非本地户籍缺少上传证明材料'"
+                    execSQL(sql)
+                    d_list.remove(str(row[13]))     # 从列表中删除失败数据
+                    continue
                 # 选择相应的证明种类：工作证明、居住证、社保证明
                 name_input = driver.find_elements(By.XPATH, "//span[contains(text(),'" + row[15] + "')]/preceding-sibling::span//span[@class='el-radio__inner']")[0].click()
                 # 上传文件
