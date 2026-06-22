@@ -9990,7 +9990,7 @@ ALTER PROCEDURE [dbo].[setAutoPayInfo]
 	@kind int,@enterOrder varchar(50),@amount decimal(18,2),@payStatus int,@payType varchar(50),@payTime varchar(50),@subject nvarchar(500),@customerTaxnum varchar(50),@orderNo varchar(50),@outOrderNo varchar(50),@userId varchar(50),@phone varchar(50),@memo nvarchar(500)
 AS
 BEGIN
-	declare @classID varchar(50),@enterID int
+	declare @classID varchar(50),@enterID int,@courseID varchar(50), @username varchar(50)
 	if (@kind=1 and @payStatus=5) or (@kind=2 and @payStatus=1)		--退款/发票时，根据诺诺订单号来匹配原付款记录
 		select @enterID=enterID from autoPayInfo where orderNo=@orderNo and kind=0 and payStatus=1
 	else
@@ -10001,12 +10001,18 @@ BEGIN
 		insert into autoPayInfo (kind,enterID,enterOrder,amount,payType,payStatus,payTime,subject,customerTaxnum,orderNo,outOrderNo,userId,phone,memo) values(@kind,@enterID,@enterOrder,@amount,@payType,@payStatus,@payTime,@subject,@customerTaxnum,@orderNo,@outOrderNo,@userId,@phone,@memo)
 		if @kind=0 and @payStatus=1
 		begin
-			select @classID=a.classID from classInfo a, studentCourseList b where a.courseID=b.courseID and b.ID=@enterID and a.pre=1 and a.host=''
+			select @classID=a.classID, @username=b.username,@courseID=b.courseID from classInfo a, studentCourseList b where a.courseID=b.courseID and b.ID=@enterID and a.pre=1 and a.host=''
 			--如果没有班级，缴费后自动进入预备班
 			update studentCourseList set autoPay=1,pay_status=1,pay_type=iif(@payType='WECHAT',2,1),datePay=@payTime,amount=@amount,checked=1,checkDate=getDate(),submited=1,submitDate=getDate(),pay_memo=isnull(pay_memo,'') + @userId + ':' + @outOrderNo,classID=iif(classID is null,@classID,classID),pay_checker='system.' where ID=@enterID
 			--如果没有课表，添加课表
 			if not exists(select 1 from studentLessonList where refID=@enterID)
 				exec rebuildStudentLesson @enterID
+			--如果没有考试信息，添加考试信息
+			if exists(select 1 from studentExamList where refID=@enterID)
+			begin
+				--添加考试，题目暂不生成
+				insert into studentExamList(username,examID,refID,minutes,secondRest,scoreTotal,scorePass,kindID,kind,mark) select @username,examID,@enterID,minutes,minutes*60,scoreTotal,scorePass,kindID,0,0 from examInfo where courseID=@courseID and status=0
+			end
 		end
 		if @kind=1 and @payStatus=5
 		begin
@@ -10481,8 +10487,8 @@ BEGIN
 	if exists(select 1 from applyInfo where enterID=@enterID)
 	begin
 		select @start=convert(varchar(20),min(theDate),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) from applyInfo where enterID=@enterID) and std=1
-		SELECT isnull(@start,'') as dateStart, isnull(@end,'') as dateEnd, name, username, certName, certID, reexamine, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then 1 else 0 end)  as kind, (case when charindex('安全生产管理人员',certName)>0 then 1 else 0 end) as type, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then left(certName,charindex('单位',certName)+1) else '' end)  as item, a.mobile, b.hostNo as host, b.hostName, b.regNo, b.linker, b.phone, b.ime as agent_ID, a.signature, convert(varchar(20),getDate(),23) as today FROM v_applyInfo a, hostInfo b where b.hostNo='znxf' and a.enterID=@enterID
 	end
+	SELECT isnull(@start,'') as dateStart, isnull(@end,'') as dateEnd, name, username, certName, certID, reexamine, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then 1 else 0 end)  as kind, (case when charindex('安全生产管理人员',certName)>0 then 1 else 0 end) as type, (case when charindex('负责人',certName)>0 or charindex('安全生产管理人员',certName)>0 then left(certName,charindex('单位',certName)+1) else '' end)  as item, a.mobile, b.hostNo as host, b.hostName, b.regNo, b.linker, b.phone, b.ime as agent_ID, a.signature, convert(varchar(20),getDate(),23) as today FROM v_studentCourseList a, hostInfo b where b.hostNo='znxf' and a.ID=@enterID
 END
 GO
 
