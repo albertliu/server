@@ -10530,7 +10530,7 @@ BEGIN
 	if @classID=0
 		select @classID=max(refID) from applyInfo where enterID=@enterID
 	select @username=username,@courseID=courseID from v_applyInfo where enterID=@enterID
-	select @start=convert(varchar(20),dateadd(d,-365,min(theDate)),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = @classID
+	select @start=convert(varchar(20),dateadd(d,-365,min(theDate)),23), @end=convert(varchar(20),dateadd(d,365,max(theDate)),23) from classSchedule where mark='A' and classID = @classID
 
 	select a.theDate,a.item,a.teacherName,a.kindName,a.classID, b.file1, b.file2 from 
 	(select * from v_classSchedule where mark='A' and classID <>@classID and theDate between @start and @end) a 
@@ -10550,7 +10550,7 @@ AS
 BEGIN
 	declare @start varchar(50),@end varchar(50),@username varchar(50),@courseID varchar(50),@re int
 	select @username=username,@courseID=courseID from v_applyInfo where enterID=@enterID
-	select @start=convert(varchar(20),dateadd(d,-365,min(theDate)),23), @end=convert(varchar(20),max(theDate),23) from classSchedule where mark='A' and classID = (select max(refID) as refID from applyInfo where enterID=@enterID)
+	select @start=convert(varchar(20),dateadd(d,-365,min(theDate)),23), @end=convert(varchar(20),dateadd(d,365,max(theDate)),23) from classSchedule where mark='A' and classID = (select max(refID) as refID from applyInfo where enterID=@enterID)
 
 	select @re=count(*) from 
 	(select ID from v_classSchedule where mark='A' and online=0 and classID not in (select refID from applyInfo where enterID=@enterID and refID=@classID) and theDate between @start and @end) a 
