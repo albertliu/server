@@ -11687,13 +11687,48 @@ ALTER FUNCTION getEnterAttendance
 RETURNS decimal(18,2)
 AS
 BEGIN
-	declare @re decimal(18,2), @hours int, @hoursOnline int, @classID int, @qty int
-	select @classID=refID from applyInfo where enterID=@enterID
-	select @qty=dbo.getEnterCheckinOutClassQty(@enterID,@classID)
-	select @re=0, @hours=sum(b.hours), @hoursOnline=sum(iif(b.online=1,b.hours,0)) from studentCourseList a, [dbo].[schedule] b where a.courseID=b.courseID and a.ID=@enterID and b.status=0
-	select @re=dbo.getCourseCompletion(@enterID,0) * @hoursOnline / 100 + ((@qty+count(*))*8) from checkinInfo where enterID=@enterID
-	select @re=isnull(iif(@re>@hours,@hours,@re),0)
+	declare @re decimal(18,2), @hours int, @hoursOnline int, @hoursOffline int, @classID int, @qty int, @qtyOut int
+	if exists(select 1 from applyInfo where enterID=@enterID)
+	begin
+		select @classID=refID from applyInfo where enterID=@enterID
+		select @qtyOut=dbo.getEnterCheckinOutClassQty(@enterID,@classID)
+		select @qty=count(*) from checkinInfo where enterID=@enterID
+		select @qty = (@qtyOut + isnull(@qty,0))*8
+		select @re=0, @hours=sum(b.hours), @hoursOnline=sum(iif(b.online=1,b.hours,0)) from studentCourseList a, [dbo].[schedule] b where a.courseID=b.courseID and a.ID=@enterID and b.status=0
+		select @hoursOffline=@hours-@hoursOnline
+		select @re=dbo.getCourseCompletion(@enterID,0) * @hoursOnline / 100 + iif(@qty>@hoursOffline,@hoursOffline,@qty) from checkinInfo where enterID=@enterID
+		select @re=isnull(iif(@re>@hours,@hours,@re),0)
+	end
+	else
+	begin
+		select @hours=hours from courseInfo where courseID=(select courseID from studentCourseList where ID=@enterID)
+		select @re=dbo.getCourseCompletion(@enterID,0) * @hours / 100
+	end
 	return @re
+END
+GO
+
+-- CREATE DATE: 2026-06-14
+--计算某个申报班学员的线下实际培训课时但不超过规定课时
+CREATE FUNCTION getEnterAttendanceOffline
+(	
+	@enterID int
+)
+RETURNS decimal(18,2)
+AS
+BEGIN
+	declare @re decimal(18,2), @hours int, @hoursOnline int, @hoursOffline int, @classID int, @qty int, @qtyOut int
+	if exists(select 1 from applyInfo where enterID=@enterID)
+	begin
+		select @classID=refID from applyInfo where enterID=@enterID
+		select @qtyOut=dbo.getEnterCheckinOutClassQty(@enterID,@classID)
+		select @qty=count(*) from checkinInfo where enterID=@enterID
+		select @qty = (@qtyOut + isnull(@qty,0))*8
+		select @re=0, @hours=sum(b.hours), @hoursOnline=sum(iif(b.online=1,b.hours,0)) from studentCourseList a, [dbo].[schedule] b where a.courseID=b.courseID and a.ID=@enterID and b.status=0
+		select @hoursOffline=@hours-@hoursOnline
+		select @re= iif(@qty>@hoursOffline,@hoursOffline,@qty) from checkinInfo where enterID=@enterID
+	end
+	return isnull(@re,0)
 END
 GO
 
