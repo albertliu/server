@@ -10549,14 +10549,19 @@ RETURNS int
 AS
 BEGIN
 	declare @start varchar(50),@end varchar(50),@username varchar(50),@courseID varchar(50),@re int
-	select @username=username,@courseID=courseID from v_applyInfo where enterID=@enterID
-	select @start=convert(varchar(20),dateadd(d,-365,min(theDate)),23), @end=convert(varchar(20),dateadd(d,365,max(theDate)),23) from classSchedule where mark='A' and classID = (select max(refID) as refID from applyInfo where enterID=@enterID)
+	if exists(select 1 from applyInfo where enterID=@enterID)
+	begin
+		select @username=username,@courseID=courseID from v_applyInfo where enterID=@enterID
+		select @start=convert(varchar(20),dateadd(d,-365,min(theDate)),23), @end=convert(varchar(20),dateadd(d,365,max(theDate)),23) from classSchedule where mark='A' and classID = (select max(refID) as refID from applyInfo where enterID=@enterID)
 
-	select @re=count(*) from 
-	(select ID from v_classSchedule where mark='A' and online=0 and classID not in (select refID from applyInfo where enterID=@enterID and refID=@classID) and theDate between @start and @end) a 
-	inner join 
-	(select c.refID from checkinInfo c, faceDetectInfo d where c.enterID=d.refID and c.refID=d.keyID and c.kindID=1 and d.kindID=2 and c.enterID in(select ID from studentCourseList where username=@username and courseID=@courseID)) b
-	on a.ID=b.refID
+		select @re=count(*) from 
+		(select ID from v_classSchedule where mark='A' and online=0 and classID not in (select refID from applyInfo where enterID=@enterID and refID=@classID) and theDate between @start and @end) a 
+		inner join 
+		(select c.refID from checkinInfo c, faceDetectInfo d where c.enterID=d.refID and c.refID=d.keyID and c.kindID=1 and d.kindID=2 and c.enterID in(select ID from studentCourseList where username=@username and courseID=@courseID)) b
+		on a.ID=b.refID
+	end
+	else
+		select @re=count(*) from checkinInfo where enterID=@enterID
 	return isnull(@re,0)
 END
 GO
@@ -11687,22 +11692,27 @@ ALTER FUNCTION getEnterAttendance
 RETURNS decimal(18,2)
 AS
 BEGIN
-	declare @re decimal(18,2), @hours int, @hoursOnline int, @hoursOffline int, @classID int, @qty int, @qtyOut int
+	declare @re decimal(18,2), @hours int, @hoursOnline int, @hoursOffline int, @classID int, @qty int, @qtyOut int, @courseID varchar(50),@hoursOnline1 int, @qtyOnline decimal(18,2)
 	if exists(select 1 from applyInfo where enterID=@enterID)
 	begin
 		select @classID=refID from applyInfo where enterID=@enterID
 		select @qtyOut=dbo.getEnterCheckinOutClassQty(@enterID,@classID)
-		select @qty=count(*) from checkinInfo where enterID=@enterID
+		select @qty=count(*) from checkinInfo where enterID=@enterID and refID in(select ID from v_classSchedule where mark='A' and online=0 and classID=@classID)
 		select @qty = (@qtyOut + isnull(@qty,0))*8
-		select @re=0, @hours=sum(b.hours), @hoursOnline=sum(iif(b.online=1,b.hours,0)) from studentCourseList a, [dbo].[schedule] b where a.courseID=b.courseID and a.ID=@enterID and b.status=0
+		select @courseID=courseID, @hoursOnline1=@hoursOnline from studentCourseList where ID=@enterID
+		select @re=0, @hours=sum(b.hours), @hoursOnline=sum(iif(b.online=1,b.hours,0)) from [dbo].[schedule] b where b.courseID=@courseID and b.status=0
 		select @hoursOffline=@hours-@hoursOnline
-		select @re=dbo.getCourseCompletion(@enterID,0) * @hoursOnline / 100 + iif(@qty>@hoursOffline,@hoursOffline,@qty) from checkinInfo where enterID=@enterID
+		if exists(select 1 from studentLessonList where refID=@enterID and lessonID not in(select lessonID from lessonInfo where courseID=@courseID and status=0))	--如果当前学员的课表不是现行的课表，则按照每课1课时来计算线上课时
+			select @hoursOnline1 = count(*) from v_studentLessonList where refID=@enterID and lessonKindID = 0
+		select @qtyOnline=dbo.getCourseCompletion(@enterID,0) * @hoursOnline1 / 100
+		select @re=iif(@qtyOnline>@hoursOnline,@hoursOnline,@qtyOnline) + iif(@qty>@hoursOffline,@hoursOffline,@qty) from checkinInfo where enterID=@enterID
 		select @re=isnull(iif(@re>@hours,@hours,@re),0)
 	end
 	else
 	begin
+		select @re=count(*)*8 from checkinInfo where enterID=@enterID
 		select @hours=hours from courseInfo where courseID=(select courseID from studentCourseList where ID=@enterID)
-		select @re=dbo.getCourseCompletion(@enterID,0) * @hours / 100
+		select @re=isnull(@re,0) + dbo.getCourseCompletion(@enterID,0) * @hours / 100
 	end
 	return @re
 END
@@ -11710,7 +11720,7 @@ GO
 
 -- CREATE DATE: 2026-06-14
 --计算某个申报班学员的线下实际培训课时但不超过规定课时
-CREATE FUNCTION getEnterAttendanceOffline
+ALTER FUNCTION getEnterAttendanceOffline
 (	
 	@enterID int
 )
@@ -11722,12 +11732,29 @@ BEGIN
 	begin
 		select @classID=refID from applyInfo where enterID=@enterID
 		select @qtyOut=dbo.getEnterCheckinOutClassQty(@enterID,@classID)
-		select @qty=count(*) from checkinInfo where enterID=@enterID
+		select @qty=count(*) from checkinInfo where enterID=@enterID and refID in(select ID from v_classSchedule where mark='A' and online=0 and classID=@classID)
 		select @qty = (@qtyOut + isnull(@qty,0))*8
 		select @re=0, @hours=sum(b.hours), @hoursOnline=sum(iif(b.online=1,b.hours,0)) from studentCourseList a, [dbo].[schedule] b where a.courseID=b.courseID and a.ID=@enterID and b.status=0
 		select @hoursOffline=@hours-@hoursOnline
 		select @re= iif(@qty>@hoursOffline,@hoursOffline,@qty) from checkinInfo where enterID=@enterID
 	end
+	else
+		select @re=count(*)*8 from checkinInfo where enterID=@enterID
+	return isnull(@re,0)
+END
+GO
+
+-- CREATE DATE: 2026-06-14
+--计算某个课程的课时：mark 0 offline  1 online
+CREATE FUNCTION getCourseHours
+(	
+	@courseID varchar(50), @mark int
+)
+RETURNS int
+AS
+BEGIN
+	declare @re int
+	select @re=sum(iif(online=@mark,hours,0)) from [dbo].[schedule] where courseID=@courseID and status=0
 	return isnull(@re,0)
 END
 GO
