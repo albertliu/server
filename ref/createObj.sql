@@ -11101,7 +11101,8 @@ BEGIN
 	select @theDate=dbo.whenull(@theDate,convert(varchar(20),getDate(),23))
 	create table #temp(ID int,enterID int,classID int,username varchar(50),name nvarchar(50),mobile varchar(50),completion decimal(10,2) default(0),completion1 decimal(10,2) default(0),completion_hours decimal(10,2) default(0),result int,score int default(0),score2 int default(0),pOffline int default(0),
 		examTimes int default(0),goodTimes int default(0),goodRate decimal(10,2) default(0),examTimes1 int default(0),goodTimes1 int default(0),goodRate1 decimal(10,2) default(0)
-		,examTimesLast int default(0),goodTimesLast int default(0),goodRateLast decimal(10,2) default(0),avgLast int default(0),predictedGrade int default(0),examTimes1Last int default(0),goodTimes1Last int default(0),goodRate1Last decimal(10,2) default(0),todayExamTimes int default(0),todayGoodTimes int default(0),bestScore int default(0),todayBestScore int default(0))
+		,examTimesLast int default(0),goodTimesLast int default(0),goodRateLast decimal(10,2) default(0),avgLast int default(0),predictedGrade int default(0),examTimes1Last int default(0),goodTimes1Last int default(0),goodRate1Last decimal(10,2) default(0),todayExamTimes int default(0),todayGoodTimes int default(0),bestScore int default(0),todayBestScore int default(0)
+		,attendance decimal(18,2),attendanceOnline decimal(18,2),attendanceOffline int)
 	
 	--在线课程完成率
 	if @mark='A'
@@ -11115,8 +11116,8 @@ BEGIN
 		update #temp set completion=e.completion,completion_hours=e.completion_hours from #temp f, (select b.ID as enterID,avg(c.completion) as completion,sum(c.completion*c.hours)/100.00 as completion_hours from studentCourseList b, studentLessonList c, studentInfo d where b.ID=c.refID and b.username=d.username and b.classID=@classID group by b.ID) e where f.enterID=e.enterID
 	end
 	
-	update #temp set completion=b.completion,completion1=b.completion1 from #temp a, v_studentCourseList b where a.enterID=b.ID
-	update #temp set examTimes=b.examTimes,goodTimes=b.goodTimes,examTimes1=b.examTimes1,goodTimes1=b.goodTimes1,bestScore=b.bestScore from #temp a, (select c.enterID,sum(iif(e.kindID=0,1,0)) as examTimes,sum(iif(d.score>=d.scorePass and e.kindID=0,1,0)) as goodTimes,sum(iif(e.kindID=1,1,0)) as examTimes1,sum(iif(d.score>=d.scorePass and e.kindID=1,1,0)) as goodTimes1, max(d.score) as bestScore from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID group by c.enterID) b where a.enterID=b.enterID
+	update #temp set completion=b.completion,completion1=b.completion1,attendance=dbo.getEnterAttendance(b.ID),attendanceOffline=dbo.getEnterAttendanceOffline(b.ID) from #temp a, v_studentCourseList b where a.enterID=b.ID
+	update #temp set examTimes=b.examTimes,goodTimes=b.goodTimes,examTimes1=b.examTimes1,goodTimes1=b.goodTimes1,bestScore=b.bestScore,attendanceOnline=attendance-attendanceOffline from #temp a, (select c.enterID,sum(iif(e.kindID=0,1,0)) as examTimes,sum(iif(d.score>=d.scorePass and e.kindID=0,1,0)) as goodTimes,sum(iif(e.kindID=1,1,0)) as examTimes1,sum(iif(d.score>=d.scorePass and e.kindID=1,1,0)) as goodTimes1, max(d.score) as bestScore from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID group by c.enterID) b where a.enterID=b.enterID
 	
 	--当天练习次数
 	update #temp set todayExamTimes=b.examTimes,todayGoodTimes=b.goodTimes,todayBestScore=b.bestScore from #temp a, (select c.enterID,count(*) as examTimes,sum(iif(d.score>=d.scorePass,1,0)) as goodTimes, max(d.score) as bestScore from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID and d.backDate between @theDate and @theDate + ' 23:59:59' group by c.enterID) b where a.enterID=b.enterID
@@ -11685,7 +11686,7 @@ GO
 
 -- CREATE DATE: 2026-06-14
 --计算某个申报班学员的实际培训课时（线上+线下）但不超过规定课时
-ALTER FUNCTION getEnterAttendance
+ALTER FUNCTION [dbo].[getEnterAttendance]
 (	
 	@enterID int
 )
@@ -11699,13 +11700,13 @@ BEGIN
 		select @qtyOut=dbo.getEnterCheckinOutClassQty(@enterID,@classID)
 		select @qty=count(*) from checkinInfo where enterID=@enterID and refID in(select ID from v_classSchedule where mark='A' and online=0 and classID=@classID)
 		select @qty = (@qtyOut + isnull(@qty,0))*8
+		select @re=0, @hours=sum(b.hours), @hoursOnline=sum(iif(b.online=1,b.hours,0)) from studentCourseList a, [dbo].[schedule] b where a.courseID=b.courseID and a.ID=@enterID and b.status=0
 		select @courseID=courseID, @hoursOnline1=@hoursOnline from studentCourseList where ID=@enterID
-		select @re=0, @hours=sum(b.hours), @hoursOnline=sum(iif(b.online=1,b.hours,0)) from [dbo].[schedule] b where b.courseID=@courseID and b.status=0
 		select @hoursOffline=@hours-@hoursOnline
 		if exists(select 1 from studentLessonList where refID=@enterID and lessonID not in(select lessonID from lessonInfo where courseID=@courseID and status=0))	--如果当前学员的课表不是现行的课表，则按照每课1课时来计算线上课时
 			select @hoursOnline1 = count(*) from v_studentLessonList where refID=@enterID and lessonKindID = 0
 		select @qtyOnline=dbo.getCourseCompletion(@enterID,0) * @hoursOnline1 / 100
-		select @re=iif(@qtyOnline>@hoursOnline,@hoursOnline,@qtyOnline) + iif(@qty>@hoursOffline,@hoursOffline,@qty) from checkinInfo where enterID=@enterID
+		select @re=iif(@qtyOnline>@hoursOnline,@hoursOnline,@qtyOnline) + iif(@qty>@hoursOffline,@hoursOffline,@qty)-- from checkinInfo where enterID=@enterID
 		select @re=isnull(iif(@re>@hours,@hours,@re),0)
 	end
 	else
@@ -11736,7 +11737,7 @@ BEGIN
 		select @qty = (@qtyOut + isnull(@qty,0))*8
 		select @re=0, @hours=sum(b.hours), @hoursOnline=sum(iif(b.online=1,b.hours,0)) from studentCourseList a, [dbo].[schedule] b where a.courseID=b.courseID and a.ID=@enterID and b.status=0
 		select @hoursOffline=@hours-@hoursOnline
-		select @re= iif(@qty>@hoursOffline,@hoursOffline,@qty) from checkinInfo where enterID=@enterID
+		select @re= iif(@qty>@hoursOffline,@hoursOffline,@qty)-- from checkinInfo where enterID=@enterID
 	end
 	else
 		select @re=count(*)*8 from checkinInfo where enterID=@enterID

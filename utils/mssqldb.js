@@ -1,140 +1,189 @@
-///引入依赖
 const mssql = require('mssql');
+
 const config = {
   user: 'sqlrw',
   password: process.env.NODE_ENV_DB_PASSWD,
-  //server: 'DESKTOP-017P07F\\ALBERTSQL2012',
   server: process.env.NODE_ENV_DB,
-  //server: 'iZ8ccky8b15s0lZ\\ELEARNINGSQL2012',
   database: 'elearning',
   port: 14333,
   options: {
     encrypt: false
   },
+  connectionTimeout: 15000,
+  requestTimeout: 30000,
   pool: {
     min: 0,
-    max: 10,
-    idleTimeoutMillis: 3000
+    max: 50,
+    idleTimeoutMillis: 30000
   }
 };
 
-const pool2 = new mssql.ConnectionPool(config);
-const pool2Connect = pool2.connect();
+const pool = new mssql.ConnectionPool(config);
+const poolConnect = pool.connect();
 
-pool2.on('error', err => {
-  // ... error handler
-  console.log(err);
+pool.on('error', err => {
+  console.error('SQL connection pool error:', err);
 });
 
-
-//方法对象
-const units = {
-  excuteSQL: function (sql, params, callback) {
-    ///连接池
-    new mssql.ConnectionPool(config)
-      .connect()
-      .then(pool => {
-        let ps = new mssql.PreparedStatement(pool);
-        if (params != "") {
-          //console.log("params:", params);
-          for (var index in params) {
-            if (params[index] === undefined || params[index] === null) {
-              params[index] = "";
-            }
-            if (typeof params[index] == "string") {
-              ps.input(index, mssql.NVarChar);
-            } else if (typeof params[index] == "number") {
-              ps.input(index, mssql.Int);
-            }
-          }
-        }
-
-        ps.prepare(sql, err => {
-          if (err) {
-            console.log(err);
-            return;
-          }
-          ps.execute(params, (err, result) => {
-            if (err) {
-              console.log(err);
-              //this.excuteSQL("exec writeErrorSQL '" + sql + "','" + params + "','" + err.message + "','" + req.session.user.username + "','" + req.session.user.ip + "','" + req.session.user.host + "'", {}, function(e, re){});
-              return;
-            }
-            ps.unprepare(err => {
-              if (err) {
-                console.log(err);
-                callback(err, null, null);
-                return;
-              }
-              callback(err, result);
-            });
-          });
-        });
-      }).catch(err => {
-        console.log("excuteSQL: Database Connection Failed! Bad Config:", err);
-      });
-  },
-  excuteProc: function (proc, params, callback) {
-    return pool2Connect.then((pool) => {
-      var req = pool.request(); // or: new sql.Request(pool2)
-      //var req = new mssql.Request(pool2);
-      if (params != "") {
-        for (var index in params) {
-            if (params[index] === undefined || params[index] === null) {
-              params[index] = "";
-            }
-            if (typeof params[index] == "string") {
-              req.input(index, mssql.NVarChar, params[index]);
-            } else if (typeof params[index] == "number") {
-              req.input(index, mssql.Int, params[index]);
-            }
-        }
-        //console.log("params:", params);
-      }
-      req.execute(proc, (err, result) => {
-        if (err) {
-          console.log(err);
-          //this.excuteSQL("exec writeErrorSQL '" + sql + "','" + params + "','" + err.message + "','" + req.session.user.username + "','" + req.session.user.ip + "','" + req.session.user.host + "'", {}, function(e, re){});
-          return;
-        }
-      // ... error checks
-        //console.log("result:", result);
-        callback(err, result);
-      });
-    }).catch(err => {
-        // ... error handler
-        console.log("executeProc: Database Connection Failed! Bad Config:", err);
-    })
-  },
-  excuteProcAsync: async function (proc, params) {
-    try {
-      const pool = await pool2Connect;
-      var req = pool.request(); // or: new sql.Request(pool2)
-      //var req = new mssql.Request(pool2);
-      if (params != "") {
-        for (var index in params) {
-          if (params[index] === undefined || params[index] === null) {
-            params[index] = "";
-          }
-          if (typeof params[index] == "string") {
-            req.input(index, mssql.NVarChar, params[index]);
-          } else if (typeof params[index] == "number") {
-            req.input(index, mssql.Int, params[index]);
-          }
-        }
-        //console.log("params:", params);
-      }
-      return req.execute(proc);
-    } catch (err) {
-      console.log("executeProc: Database Connection Failed! Bad Config:", err);
-      throw err;
-    }
-
-  }
-  /*
- * 默认config对象
- * @type {{user: string, password: string, server: string, database: string, pool: {min: number, idleTimeoutMillis: number}}}
- */
+function isPlainObject(value) {
+  return Object.prototype.toString.call(value) === '[object Object]';
 }
 
-module.exports = units;
+function isExplicitParam(value) {
+  return isPlainObject(value) && Object.prototype.hasOwnProperty.call(value, 'type');
+}
+
+function inferSqlType(value) {
+  if (value === null || value === undefined) return mssql.NVarChar;
+
+  if (typeof value === 'string') {
+    return value.length > 4000
+      ? mssql.NVarChar(mssql.MAX)
+      : mssql.NVarChar(Math.max(value.length, 1));
+  }
+
+  if (typeof value === 'boolean') return mssql.Bit;
+  if (typeof value === 'bigint') return mssql.BigInt;
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      throw new TypeError('Invalid SQL parameter: number must be finite.');
+    }
+
+    if (Number.isInteger(value)) {
+      return value >= -2147483648 && value <= 2147483647
+        ? mssql.Int
+        : mssql.BigInt;
+    }
+
+    return mssql.Decimal(18, 6);
+  }
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      throw new TypeError('Invalid SQL parameter: Date is invalid.');
+    }
+
+    return mssql.DateTime2;
+  }
+
+  if (Buffer.isBuffer(value)) return mssql.VarBinary(mssql.MAX);
+
+  return mssql.NVarChar(mssql.MAX);
+}
+
+function normalizeParams(params) {
+  if (params === null || params === undefined || params === '') return {};
+
+  if (!isPlainObject(params)) {
+    throw new TypeError('SQL parameters must be a plain object.');
+  }
+
+  return params;
+}
+
+function getParamType(param) {
+  return isExplicitParam(param) ? param.type : inferSqlType(param);
+}
+
+function getParamValue(param) {
+  return isExplicitParam(param) ? param.value : param;
+}
+
+function bindInputs(request, params) {
+  for (const [name, param] of Object.entries(normalizeParams(params))) {
+    if (!name || name.startsWith('@')) {
+      throw new TypeError(`Invalid SQL parameter name: ${name}`);
+    }
+
+    request.input(name, getParamType(param), getParamValue(param) ?? null);
+  }
+
+  return request;
+}
+
+function toCallback(promise, callback) {
+  if (typeof callback !== 'function') return promise;
+
+  promise
+    .then(result => callback(null, result))
+    .catch(err => callback(err, null));
+
+  return undefined;
+}
+
+async function executeSQLAsync(sql, params = {}) {
+  if (typeof sql !== 'string' || sql.trim() === '') {
+    throw new TypeError('SQL text must be a non-empty string.');
+  }
+  const startedAt = Date.now();
+
+  try {
+    const connectedPool = await poolConnect;
+    const request = bindInputs(connectedPool.request(), params);
+    return await request.query(sql);
+  } finally {
+    const elapsed = Date.now() - startedAt;
+    if (elapsed > 1500) {
+      console.warn('Slow SQL:', {
+        elapsed,
+        sql,
+        params
+      });
+    }
+  }
+}
+
+async function executeProcAsync(proc, params = {}) {
+  if (typeof proc !== 'string' || proc.trim() === '') {
+    throw new TypeError('Procedure name must be a non-empty string.');
+  }
+  const startedAt = Date.now();
+
+  try {
+    const connectedPool = await poolConnect;
+    const request = bindInputs(connectedPool.request(), params);
+
+    return request.execute(proc);
+  } finally {
+    const elapsed = Date.now() - startedAt;
+    if (elapsed > 1500) {
+      console.warn('Slow SQL:', {
+        elapsed,
+        proc,
+        params
+      });
+    }
+  }
+}
+
+function executeSQL(sql, params, callback) {
+  return toCallback(executeSQLAsync(sql, params), callback);
+}
+
+function executeProc(proc, params, callback) {
+  return toCallback(executeProcAsync(proc, params), callback);
+}
+
+async function close() {
+  await pool.close();
+}
+
+module.exports = {
+  config,
+  mssql,
+  pool,
+  close,
+  bindInputs,
+  inferSqlType,
+
+  executeSQL,
+  executeProc,
+  executeSQLAsync,
+  executeProcAsync,
+
+  // 兼容原来的拼写，避免现有代码立即报错。
+  excuteSQL: executeSQL,
+  excuteProc: executeProc,
+  excuteProcAsync: executeProcAsync
+};
