@@ -6,7 +6,7 @@ const env = process.env.NODE_ENV_BACKEND;
 let response, sqlstr, params;
 
 const comFunc = {
-    generate_entryform_sign: function (enterID){
+    generate_entryform_sign: function (enterID, mark = 0){
         if (enterID > 0) {
             let filename1 = "";
             let path = "";
@@ -15,7 +15,7 @@ const comFunc = {
             //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
             path = 'users/upload/students/firemanMaterials/' + enterID + '_4.pdf';
             filename1 = path.replace("users/", "/");
-            params = { enterID: enterID, filename1: "", filename2: "", filename3: "", filename4: filename1 };
+            params = { enterID: enterID, filename1: (mark == 1 ? filename1 : ""), filename2: "", filename3: "", filename4: (mark == 0 ? filename1 : "") };
             //generate diploma data
             // console.log("params:", params);
             db.excuteProc(sqlstr, params, function (err, data) {
