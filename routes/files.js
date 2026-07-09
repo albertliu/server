@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var db = require("../utils/mssqldb");
+var readpdf = require("../utils/readPDF");
 var multer = require('multer');
 // var util = require('util');
 var fs = require('fs');
@@ -321,7 +322,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
   }
   let size = (file.size/1024).toFixed(0);
   params = { "upID": upID, "key": key, "mark":req.query.refID || "", "file": response.file, fsize: size, "description":req.body.description || "", "multiple": 0, "registerID": register };
-  console.log("params:", params);
+  // console.log("params:", params);
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
@@ -477,6 +478,7 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
 
   //deal xlsx 申报结果导入
   if (upID == "apply_list") {
+    /*
     //console.log("file:", file.path);
     let workbook = xlsx.readFile(file.path); //workbook就是xls文档对象
     let sheetNames = workbook.SheetNames; //获取表明
@@ -530,6 +532,10 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     });
 
     response.count = data1.length;
+    */
+    // console.log("apply_list:", file.path, key, currUser);
+    response.count = await readpdf.readPDF(file.path, key, currUser);
+    response.status = 0;
     return res.send(response);
   }
 
@@ -875,6 +881,9 @@ router.post('/uploadBase64img', async function (req, res, next) {
         }
         if(upID=="student_photo"){
           face.addFace(req.body.username);  // 照片上传到照片库
+        }
+        if(upID=="user_letter_signature"){
+          comFunc.generate_entryform_sign(req.body.username);  // 已签字的生成培训协议 param:enterID
         }
       });
 
@@ -1568,7 +1577,7 @@ router.get('/generate_emergency_materials', function (req, res, next) {
 //status: 0 成功  9 其他  msg, emergency item
 router.post('/generate_emergency_exam_materials_byclass', function (req, res, next) {
   let path = "";
-  let f = ['','','班级归档资料.pdf','','','报名表.jpg','培训证明.jpg','授权委托书.jpg']
+  let f = ['','','培训协议.pdf','','','报名表.jpg','培训证明.jpg','授权委托书.jpg']
   let keyID = req.query.keyID;
   let mark = req.query.mark || 'A';
 
@@ -1589,8 +1598,8 @@ router.post('/generate_emergency_exam_materials_byclass', function (req, res, ne
       response = [dat.length];
       let kindID = req.query.kindID || 0;
       for (var i in dat) {
-        //班级归档资料
-        if(keyID==2){ //班级存档资料\考站资料生成pdf文件
+        //培训协议
+        if(keyID==2){ //培训协议生成pdf文件
           sqlstr = env + "/entryform_" + dat[i]["entryform"] + ".asp?public=1&nodeID=" + dat[i]["enterID"] + "&refID=" + dat[i]["username"] + "&host=" + req.query.host + "&kindID=" + kindID + "&status=" + req.query.refID + "&keyID=";
           path = 'users/upload/students/firemanMaterials/' + mark + dat[i]["ID"] + '_' + dat[i]["name"] + '_' + dat[i]["username"];
           await pdf.genPDF([sqlstr + keyID], [path + f[keyID]], '800', (mark=='B'?'900':'1080'), '', false, 1, false);

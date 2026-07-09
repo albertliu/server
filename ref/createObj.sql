@@ -1273,6 +1273,23 @@ CREATE TABLE [dbo].[attachmentInfo](
 ) ON [PRIMARY]
 GO
 
+--报考信息
+CREATE TABLE [dbo].[applyDetail](
+	[ID] int IDENTITY(1,1) NOT NULL,
+	[applyID] [int] NULL default(0),
+	[examNo] [varchar](50) NULL,
+	[examDate] [varchar](50) NULL,
+	[examAddress] [nvarchar](100) NULL,
+	[score] [decimal](18, 1) NULL,
+	[kind] [int] NULL default(0),	--0 理论  1 实操
+	[statusApply] [int] NULL,
+	[status] [int] NULL default(0),
+	[memo] [nvarchar](500) NULL,
+	[regDate] [datetime] NULL,
+	[registerID] [varchar](50) NULL
+) ON [PRIMARY]
+GO
+
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
 -- function
@@ -7143,7 +7160,7 @@ BEGIN
 		--if @certID in('C1','C2','C22','C23')
 		else
 			--SELECT ID,(case when @certID='C2' then '易燃易爆危险物品从业人员' when @certID='C31' then '动火作业' else certName end) as title,diplomaID,username,name,sexName,birthday,certID,(case when @certID='C31' then '动火作业' else certName end) as certName,startDate,endDate,term,(case when host<>'spc' and host<>'shm' then unit when host='spc' and kindID=1 then dept1Name when host='spc' and dept1=9 then '上海石油分公司物流中心' else hostName end) as hostName,(case when host='spc' and dept1=9 and job='' then '油品储运工' else job end) as job,educationName,'No.' + replace(space(7-len(serial))+cast(serial as varchar),' ','0') as diplomaNo,photo_filename,[dbo].[fn_formatDate](class_startDate,0) as class_startDate,[dbo].[fn_formatDate](class_endDate,0) as class_endDate FROM v_diplomaInfo where batchID=@batchID order by diplomaID
-			SELECT ID,(case when @certID='C2' then '易燃易爆危险物品从业人员' else certName end) as title,diplomaID,username,name,sexName,birthday,certID,certName,startDate,endDate,term,(case when host<>'spc' or unit>'' then unit when host='spc' and kindID=1 then dept1Name when host='spc' and dept1=9 then '上海石油分公司物流中心' else hostName end) as hostName,(case when host='spc' and dept1=9 and job='' then '油品储运工' else job end) as job,educationName,'No.' + replace(space(7-len(serial))+cast(serial as varchar),' ','0') as diplomaNo,photo_filename,[dbo].[fn_formatDate](class_startDate,0) as class_startDate,[dbo].[fn_formatDate](class_endDate,0) as class_endDate FROM v_diplomaInfo where batchID=@batchID order by diplomaID
+			SELECT ID,(case when @certID='C2' then '易燃易爆危险物品从业人员' else certName end) as title,diplomaID,username,name,sexName,birthday,certID,certName,startDate,endDate,term,(case when host='spc' and dept1=9 then '上海石油分公司物流中心' when host<>'spc' or unit>'' then unit when host='spc' and kindID=1 then dept1Name else hostName end) as hostName,(case when host='spc' and dept1=9 and job='' then '油品储运工' else job end) as job,educationName,'No.' + replace(space(7-len(serial))+cast(serial as varchar),' ','0') as diplomaNo,photo_filename,[dbo].[fn_formatDate](class_startDate,0) as class_startDate,[dbo].[fn_formatDate](class_endDate,0) as class_endDate FROM v_diplomaInfo where batchID=@batchID order by diplomaID
 	end
 END
 GO
@@ -7297,7 +7314,7 @@ BEGIN
 	--send system message
 	if exists(select 1 from generateApplyInfo where ID=@batchID)
 	begin
-		declare rc cursor for select username,'尊敬的' + a.name + '：请您于' + examDate + '参加' + b.courseName + '考试，地点为' + b.address + '。请携带身份证、准考证，迟到15分钟不得入场。',a.host from v_applyInfo a, v_generateApplyInfo b where a.refID=b.ID and b.ID=@batchID and a.examDate>'' -- and a.statusApply=1
+		declare rc cursor for select username,'尊敬的' + a.name + '：请您于' + examDate + '参加' + b.courseName + '考试，地点为' + a.examAddress + '。请携带身份证、准考证，迟到15分钟不得入场。',a.host from v_applyInfo a, v_generateApplyInfo b where a.refID=b.ID and b.ID=@batchID and a.examDate>'' -- and a.statusApply=1
 		open rc
 		fetch next from rc into @username,@item,@host
 		While @@fetch_status=0 
@@ -7311,7 +7328,7 @@ BEGIN
 		update generateApplyInfo set send = send + 1,sendDate=getDate(),sender=@registerID where ID=@batchID
 	end
 	--return students list for send mobile message
-	select name,username,mobile,b.courseName as certName,a.enterID, examDate as dt, b.address,'尊敬的' + a.name + '：请您于' + examDate + '参加' + b.courseName + '考试，地点为' + b.address + '。请携带身份证、准考证，迟到15分钟不得入场。' as item from v_applyInfo a, v_generateApplyInfo b where a.refID=b.ID and b.ID=@batchID and a.examDate>'' -- and a.statusApply=1
+	select name,username,mobile,b.courseName as certName,a.enterID, examDate as dt, a.examAddress as address,'尊敬的' + a.name + '：请您于' + examDate + '参加' + b.courseName + '考试，地点为' + a.examAddress + '。请携带身份证、准考证，迟到15分钟不得入场。' as item from v_applyInfo a, v_generateApplyInfo b where a.refID=b.ID and b.ID=@batchID and a.examDate>'' -- and a.statusApply=1
 END
 GO
 
@@ -8398,6 +8415,30 @@ BEGIN
 	if @examDate>''
 	begin
 		update applyInfo set applyNo=@passNo,examDate=@examDate,statusApply=1 from applyInfo where ID=@ID
+		update generateApplyInfo set importApplyDate=getDate() where ID=@batchID and importApplyDate is null
+	end
+END
+GO
+
+------------------
+-- CREATE DATE: 2025-08-12
+-- 根据给定的参数，添加或者更新导入考试信息(从准考证获取)
+-- USE CASE: exec generateApply2 1,1,'xxxx'...
+ALTER PROCEDURE [dbo].[generateApply2]
+	@batchID int, @name nvarchar(50),@username varchar(50),@examDate varchar(50),@examAddress nvarchar(100),@certName nvarchar(100),@kind nvarchar(100),@examNo nvarchar(50),@registerID varchar(50)
+
+AS
+BEGIN
+	declare @applyID int, @name1 nvarchar(50)
+	select @applyID=ID from v_applyInfo where refID=@batchID and username=@username
+	select @name1=name from studentInfo where username=@username
+
+	--更新申报信息
+	if @examDate>''
+	begin
+		update applyInfo set applyNo=@examNo,examDate=@examDate,statusApply=1,examAddress=@examAddress, memo=iif(@name=@name1,memo,isnull(memo,'') + ' 准考证中姓名与系统中不一致') from applyInfo where ID=@applyID
+		if not exists(select 1 from applyDetail where examNo=@examNo)
+			insert into applyDetail(applyID,examNo,examDate,examAddress,kind,registerID) values(@applyID,@examNo,@examDate,@examAddress,iif(charindex('理论',@kind)>0,0,1),@registerID)
 		update generateApplyInfo set importApplyDate=getDate() where ID=@batchID and importApplyDate is null
 	end
 END
@@ -11102,7 +11143,7 @@ BEGIN
 	create table #temp(ID int,enterID int,classID int,username varchar(50),name nvarchar(50),mobile varchar(50),completion decimal(10,2) default(0),completion1 decimal(10,2) default(0),completion_hours decimal(10,2) default(0),result int,score int default(0),score2 int default(0),pOffline int default(0),
 		examTimes int default(0),goodTimes int default(0),goodRate decimal(10,2) default(0),examTimes1 int default(0),goodTimes1 int default(0),goodRate1 decimal(10,2) default(0)
 		,examTimesLast int default(0),goodTimesLast int default(0),goodRateLast decimal(10,2) default(0),avgLast int default(0),predictedGrade int default(0),examTimes1Last int default(0),goodTimes1Last int default(0),goodRate1Last decimal(10,2) default(0),todayExamTimes int default(0),todayGoodTimes int default(0),bestScore int default(0),todayBestScore int default(0)
-		,attendance decimal(18,2),attendanceOnline decimal(18,2),attendanceOffline int)
+		,attendance decimal(18,2),attendanceOnline decimal(18,2),attendanceOffline int,hours int)
 	
 	--在线课程完成率
 	if @mark='A'
@@ -11116,8 +11157,8 @@ BEGIN
 		update #temp set completion=e.completion,completion_hours=e.completion_hours from #temp f, (select b.ID as enterID,avg(c.completion) as completion,sum(c.completion*c.hours)/100.00 as completion_hours from studentCourseList b, studentLessonList c, studentInfo d where b.ID=c.refID and b.username=d.username and b.classID=@classID group by b.ID) e where f.enterID=e.enterID
 	end
 	
-	update #temp set completion=b.completion,completion1=b.completion1,attendance=dbo.getEnterAttendance(b.ID),attendanceOffline=dbo.getEnterAttendanceOffline(b.ID) from #temp a, v_studentCourseList b where a.enterID=b.ID
-	update #temp set examTimes=b.examTimes,goodTimes=b.goodTimes,examTimes1=b.examTimes1,goodTimes1=b.goodTimes1,bestScore=b.bestScore,attendanceOnline=attendance-attendanceOffline from #temp a, (select c.enterID,sum(iif(e.kindID=0,1,0)) as examTimes,sum(iif(d.score>=d.scorePass and e.kindID=0,1,0)) as goodTimes,sum(iif(e.kindID=1,1,0)) as examTimes1,sum(iif(d.score>=d.scorePass and e.kindID=1,1,0)) as goodTimes1, max(d.score) as bestScore from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID group by c.enterID) b where a.enterID=b.enterID
+	update #temp set completion=b.completion,completion1=b.completion1,attendance=dbo.getEnterAttendance(b.ID),attendanceOffline=dbo.getEnterAttendanceOffline(b.ID),hours=b.hours from #temp a, v_studentCourseList b where a.enterID=b.ID
+	update #temp set examTimes=b.examTimes,goodTimes=b.goodTimes,examTimes1=b.examTimes1,goodTimes1=b.goodTimes1,bestScore=b.bestScore from #temp a, (select c.enterID,sum(iif(e.kindID=0,1,0)) as examTimes,sum(iif(d.score>=d.scorePass and e.kindID=0,1,0)) as goodTimes,sum(iif(e.kindID=1,1,0)) as examTimes1,sum(iif(d.score>=d.scorePass and e.kindID=1,1,0)) as goodTimes1, max(d.score) as bestScore from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID group by c.enterID) b where a.enterID=b.enterID
 	
 	--当天练习次数
 	update #temp set todayExamTimes=b.examTimes,todayGoodTimes=b.goodTimes,todayBestScore=b.bestScore from #temp a, (select c.enterID,count(*) as examTimes,sum(iif(d.score>=d.scorePass,1,0)) as goodTimes, max(d.score) as bestScore from #temp c, ref_studentExamList d, examInfo e where c.enterID=d.refID and d.examID=e.examID and d.backDate between @theDate and @theDate + ' 23:59:59' group by c.enterID) b where a.enterID=b.enterID
@@ -11153,7 +11194,7 @@ BEGIN
 		update #temp set pOffline=b.p from #temp a, (select enterID,count(*) as p from classSchedule c, checkinInfo d where c.ID=d.refID and c.mark='A' and c.classID=@classID group by d.enterID) b where a.enterID=b.enterID
 	else
 		update #temp set pOffline=b.p from #temp a, (select enterID,count(*) as p from studentCourseList e, classSchedule c, checkinInfo d where e.ID=d.enterID and c.ID=d.refID and c.mark='A' and e.classID=@classID and c.classID=e.applyID group by d.enterID) b where a.enterID=b.enterID
-	update #temp set pOffline=isnull(pOffline,0)+[dbo].[getEnterCheckinOutClassQty](enterID,classID)
+	update #temp set pOffline=isnull(pOffline,0)+[dbo].[getEnterCheckinOutClassQty](enterID,classID),attendanceOnline=attendance-attendanceOffline
 
 	select * from #temp order by ID
 END
@@ -11693,16 +11734,20 @@ ALTER FUNCTION [dbo].[getEnterAttendance]
 RETURNS decimal(18,2)
 AS
 BEGIN
-	declare @re decimal(18,2), @hours int, @hoursOnline int, @hoursOffline int, @classID int, @qty int, @qtyOut int, @courseID varchar(50),@hoursOnline1 int, @qtyOnline decimal(18,2)
-	if exists(select 1 from applyInfo where enterID=@enterID)
+	declare @re decimal(18,2), @hours int, @hoursOnline int, @hoursOffline int, @classID int, @qty int, @qtyOut int, @courseID varchar(50),@hoursOnline1 int, @qtyOnline decimal(18,2),@agencyID int
+	select @courseID=courseID,@classID=0,@qtyOut=0,@qty=0 from studentCourseList where ID=@enterID
+	select @agencyID=agencyID from v_courseInfo where courseID=@courseID
+	if @agencyID=1
 	begin
-		select @classID=refID from applyInfo where enterID=@enterID
+		if exists(select 1 from applyInfo where enterID=@enterID)
+		begin
+			select @classID=refID from applyInfo where enterID=@enterID
+			select @qty=count(*) from checkinInfo where enterID=@enterID and refID in(select ID from v_classSchedule where mark='A' and online=0 and classID=@classID)
+		end
 		select @qtyOut=dbo.getEnterCheckinOutClassQty(@enterID,@classID)
-		select @qty=count(*) from checkinInfo where enterID=@enterID and refID in(select ID from v_classSchedule where mark='A' and online=0 and classID=@classID)
 		select @qty = (@qtyOut + isnull(@qty,0))*8
 		select @re=0, @hours=sum(b.hours), @hoursOnline=sum(iif(b.online=1,b.hours,0)) from studentCourseList a, [dbo].[schedule] b where a.courseID=b.courseID and a.ID=@enterID and b.status=0
-		select @courseID=courseID, @hoursOnline1=@hoursOnline from studentCourseList where ID=@enterID
-		select @hoursOffline=@hours-@hoursOnline
+		select @hoursOffline=@hours-@hoursOnline, @hoursOnline1=@hoursOnline
 		if exists(select 1 from studentLessonList where refID=@enterID and lessonID not in(select lessonID from lessonInfo where courseID=@courseID and status=0))	--如果当前学员的课表不是现行的课表，则按照每课1课时来计算线上课时
 			select @hoursOnline1 = count(*) from v_studentLessonList where refID=@enterID and lessonKindID = 0
 		select @qtyOnline=dbo.getCourseCompletion(@enterID,0) * @hoursOnline1 / 100
@@ -12288,12 +12333,22 @@ GO
 -- 根据给定的参数，更新某个申报记录。
 -- USE CASE: exec updateApplyInfo '123','student_education'...
 ALTER PROCEDURE [dbo].[updateApplyInfo]
-	@ID int, @status int, @examDate varchar(50), @step nvarchar(50), @memo nvarchar(500), @memo1 nvarchar(500), @score1 varchar(50), @score2 varchar(50),@upload int,@uploadPhoto int,@registerID varchar(50)
+	@ID int, @status int, @examDate varchar(50),@examAddress nvarchar(100), @step nvarchar(50), @memo nvarchar(500), @memo1 nvarchar(500), @score1 varchar(50), @score2 varchar(50), @passNo varchar(50),@upload int,@uploadPhoto int,@registerID varchar(50)
 AS
 BEGIN
 	if exists(select 1 from applyInfo where ID=@ID)
 	begin
-		update applyInfo set status=@status,examDate=dbo.whenull(@examDate,''),step=dbo.whenull(@step,''), memo=dbo.whenull(@memo,''), memo1=dbo.whenull(@memo1,''),score1=dbo.whenull(@score1,0),score2=dbo.whenull(@score2,0),upload=@upload,uploadPhoto=@uploadPhoto where ID=@ID
+		declare @enterID int, @refID int, @certID varchar(50), @username varchar(50),@batchID int
+		update applyInfo set status=@status,examDate=dbo.whenull(@examDate,''),examAddress=@examAddress,step=dbo.whenull(@step,''), memo=dbo.whenull(@memo,''), memo1=dbo.whenull(@memo1,''),score1=dbo.whenull(@score1,0),score2=dbo.whenull(@score2,0),upload=@upload,uploadPhoto=@uploadPhoto where ID=@ID
+		--更新报名信息
+		select @enterID=enterID,@batchID=refID from applyInfo where ID=@ID
+		select @refID=refID from studentCourseList where ID=@enterID
+		select @certID=certID, @username=username from studentCertList where ID=@refID
+		update studentCertList set diplomaID=iif(@passNo>'',@passNo,diplomaID) where ID=@refID
+
+		--添加证书信息
+		if @passNo>'' and not exists(select 1 from diplomaInfo where certID=@certID and diplomaID=@passNo)
+			insert into diplomaInfo(diplomaID,username,refID,batchID,certID,score,score1,score2,registerID) select @passNo,@username,@refID,@batchID,@certID,@score1,@score1,@score2,@registerID
 		-- 写操作日志
 		exec writeOpLog '','修改申报记录','updateApplyInfo',@registerID,@memo,@ID
 	end
@@ -12393,6 +12448,36 @@ BEGIN
 	-- 写操作日志
 	select @event='添加学员评议表'
 	exec writeOpLog '', @event,'setEvalutionList',@registerID,@selList,0
+	select 0 as re
+END
+GO
+
+-- =============================================
+-- CREATE Date: 2026-06-30
+-- Description:	根据名单添加学员考试时间和地址
+-- @selList: 名单，用逗号分隔的 kindID=B: username  kindID=A applyInfo.ID
+-- Use Case:	exec [setExamDateList] '...'
+-- =============================================
+CREATE PROCEDURE [dbo].[setExamDateList] 
+	@selList varchar(4000), @kindID varchar(50), @classID varchar(50), @examDate varchar(50), @examAddress nvarchar(100), @registerID varchar(50)
+AS
+BEGIN
+	--将名单导入到临时表
+	create table #temp(id varchar(50))
+	declare @n int, @j int, @event nvarchar(50)
+	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0
+	while @n>@j
+	begin
+		insert into #temp(id) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
+		select @j = @j + 1
+	end
+
+	if @kindID='A'
+		update applyInfo set examDate=@examDate, examAddress=@examAddress from #temp a, applyInfo b where a.id=b.ID
+
+	-- 写操作日志
+	select @event='添加学员考试时间和地址'
+	exec writeOpLog '', @event,'setExamDateList',@registerID,@selList,0
 	select 0 as re
 END
 GO
