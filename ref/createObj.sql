@@ -9923,7 +9923,7 @@ BEGIN
 		select @j = @j + 1
 	end
 
-	if @keyID=2		--班级存档
+	if @keyID=2		--协议书
 	begin
 		if @mark='A'
 			update studentCourseList set file1='/upload/students/firemanMaterials/' + @mark + cast(b.ID as varchar) + '_' + b.name + '_' + b.username + @fn from studentCourseList a, v_applyInfo b, #temp c where a.ID=b.enterID and b.ID=c.id and a.signature>''
@@ -10955,6 +10955,17 @@ CREATE PROCEDURE [dbo].[getStudentInvoiceList]
 AS
 BEGIN
 	select file5 as [filename], isnull(convert(varchar(20),dateInvoice,23),'') as dateInvoice,amount from studentCourseList where username=@username and file5>'' order by ID desc
+END
+GO
+
+-- CREATE DATE: 2026-07-09
+-- 返回学员的培训协议列表
+-- USE CASE: exec [getStudentAgreementList] 1
+ALTER PROCEDURE [dbo].[getStudentAgreementList]
+	@username varchar(50)
+AS
+BEGIN
+	select file1 as [filename], isnull(convert(varchar(20),signatureDate,23),'') as signatureDate from studentCourseList where username=@username and file1>'' order by ID desc
 END
 GO
 
