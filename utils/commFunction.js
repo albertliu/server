@@ -19,19 +19,19 @@ const comFunc = {
             //generate diploma data
             // console.log("params:", params);
             db.excuteProc(sqlstr, params, function (err, data) {
-            if (err) {
-                console.log(err);
-                response = [];
-                return res.send(response);
-            }
-            // console.log("data:", data.recordset[0]);
-            let entryform = data.recordset[0]["entryForm"];  //报名表样式
-            let username = data.recordset[0]["username"];  //报名表样式
-            //班级归档资料
-            let str = env + "/entryform_" + entryform + ".asp?public=1&nodeID=" + enterID + "&refID=" + username + "&keyID=4";
-            pdf.genPDF([str], [path], '210mm', '290mm', '', false, 1, false);
-            //return publish file path
-            return [filename1];
+                if (err) {
+                    console.log(err);
+                    response = [];
+                    return res.send(response);
+                }
+                // console.log("data:", data.recordset[0]);
+                let entryform = data.recordset[0]["entryForm"];  //报名表样式
+                let username = data.recordset[0]["username"];  //报名表样式
+                //班级归档资料
+                let str = env + "/entryform_" + entryform + ".asp?public=1&nodeID=" + enterID + "&refID=" + username + "&keyID=" + (mark==0 ? 4 : 2);
+                pdf.genPDF([str], [path], '210mm', '290mm', '', false, 1, false);
+                //return publish file path
+                return [filename1];
             });
         } else {
             return [];

@@ -882,7 +882,7 @@ router.post('/uploadBase64img', async function (req, res, next) {
         if(upID=="student_photo"){
           face.addFace(req.body.username);  // 照片上传到照片库
         }
-        if(upID=="user_letter_signature"){
+        if(upID=="student_letter_signature"){
           comFunc.generate_entryform_sign(req.body.username, 1);  // 已签字的生成培训协议 param:enterID
         }
       });
