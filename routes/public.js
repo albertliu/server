@@ -511,7 +511,7 @@ router.get('/send_message_exam', function(req, res, next) {
 //4. 批量通知学员，考试时间地点。同时发送系统消息和短信。
 router.get('/send_message_exam_apply', function(req, res, next) {
   sqlstr = "sendMsg4ExamApply";
-  params = {batchID:req.query.batchID, registerID: req.query.registerID };
+  params = {batchID:req.query.batchID, selList:req.body.selList, registerID: req.query.registerID };
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
@@ -798,7 +798,7 @@ router.get('/send_message_score', function(req, res, next) {
 router.get('/send_message_score_apply', function(req, res, next) {
     let ec = 0;
     sqlstr = "sendMsg4ScoreApply";
-    params = {batchID:req.query.batchID, registerID: req.query.registerID };
+    params = {batchID:req.query.batchID, selList: req.body.selList, registerID: req.query.registerID };
     db.excuteProc(sqlstr, params, function (err, data) {
         if (err) {
             console.log(err);

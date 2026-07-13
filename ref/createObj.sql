@@ -5134,8 +5134,8 @@ BEGIN
 				select @enterID=0
 			end
 
-			-- 在其他班级注册过
-			if exists(select 1 from studentCourseList where username=@username and courseID=@courseID and status<2 and classID>'' and classID<>@classID)
+			-- 在其他班级或本班注册过
+			if exists(select 1 from studentCourseList where username=@username and courseID=@courseID and status<2 and classID>'') -- and classID<>@classID
 			begin
 				select @existOther=1,@msg=max(SNo) from studentCourseList where username=@username and courseID=@courseID and status<2 and classID>'' and classID<>@classID		--已在其他班注册过
 				--update enter info
@@ -8436,7 +8436,7 @@ BEGIN
 	--更新申报信息
 	if @examDate>''
 	begin
-		update applyInfo set applyNo=@examNo,examDate=@examDate,statusApply=1,examAddress=@examAddress, memo=iif(@name=@name1,memo,isnull(memo,'') + ' 准考证中姓名与系统中不一致') from applyInfo where ID=@applyID
+		update applyInfo set applyNo=@examNo,examDate=@examDate,statusApply=1,examAddress=@examAddress, memo=iif(@name=@name1,memo,isnull(memo,'') + ' 准考证中姓名与系统中不一致') + @kind from applyInfo where ID=@applyID
 		if not exists(select 1 from applyDetail where examNo=@examNo)
 			insert into applyDetail(applyID,examNo,examDate,examAddress,kind,registerID) values(@applyID,@examNo,@examDate,@examAddress,iif(charindex('理论',@kind)>0,0,1),@registerID)
 		update generateApplyInfo set importApplyDate=getDate() where ID=@batchID and importApplyDate is null
@@ -12656,6 +12656,15 @@ BEGIN
 	select @event='删除附件', @memo=title from attachmentInfo where ID=@ID
 	exec writeOpLog '', @event,'delAttachment',@registerID,@memo,@ID
 	select 0 as re
+END
+GO
+
+-- 返回指定申报人员的考试清单
+CREATE PROCEDURE [dbo].[getApplyDetail]
+	@applyID int
+AS
+BEGIN
+	select * from v_applyDetail where applyID=@applyID order by ID
 END
 GO
 
