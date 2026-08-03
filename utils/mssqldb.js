@@ -10,10 +10,10 @@ const config = {
     encrypt: false
   },
   connectionTimeout: 15000,
-  requestTimeout: 30000,
+  requestTimeout: 15000,
   pool: {
-    min: 0,
-    max: 50,
+    min: 5,
+    max: 15,
     idleTimeoutMillis: 30000
   }
 };
@@ -116,21 +116,21 @@ async function executeSQLAsync(sql, params = {}) {
   if (typeof sql !== 'string' || sql.trim() === '') {
     throw new TypeError('SQL text must be a non-empty string.');
   }
-  const startedAt = Date.now();
+  // const startedAt = Date.now();
 
   try {
     const connectedPool = await poolConnect;
     const request = bindInputs(connectedPool.request(), params);
     return await request.query(sql);
   } finally {
-    const elapsed = Date.now() - startedAt;
-    if (elapsed > 1500) {
-      console.warn('Slow SQL:', {
-        elapsed,
-        sql,
-        params
-      });
-    }
+    // const elapsed = Date.now() - startedAt;
+    // if (elapsed > 1500) {
+    //   console.warn('Slow SQL:', {
+    //     elapsed,
+    //     sql,
+    //     params
+    //   });
+    // }
   }
 }
 
@@ -138,22 +138,22 @@ async function executeProcAsync(proc, params = {}) {
   if (typeof proc !== 'string' || proc.trim() === '') {
     throw new TypeError('Procedure name must be a non-empty string.');
   }
-  const startedAt = Date.now();
+  // const startedAt = Date.now();
 
   try {
     const connectedPool = await poolConnect;
     const request = bindInputs(connectedPool.request(), params);
 
-    return request.execute(proc);
+    return await request.execute(proc);
   } finally {
-    const elapsed = Date.now() - startedAt;
-    if (elapsed > 1500) {
-      console.warn('Slow SQL:', {
-        elapsed,
-        proc,
-        params
-      });
-    }
+    // const elapsed = Date.now() - startedAt;
+    // if (elapsed > 1500) {
+    //   console.warn('Slow SQL:', {
+    //     elapsed,
+    //     proc,
+    //     params
+    //   });
+    // }
   }
 }
 

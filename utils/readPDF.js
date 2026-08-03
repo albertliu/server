@@ -125,7 +125,7 @@ async function saveTicketsToDB(tickets) {
             registerID: registerID
           };
         //   console.log("saveTicketsToDB param:", param);
-          await db.executeProcAsync('generateApply2', param);
+          await db.excuteProcAsync('generateApply2', param);
         }
         // console.log(`共成功存储 ${tickets.length} 条记录。`);
     } catch (err) {

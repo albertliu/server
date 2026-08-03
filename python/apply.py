@@ -34,7 +34,7 @@ options.add_argument('ignore-certificate-errors')
 # options.add_argument('headless')
 driver = webdriver.Chrome(options=options)
 # 设置最大等待时间10秒
-wait = WebDriverWait(driver, 10)
+wait = WebDriverWait(driver, 30)
 # 创建连接字符串  （sqlserver默认端口为1433）
 img_path = env_dist.get('NODE_ENV_IMG')
 py_path = env_dist.get('NODE_ENV_PYTHON')

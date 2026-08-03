@@ -29,7 +29,7 @@ const comFunc = {
                 let username = data.recordset[0]["username"];  //报名表样式
                 //班级归档资料
                 let str = env + "/entryform_" + entryform + ".asp?public=1&nodeID=" + enterID + "&refID=" + username + "&keyID=" + (mark==0 ? 4 : 2);
-                pdf.genPDF([str], [path], '210mm', '290mm', '', false, 1, false);
+                pdf.genPDF([str], [path], '210mm', '300mm', '', false, 1, false);
                 //return publish file path
                 return [filename1];
             });
