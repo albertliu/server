@@ -1,4 +1,5 @@
 var express = require('express');
+const mssql = require('mssql');
 var router = express.Router();
 var db = require("../utils/mssqldb");
 const comFunc = require("../utils/commFunction");
@@ -80,8 +81,8 @@ router.get('/getStudentCourseList', function (req, res, next) {
     sqlstr = "select * from dbo.getCourseListByTeacher(@teacher,@username)";
     params = {"teacher": req.session.user.teacher, "username": req.session.user.username};
   }else{
-    sqlstr = "select ID,username,classID,file4,courseName,reexamineName,reexamine,type,checkName,status,statusName,completion,completion1,hours,startDate,endDate,pre,signatureType,signature,agencyID,host,regDate,payNow,pay_status,invoice,autoPay,examScore,examTimes,[dbo].[getPassCondition](ID) as pass_condition,dbo.getCoursePaperID(ID, refID) AS paperID,dbo.getCourseHelpCount(ID) AS helps,dbo.getEnterAttendance(ID) as attendance,dbo.getEnterAttendanceOffline(ID) as offlineAttendance,dbo.getCourseHours(courseID,0) as hoursOffline from v_studentCourseList where username='" + req.query.username + "' and status<2" + " order by status";
-    params = {};
+    sqlstr = "select ID,username,classID,file4,courseName,reexamineName,reexamine,type,checkName,status,statusName,completion,completion1,hours,startDate,endDate,pre,signatureType,signature,agencyID,host,regDate,payNow,pay_status,invoice,autoPay,examScore,examTimes,[dbo].[getPassCondition](ID) as pass_condition,dbo.getCoursePaperID(ID, refID) AS paperID,dbo.getCourseHelpCount(ID) AS helps,dbo.getEnterAttendance(ID) as attendance,dbo.getEnterAttendanceOffline(ID) as offlineAttendance,dbo.getCourseHours(courseID,0) as hoursOffline from v_studentCourseList where username=@username and status<2" + " order by status";
+    params = {username:{type: mssql.NVarChar(50), value:req.query.username}};
   }
   
   db.excuteSQL(sqlstr, params, function (err, data) {
