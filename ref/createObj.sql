@@ -10,12 +10,12 @@ ALTER DATABASE elearning SET RECOVERY FULL
 --De0penl99O53!4N#~9.
 --set datefirst 1  --将星期一设为第一天
 
-select * from dictionaryDoc where kind like '%archiveStatus%' order by kind, ID
+select * from dictionaryDoc where kind like '%Status%' order by kind, ID
 select * from dictionaryDoc where kind like '%examResult%' order by kind, ID
-select * from dictionaryDoc where kind like '%online%' order by kind, ID
-select * from dictionaryDoc where item like '%复审%' order by kind, ID
+select * from dictionaryDoc where kind like 'SE' order by kind,cast(ID as int)
+select * from dictionaryDoc where item like '%理论%' order by kind, ID
 
---delete from dictionaryDoc where kind='evalution'
+--delete from dictionaryDoc where kind='SE' and ID in('1','2')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('0','标准','lessonKind','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('1','辅导','lessonKind','','')
 insert into dictionaryDoc(ID,item,kind,description,memo) values('2','已审核','archiveStatus','','')
@@ -27,7 +27,7 @@ insert into dictionaryDoc(ID,item,kind,description,memo) values('0','个人','from
 update dictionaryDoc set item='换证' where item like '%复审%'
 update dictionaryDoc set item='复审' where item like '%换证%'
 update dictionaryDoc set item='线上' where mID=1291
-update dictionaryDoc set item='研究生及以上' where mID=242
+update dictionaryDoc set ID=1 where mID=1353
 update dictionaryDoc set item='本科或同等学历' where mID=241
 update dictionaryDoc set item='专科或同等学历' where mID=240
 update dictionaryDoc set item='中专或同等学历' where mID=239
@@ -1396,7 +1396,7 @@ ALTER FUNCTION [dbo].[getStudentCertRestList]
 (	
 	@username varchar(50),@host varchar(50)
 )
-RETURNS @tab TABLE (ID int, certID varchar(50),certName varchar(100),mark int,reexamine int)
+RETURNS @tab TABLE (ID int, certID varchar(50),certName varchar(100),mark int,reexamine int,memo nvarchar(max))
 AS
 BEGIN
 	declare @kindID int,@deptID varchar(20),@c555 int
@@ -1409,18 +1409,18 @@ BEGIN
 		INSERT INTO @tab
 		SELECT * FROM
 		(
-			SELECT a.ID,a.certID,a.certName,0 as mark,a.reexamine from v_certificateInfo a, projectInfo b where a.certID=b.certID and b.host=@host and b.status=1 and a.status=0 and (dbo.pf_inStrArray(b.dept,',',@deptID)=1 or @deptID='') 	--已开课外部认证项目
+			SELECT a.ID,a.certID,a.certName,0 as mark,a.reexamine,'' as memo from v_certificateInfo a, projectInfo b where a.certID=b.certID and b.host=@host and b.status=1 and a.status=0 and (dbo.pf_inStrArray(b.dept,',',@deptID)=1 or @deptID='') 	--已开课外部认证项目
 			union
-			SELECT ID,certID,certName,0 as mark,reexamine from v_certificateInfo where host=@host and status=0 and kindID=0 and type=1 and (mark=0 or mark=1)	--所有内部认证项目（公共）
+			SELECT ID,certID,certName,0 as mark,reexamine,'' from v_certificateInfo where host=@host and status=0 and kindID=0 and type=1 and (mark=0 or mark=1)	--所有内部认证项目（公共）
 			union
-			SELECT a.ID,a.certID,a.certName,0,a.reexamine from v_certificateInfo a, studentInfo b where a.status=0 and a.kindID=1 and b.username=@username and a.host=b.host and (a.mark=0 or a.mark=1)	--所有认证项目（专属）
-		) x where certID not in (select certID from v_studentCertList where username=@username and status<2 and diplomaID='' union select certID from v_diplomaInfo where username=@username and status=0 and datediff(d,getDate(),endDate)>180)
+			SELECT a.ID,a.certID,a.certName,0,a.reexamine,'' from v_certificateInfo a, studentInfo b where a.status=0 and a.kindID=1 and b.username=@username and a.host=b.host and (a.mark=0 or a.mark=1)	--所有认证项目（专属）
+		) x where certID not in (select certID from v_studentCertList where username=@username and status<2 and diplomaID='' union select certID from v_diplomaInfo where username=@username and status=0 and datediff(d,getDate(),endDate)>360)
 		union
 		SELECT * FROM
 		(
-			select ID,courseID,courseName,1 as mark,re from v_courseInfo where status=0 and kindID=0 and certID='' and (mark=0 or mark=1)	--所有非认证项目（公共）
+			select ID,courseID,courseName,1 as mark,re,'' as memo from v_courseInfo where status=0 and kindID=0 and certID='' and (mark=0 or mark=1)	--所有非认证项目（公共）
 			union
-			SELECT a.ID,a.courseID,a.courseName,1,a.re from v_courseInfo a, studentInfo b where a.status=0 and a.kindID=1 and a.certID='' and b.username=@username and a.host=b.host and (a.mark=0 or a.mark=1)	--所有非认证项目（专属）
+			SELECT a.ID,a.courseID,a.courseName,1,a.re,'' from v_courseInfo a, studentInfo b where a.status=0 and a.kindID=1 and a.certID='' and b.username=@username and a.host=b.host and (a.mark=0 or a.mark=1)	--所有非认证项目（专属）
 		) y where courseID not in (select courseID from v_studentCourseList where username=@username and status<2)
 	end
 	else	--系统外员工
@@ -1428,18 +1428,20 @@ BEGIN
 		INSERT INTO @tab
 		SELECT * FROM
 		(
-			SELECT ID,certID,certName,0 as mark,reexamine from v_certificateInfo where host=@host and status=0 and kindID=0 and type=1 and (mark=0 or mark=2)
+			SELECT ID,certID,certName,0 as mark,reexamine,'' as memo from v_certificateInfo where host=@host and status=0 and kindID=0 and type=1 and (mark=0 or mark=2)
 			union
-			SELECT a.ID,a.certID,a.certName,0,a.reexamine from v_certificateInfo a, studentInfo b where a.status=0 and a.kindID=1 and b.username=@username and a.host=b.host and (a.mark=0 or a.mark=2)
+			SELECT a.ID,a.certID,a.certName,0,a.reexamine,'' from v_certificateInfo a, studentInfo b where a.status=0 and a.kindID=1 and b.username=@username and a.host=b.host and (a.mark=0 or a.mark=2)
 		) x where certID not in (select certID from v_studentCertList where username=@username and status<2 and diplomaID='' union select certID from v_diplomaInfo where username=@username and status=0 and datediff(d,getDate(),endDate)>360)
 		union
 		SELECT * FROM
 		(
-			select ID,courseID,courseName,1 as mark,re from v_courseInfo where status=0 and kindID=0 and certID='' and (mark=0 or mark=2)
+			select ID,courseID,courseName,1 as mark,re,'' as memo from v_courseInfo where status=0 and kindID=0 and certID='' and (mark=0 or mark=2)
 			union
-			SELECT a.ID,a.courseID,a.courseName,1,a.re from v_courseInfo a, studentInfo b where a.status=0 and a.kindID=1 and a.certID='' and b.username=@username and a.host=b.host and (a.mark=0 or a.mark=2)
+			SELECT a.ID,a.courseID,a.courseName,1,a.re,'' from v_courseInfo a, studentInfo b where a.status=0 and a.kindID=1 and a.certID='' and b.username=@username and a.host=b.host and (a.mark=0 or a.mark=2)
 		) y where courseID not in (select courseID from v_studentCourseList where username=@username and status<2)
 	end
+
+	update @tab set memo=[dbo].[getSEList]() where certID='C14'
 
 	if exists(select 1 from studentInfo where username=@username and age>=60) and exists(select 1 from @tab where certID='C5')
 	begin	
@@ -1546,6 +1548,10 @@ BEGIN
 		--添加视频
 		insert into studentVideoList(videoID,refID,proportion,minutes,registerID) select a.videoID,b.ID,a.proportion,a.minutes,@username from videoInfo a, studentLessonList b, studentCourseList c where a.lessonID=b.lessonID and b.refID=c.ID and c.username=@username and c.status<2 and a.status=0 and videoID not in
 (select a.videoID from studentVideoList a, studentLessonList b, studentCourseList c where b.refID=c.ID and a.refID=b.ID and c.username=@username and c.status<2)
+
+		--添加课件
+		insert into studentCoursewareList(coursewareID,refID,proportion,pages,registerID) select a.coursewareID,b.ID,a.proportion,a.pages,@username from coursewareInfo a, studentLessonList b, studentCourseList c where a.lessonID=b.lessonID and b.refID=c.ID and c.username=@username and c.status<2 and a.status=0 and coursewareID not in
+(select a.coursewareID from studentCoursewareList a, studentLessonList b, studentCourseList c where b.refID=c.ID and a.refID=b.ID and c.username=@username and c.status<2)
 	end
 	SELECT top 100 percent a.*,dbo.getMissingItemsByCertID(b.ID) as missingItems from v_studentLessonList a, studentCourseList b where a.refID=b.ID and b.username=@username and b.status<2 order by b.courseID,lessonKindID,a.seq
 END
@@ -1774,7 +1780,7 @@ GO
 --CREATE Date:2025-07-05
 --根据给定的学员课程ID，查找其课程包含的帮助视频
 ALTER FUNCTION [dbo].[getCourseHelps](@enterID int)
-RETURNS varchar(4000)
+RETURNS varchar(max)
 AS
 BEGIN
 	declare @re nvarchar(max), @p int, @item nvarchar(100),@i int, @certID varchar(50), @vod varchar(500)
@@ -1806,6 +1812,32 @@ BEGIN
 	declare @re int
 	select @re=count(*) from v_studentLessonList where refID=@enterID and lessonKindID=1
 	return isnull(@re,0)
+END
+GO
+
+--CREATE Date:2026-07-29
+--查询特种设备复审项目清单
+CREATE FUNCTION [dbo].[getSEList]()
+RETURNS varchar(max)
+AS
+BEGIN
+	declare @re nvarchar(max), @p int, @item nvarchar(100),@i int
+	select @re = '',@i=0
+	declare rc cursor for select ID,item from dictionaryDoc where kind='SE' order by cast(ID as int)
+	open rc
+	fetch next from rc into @p,@item
+	While @@fetch_status=0 
+	Begin 
+		select @re = @re + '{"ID":' + cast(@p as varchar) + ',"title":"' + @item + '"},'
+		select @i=@i+1
+		fetch next from rc into @p,@item
+	End
+	Close rc 
+	Deallocate rc
+
+	if @re>''
+		select @re = '[' + left(@re,len(@re)-1) + ']'
+	return @re
 END
 GO
 
@@ -3306,7 +3338,7 @@ GO
 -- Use Case:	exec addStudentCert '310....' 
 -- =============================================
 ALTER PROCEDURE [dbo].[addStudentCert] 
-	@username varchar(50),@mark int,@certID varchar(50),@reexamine int,@currDiplomaID varchar(50),@currDiplomaDate varchar(50),@fromID varchar(50),@url varchar(500)
+	@username varchar(50),@mark int,@certID varchar(50),@reexamine int,@currDiplomaID varchar(50),@currDiplomaDate varchar(50),@fromID varchar(50),@SEID varchar(100),@url varchar(500)
 AS
 BEGIN
 	DECLARE @logMemo varchar(500),@event varchar(50),@refID int,@host varchar(50),@dept1 int,@dept2 int,@kind int,@payNow int,@title nvarchar(500),@type int,@projectID varchar(50),@ID int,@classID varchar(50),@payID int,@price int,@checked int,@checkDate varchar(20),@checker varchar(50),@SNo int,@courseID varchar(50)
@@ -3366,7 +3398,7 @@ BEGIN
 				exec [setStudentSaler] @username, @fromID, @saler output
 				select @fromID = @saler
 				--添加课程  石化内部项目，设为不签名
-				insert into studentCourseList(username,courseID,refID,payNow,title,price,type,signatureType,hours,closeDate,projectID,classID,SNo,reexamine,checked,checkDate,checker,currDiplomaID,currDiplomaDate,fromID,fromKind,source,host,registerID) select @username,courseID,@refID,@payNow,@title,@price,@type,iif(@type=1,0,1),hours,dateadd(d,period,getDate()),@projectID,@classID,@SNo,@reexamine,@checked,@checkDate,@checker,@currDiplomaID,@currDiplomaDate,@saler,@fromKind,@source,@host,@username from courseInfo where courseID=@courseID
+				insert into studentCourseList(username,courseID,refID,payNow,title,price,type,signatureType,hours,closeDate,projectID,classID,SNo,reexamine,checked,checkDate,checker,currDiplomaID,currDiplomaDate,fromID,fromKind,source,oldNo,host,registerID) select @username,courseID,@refID,@payNow,@title,@price,@type,iif(@type=1,0,1),hours,dateadd(d,period,getDate()),@projectID,@classID,@SNo,@reexamine,@checked,@checkDate,@checker,@currDiplomaID,@currDiplomaDate,@saler,@fromKind,@source,@SEID,@host,@username from courseInfo where courseID=@courseID
 				select @ID=max(ID) from studentCourseList where refID=@refID
 
 				if @type=1	--公司内部项目
@@ -6363,13 +6395,13 @@ AS
 BEGIN
 	declare @re int, @retireAge int, @agencyID int, @retireDay int, @birthday smalldatetime, @sex int, @age int, @type int
 	select @agencyID=agencyID,@re=0 from certificateInfo where certID=@certID
-	if @agencyID=1 and @certID<>'C16'
+	if @agencyID=1 and @certID<>'C16' and @certID<>'C17'
 	begin
 		if len(@username)=18
 			select @sex = cast(substring(@username,17,1) as int) % 2, @birthday=substring(@username,7,8), @age = (year(getDate())*10000 + month(getDate())*100 + day(getDate()) - substring(@username,7,4)*10000 - substring(@username,11,2)*100 - substring(@username,13,2))/10000
 		else
 			select @sex=sex, @birthday=birthday, @age=age from studentInfo where username=@username
-		select @retireAge=(case when @sex=1 then 60 when @certID='C16' or @certID='C17' then 55 else 50 end), @type=(case when @sex=1 then 0 when @certID='C16' or @certID='C17' then 1 else 2 end)
+		select @retireAge=(case when @sex=1 then 60 else 50 end), @type=(case when @sex=1 then 0 when @certID='C16' or @certID='C17' then 1 else 2 end)
 		if @age>=18
 			select @re=iif(datediff(d,getDate(),dbo.delayRetirementDate(@birthday,@sex,@type))>60,0,1)
 			--select @re=iif(datediff(d,getDate(),DATEADD(yy,@retireAge,@birthday))>60,0,1)
@@ -6406,7 +6438,7 @@ BEGIN
 		if @projectID=''	--导入班级的名单
 		begin
 			select @projectID=[dbo].[pf_getStrArrayOfIndex](projectID,',',0) from classInfo where classID=@classID
-			select @price=price from projectInfo where projectID=@projectID
+			select @price=iif(@price>0,@price,price) from projectInfo where projectID=@projectID
 			select @certID=certID,@courseID=courseID from classInfo where classID=@classID
 			if @price=0
 				select @price=price from courseInfo where courseID=@courseID
@@ -7134,6 +7166,9 @@ BEGIN
 			--添加视频
 			insert into studentVideoList(videoID,refID,proportion,minutes,registerID) select a.videoID,b.ID,a.proportion,a.minutes,@username from videoInfo a, studentLessonList b where a.lessonID=b.lessonID and b.refID=@enterID and a.status=0
 
+		end
+		if not exists(select 1 from studentExamList where refID=@enterID)
+		begin
 			--添加考试，题目暂不生成
 			if exists(select 1 from  examInfo where courseID=@courseID)
 				insert into studentExamList(username,examID,refID,minutes,secondRest,scoreTotal,scorePass,kindID,kind,mark) select @username,examID,@enterID,minutes,minutes*60,scoreTotal,scorePass,kindID,0,0 from examInfo where (courseID=@courseID or (courseID is null and certID=@certID)) and status=0
@@ -7304,17 +7339,26 @@ GO
 
 -- CREATE DATE: 2021-05-13
 -- 根据给定的参数，向考生批量发送考试通知(已申报成功的)
--- batchID: generateApplyInfo.ID
+-- batchID: generateApplyInfo.ID  selList: applyID
 -- USE CASE: exec sendMsg4ExamApply 1
 ALTER PROCEDURE [dbo].[sendMsg4ExamApply]
-	@batchID int, @registerID varchar(50)
+	@batchID int, @selList varchar(4000), @registerID varchar(50)
 AS
 BEGIN
+	--将名单导入到临时表
+	create table #temp(id int)
+	declare @n int, @j int
+	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0
+	while @n>@j
+	begin
+		insert into #temp(id) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
+		select @j = @j + 1
+	end
 	declare @username varchar(50),@item varchar(500),@host varchar(50)
 	--send system message
 	if exists(select 1 from generateApplyInfo where ID=@batchID)
 	begin
-		declare rc cursor for select username,'尊敬的' + a.name + '：请您于' + examDate + '参加' + b.courseName + '考试，地点为' + a.examAddress + '。请携带身份证、准考证，迟到15分钟不得入场。',a.host from v_applyInfo a, v_generateApplyInfo b where a.refID=b.ID and b.ID=@batchID and a.examDate>'' -- and a.statusApply=1
+		declare rc cursor for select a.username,'尊敬的' + a.name + '：请您于' + examDate + '参加' + a.courseName + '考试，地点为' + a.examAddress + '。请携带身份证、准考证，迟到15分钟不得入场。',a.host from v_applyInfo a, #temp b where a.ID=b.id and a.examDate>'' -- and a.statusApply=1
 		open rc
 		fetch next from rc into @username,@item,@host
 		While @@fetch_status=0 
@@ -7328,7 +7372,7 @@ BEGIN
 		update generateApplyInfo set send = send + 1,sendDate=getDate(),sender=@registerID where ID=@batchID
 	end
 	--return students list for send mobile message
-	select name,username,mobile,b.courseName as certName,a.enterID, examDate as dt, a.examAddress as address,'尊敬的' + a.name + '：请您于' + examDate + '参加' + b.courseName + '考试，地点为' + a.examAddress + '。请携带身份证、准考证，迟到15分钟不得入场。' as item from v_applyInfo a, v_generateApplyInfo b where a.refID=b.ID and b.ID=@batchID and a.examDate>'' -- and a.statusApply=1
+	select name,username,mobile,a.courseName as certName,a.enterID, examDate as dt, a.examAddress as address,'尊敬的' + a.name + '：请您于' + examDate + '参加' + a.courseName + '考试，地点为' + a.examAddress + '。请携带身份证、准考证，迟到15分钟不得入场。' as item from v_applyInfo a, #temp b where a.ID=b.ID and a.examDate>'' -- and a.statusApply=1
 END
 GO
 
@@ -7487,14 +7531,23 @@ GO
 -- batchID: generateApplyInfo.ID
 -- USE CASE: exec sendMsg4ScoreApply 1
 ALTER PROCEDURE [dbo].[sendMsg4ScoreApply]
-	@batchID int, @registerID varchar(50)
+	@batchID int, @selList varchar(4000), @registerID varchar(50)
 AS
 BEGIN
+	--将名单导入到临时表
+	create table #temp(id int)
+	declare @n int, @j int
+	select @n=dbo.pf_getStrArrayLength(@selList,','), @j=0
+	while @n>@j
+	begin
+		insert into #temp_diploma(id) values(dbo.pf_getStrArrayOfIndex(@selList,',',@j))
+		select @j = @j + 1
+	end
 	declare @username varchar(50),@item varchar(500),@host varchar(50)
 	--send system message
 	if exists(select 1 from generateApplyInfo where ID=@batchID)
 	begin
-		declare rc cursor for select username,'尊敬的' + a.name + '：您于近日参加的' + b.courseName + '考试，结果为' + (case when a.status=1 then '合格，正在为您制作证书。' when a.status=1 and score1='' then '缺考' else '不合格，请留意后续安排。' end),a.host from v_applyInfo a, v_generateApplyInfo b where a.refID=b.ID and b.ID=@batchID and a.statusApply=1
+		declare rc cursor for select username,'尊敬的' + a.name + '：您于近日参加的' + a.courseName + '考试，结果为' + (case when a.status=1 then '合格，正在为您制作证书。' when a.status=1 and score1='' then '缺考' else '不合格，请留意后续安排。' end),a.host from v_applyInfo a, #temp b where a.ID=b.ID and a.statusApply=1
 		open rc
 		fetch next from rc into @username,@item,@host
 		While @@fetch_status=0 
@@ -7508,7 +7561,7 @@ BEGIN
 		update generateApplyInfo set sendScore = sendScore + 1,sendScoreDate=getDate(),senderScore=@registerID where ID=@batchID
 	end
 	--return students list for send mobile message
-	select name,username,mobile,b.courseName as certName, a.enterID, (case when a.status=1 then '合格，正在为您制作证书' when a.status=1 and score1='' then '缺考' else '不合格，请留意后续安排' end) as address,'尊敬的' + a.name + '：您于近日参加的' + b.courseName + '考试，结果为' + (case when a.status=1 then '合格，正在为您制作证书。' when a.status=1 and score1='' then '缺考' else '不合格，请留意后续安排。' end) as item from v_applyInfo a, v_generateApplyInfo b where a.refID=b.ID and b.ID=@batchID and a.statusApply=1
+	select name,username,mobile,a.courseName as certName, a.enterID, (case when a.status=1 then '合格，正在为您制作证书' when a.status=1 and score1='' then '缺考' else '不合格，请留意后续安排' end) as address,'尊敬的' + a.name + '：您于近日参加的' + a.courseName + '考试，结果为' + (case when a.status=1 then '合格，正在为您制作证书。' when a.status=1 and score1='' then '缺考' else '不合格，请留意后续安排。' end) as item from v_applyInfo a, #temp b where a.ID=b.ID and a.statusApply=1
 END
 GO
 
@@ -8426,22 +8479,51 @@ GO
 -- USE CASE: exec generateApply2 1,1,'xxxx'...
 ALTER PROCEDURE [dbo].[generateApply2]
 	@batchID int, @name nvarchar(50),@username varchar(50),@examDate varchar(50),@examAddress nvarchar(100),@certName nvarchar(100),@kind nvarchar(100),@examNo nvarchar(50),@registerID varchar(50)
-
 AS
 BEGIN
-	declare @applyID int, @name1 nvarchar(50)
-	select @applyID=ID from v_applyInfo where refID=@batchID and username=@username
+	declare @applyID int, @name1 nvarchar(50), @classID varchar(50), @kindID int
+	select @applyID=ID, @kindID=iif(charindex('理论',@kind)>0,0,1) from v_applyInfo where refID=@batchID and username=@username
+	select @classID=applyID from generateApplyInfo where ID=@batchID
 	select @name1=name from studentInfo where username=@username
 
 	--更新申报信息
 	if @examDate>''
 	begin
 		update applyInfo set applyNo=@examNo,examDate=@examDate,statusApply=1,examAddress=@examAddress, memo=iif(@name=@name1,memo,isnull(memo,'') + ' 准考证中姓名与系统中不一致') + @kind from applyInfo where ID=@applyID
-		if not exists(select 1 from applyDetail where examNo=@examNo)
-			insert into applyDetail(applyID,examNo,examDate,examAddress,kind,registerID) values(@applyID,@examNo,@examDate,@examAddress,iif(charindex('理论',@kind)>0,0,1),@registerID)
+		if exists(select 1 from applyDetail where applyID=@applyID and kind=@kindID and (examNo is null or examNo=''))
+			update applyDetail set examNo=@examNo,examDate=@examDate,examAddress=@examAddress,dateExam=getDate(),examCheckerID=@registerID where applyID=@applyID and kind=@kindID and examNo is null
+		else
+			insert into applyDetail(applyID,examNo,examDate,examAddress,kind,seq,classID,registerID) values(@applyID,@examNo,@examDate,@examAddress,@kindID,[dbo].[getApplyDetailNewSeq](@applyID, @kindID),@classID,@registerID)
 		update generateApplyInfo set importApplyDate=getDate() where ID=@batchID and importApplyDate is null
 	end
 END
+GO
+
+-- 返回指定申报学员的申报明细最新序号
+-- @kindID: 0 理论  1 实操
+CREATE function [dbo].[getApplyDetailNewSeq]
+(
+	@applyID int, @kindID int
+)
+returns int
+as
+begin
+	declare @re int
+	select @re = max(seq)+1 from applyDetail where applyID=@applyID and kind=@kindID
+	return isnull(@re,1)
+end
+GO
+
+-- 返回指定申报学员的申报明细最新序号
+-- @kindID: 0 理论  1 实操
+CREATE PROCEDURE [dbo].[getApplyDetailNewSeq1]
+	@applyID int, @kindID int
+as
+begin
+	declare @re int
+	select @re = max(seq)+1 from applyDetail where applyID=@applyID and kind=@kindID
+	select isnull(@re,1) as seq
+end
 GO
 
 -- CREATE DATE: 2022-11-28
@@ -9178,7 +9260,7 @@ BEGIN
 		select @classID=classID,@cID=ID from classInfo where ID=@classID
 
 	select @SNo0=''
-	declare rc cursor for select ID,SNo from studentCourseList where classID=@classID order by SNo
+	declare rc cursor for select ID,isnull(SNo,'') from studentCourseList where classID=@classID order by SNo
 	open rc
 	fetch next from rc into @ID,@SNo
 	While @@fetch_status=0 
@@ -10049,7 +10131,7 @@ BEGIN
 			if not exists(select 1 from studentLessonList where refID=@enterID)
 				exec rebuildStudentLesson @enterID
 			--如果没有考试信息，添加考试信息
-			if exists(select 1 from studentExamList where refID=@enterID)
+			if not exists(select 1 from studentExamList where refID=@enterID)
 			begin
 				--添加考试，题目暂不生成
 				insert into studentExamList(username,examID,refID,minutes,secondRest,scoreTotal,scorePass,kindID,kind,mark) select @username,examID,@enterID,minutes,minutes*60,scoreTotal,scorePass,kindID,0,0 from examInfo where courseID=@courseID and status=0
@@ -11745,7 +11827,7 @@ ALTER FUNCTION [dbo].[getEnterAttendance]
 RETURNS decimal(18,2)
 AS
 BEGIN
-	declare @re decimal(18,2), @hours int, @hoursOnline int, @hoursOffline int, @classID int, @qty int, @qtyOut int, @courseID varchar(50),@hoursOnline1 int, @qtyOnline decimal(18,2),@agencyID int
+	declare @re decimal(18,2), @hours int, @hoursOnline int, @hoursOffline int, @classID int, @qty int, @qtyOut int, @courseID varchar(50),@hoursOnline1 int, @hoursOnline2 int, @qtyOnline decimal(18,2),@agencyID int
 	select @courseID=courseID,@classID=0,@qtyOut=0,@qty=0 from studentCourseList where ID=@enterID
 	select @agencyID=agencyID from v_courseInfo where courseID=@courseID
 	if @agencyID=1
@@ -11760,7 +11842,8 @@ BEGIN
 		select @re=0, @hours=sum(b.hours), @hoursOnline=sum(iif(b.online=1,b.hours,0)) from studentCourseList a, [dbo].[schedule] b where a.courseID=b.courseID and a.ID=@enterID and b.status=0
 		select @hoursOffline=@hours-@hoursOnline, @hoursOnline1=@hoursOnline
 		if exists(select 1 from studentLessonList where refID=@enterID and lessonID not in(select lessonID from lessonInfo where courseID=@courseID and status=0))	--如果当前学员的课表不是现行的课表，则按照每课1课时来计算线上课时
-			select @hoursOnline1 = count(*) from v_studentLessonList where refID=@enterID and lessonKindID = 0
+			select @hoursOnline2 = count(*) from v_studentLessonList where refID=@enterID and lessonKindID = 0
+		select @hoursOnline1=iif(@hoursOnline1>=@hoursOnline2,@hoursOnline1,@hoursOnline2)
 		select @qtyOnline=dbo.getCourseCompletion(@enterID,0) * @hoursOnline1 / 100
 		select @re=iif(@qtyOnline>@hoursOnline,@hoursOnline,@qtyOnline) + iif(@qty>@hoursOffline,@hoursOffline,@qty)-- from checkinInfo where enterID=@enterID
 		select @re=isnull(iif(@re>@hours,@hours,@re),0)
@@ -12660,13 +12743,128 @@ END
 GO
 
 -- 返回指定申报人员的考试清单
-CREATE PROCEDURE [dbo].[getApplyDetail]
+ALTER PROCEDURE [dbo].[getApplyDetailList]
 	@applyID int
 AS
 BEGIN
-	select * from v_applyDetail where applyID=@applyID order by ID
+	select *, iif(free=0,'',[dbo].[getApplyDetailFeeEnterID](ID)) as feeEnterID from v_applyDetail where applyID=@applyID order by ID
 END
 GO
 
+-- 返回指定申报人员的考试信息
+CREATE PROCEDURE [dbo].[getApplyDetailInfo]
+	@ID int
+AS
+BEGIN
+	select * from v_applyDetail where ID=@ID
+END
+GO
+
+-- CREATE DATE: 2026-07-13
+-- 根据给定的参数，更新某个申报记录。
+-- USE CASE: exec updateApplyDetailInfo '123','student_education'...
+ALTER PROCEDURE [dbo].[updateApplyDetailInfo]
+	@ID int, @applyID int, @examNo varchar(50), @examDate varchar(50),@examAddress nvarchar(100), @kind int, @seq int, @score varchar(50), @free int, @memo nvarchar(500), @registerID varchar(50)
+AS
+BEGIN
+	declare @event nvarchar(50), @classID varchar(50), @username varchar(50), @enterID int, @price decimal(18,2), @batchID int, @courseID varchar(50), @mem nvarchar(100), @maxSeq int, @applyScore varchar(50)
+	select @seq=iif(@seq>0,@seq,[dbo].[getApplyDetailNewSeq](@applyID, @kind))
+	if @ID=0
+	begin
+		select @batchID=a.refID, @enterID=a.enterID, @username=b.username, @courseID=b.courseID from applyInfo a, studentCourseList b where a.enterID=b.ID and a.ID=@applyID
+		select @classID=applyID from generateApplyInfo where ID=@batchID
+		insert into applyDetail(applyID,kind,seq,classID,free,memo,registerID) values(@applyID,@kind,@seq,@classID,@free,@memo,@registerID)
+		select @ID=max(ID) from applyDetail where applyID=@applyID
+	end
+	else
+	begin
+		update applyDetail set examNo=@examNo,examDate=dbo.whenull(@examDate,''),examAddress=dbo.whenull(@examAddress,''),kind=@kind, seq=@seq, score=@score, free=@free, classID=@classID, memo=dbo.whenull(@memo,'') where ID=@ID
+		exec writeOpLog '', '修改申报记录','updateApplyDetailInfo',@registerID,@memo,@examNo
+	end
+
+	--如果收费，自动创建一个收费报名
+	if @free=1 and not exists(select 1 from studentCourseList where username=@username and oldNo=@ID)
+	begin
+		select @price=priceExam, @mem='来自'+shortName+cast(@batchID as varchar)+'班(编号'+@classID+')'+iif(@kind=0,'理论','实操')+'第'+cast(@seq as varchar)+'次考试' from v_courseInfo where courseID=@courseID
+		exec [dbo].[doEnter] 0,@username,'CC103',@price,@price,'','',0,'PC103','',0,0,0,0,0,'','','','','','',0,0,'','','',@ID,@mem,'znxf',@registerID
+	end
+
+	--如果最新成绩有变化，自动更新主记录
+	select @maxSeq=max(seq) from applyDetail where applyID=@applyID and kind=@kind
+	select @applyScore=iif(@kind=0,score1,score2) from applyInfo where ID=@applyID
+	if @maxSeq=@seq and @applyScore<>@score
+	begin
+		if @kind=0
+			update applyInfo set score1=@score where ID=@applyID
+		else
+			update applyInfo set score2=@score where ID=@applyID
+	end
+		
+	select isnull(@ID,0) as re
+END
+GO
+
+-- CREATE DATE: 2026-07-16
+-- 获取学员材料大小信息
+-- USE CASE: select * from dbo.[studentMaterialsSize]('120107196604032113')
+CREATE FUNCTION [dbo].[studentMaterialsSize]
+(	
+	@username varchar(50)
+)
+RETURNS TABLE 
+AS
+RETURN 
+(
+	select isnull(sum(iif(kindID=0,size,0)),0) as fsize0,isnull(sum(iif(kindID=1,size,0)),0) as fsize1,isnull(sum(iif(kindID=2,size,0)),0) as fsize2,isnull(sum(iif(kindID=3,size,0)),0) as fsize3,isnull(sum(iif(kindID=4,size,0)),0) as fsize4,
+	isnull(sum(iif(kindID=5,size,0)),0) as fsize5,isnull(sum(iif(kindID=6,size,0)),0) as fsize6,isnull(sum(iif(kindID=7,size,0)),0) as fsize7,isnull(sum(iif(kindID=8,size,0)),0) as fsize8
+	from studentMaterials where username=@username
+)
+GO
+
+-- CREATE DATE: 2026-08-2
+-- 获取申报详细信息数量统计
+-- USE CASE: select * from dbo.[getApplyDetailCount](123)
+CREATE FUNCTION [dbo].[getApplyDetailCount]
+(	
+	@applyID int
+)
+RETURNS TABLE 
+AS
+RETURN 
+(
+	select isnull(sum(iif(kind=0,1,0)),0) as resitCount0,isnull(sum(iif(kind=1,1,0)),0) as resitCount1,isnull(sum(iif(free=1,1,0)),0) as resitCountFee from applyDetail where applyID=@applyID
+)
+GO
+
+-- CREATE DATE: 2026-08-2
+-- 获取申报详细信息数量统计
+CREATE FUNCTION [dbo].[getApplyDetailCount1]
+(	
+	@applyID int
+)
+RETURNS varchar(50)
+AS
+BEGIN
+	declare @re varchar(50)
+	select @re=cast(isnull(sum(iif(kind=0,1,0)),0) as varchar) + '/' + cast(isnull(sum(iif(kind=1,1,0)),0) as varchar) + '/' + cast(isnull(sum(iif(free=1,1,0)),0) as varchar) from applyDetail where applyID=@applyID
+	RETURN isnull(@re,'')
+END
+GO
+
+-- CREATE DATE: 2026-08-2
+-- 根据申报详细信息，获取相关的补考收费记录
+ALTER FUNCTION [dbo].[getApplyDetailFeeEnterID]
+(	
+	@ID int
+)
+RETURNS varchar(50)
+AS
+BEGIN
+	declare @re varchar(50), @username varchar(50)
+	select @username=b.username from applyInfo a, studentCourseList b, applyDetail c where a.enterID=b.ID and a.ID=c.applyID and c.ID=@ID
+	select @re=ID from studentCourseList where username=@username and oldNo=@ID
+	RETURN isnull(@re,'')
+END
+GO
 
 

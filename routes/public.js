@@ -44,6 +44,18 @@ router.get('/getCompanyByHost', function(req, res, next) {
   }
 });
 
+/* GET home page. */
+//api.0 check the user's session is alive or not.
+router.post('/knock_door', function(req, res, next) {
+  //res.render('index', { title: 'Express' });
+  if (!req.session.user) {
+    response = {username:"123"};
+  }else{
+    response = {username:req.session.user.username, "auditor":req.session.user.auditor};
+  }
+  res.send(response);
+});
+
 //6a. getDeptListByPID
 router.get('/getDeptListByPID', function(req, res, next) {
   sqlstr = "select * from v_deptInfo where pID=@pID and kindID=@kindID and dept_status<9 order by deptName";

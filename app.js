@@ -32,7 +32,7 @@ var app = express();
 let checkMsg = '长时间未登录，已退出。';
 let backStatus = 401;
 
-var hosts = ['','znxf.','spc.','shm.','jia.','feng.','ding.','zich.','yous.'];
+var hosts = ['','znxf.','spc.','shm.','ding.']; //,'zich.','yous.','jia.','feng.'
 //var hosts = ['','znxf.','spc.','shm.'];
 var ports = ['',':3000',':3003',':8082'];
 var orig = [];
@@ -43,9 +43,12 @@ for(var v of hosts){
     orig.push('http://www.shznxfxx.cn' + x);
   }
   orig.push('https://shznxfxx.cn');
-  orig.push('https://yous.shznxfxx.cn');
-  orig.push('https://zich.shznxfxx.cn');
+  // orig.push('https://yous.shznxfxx.cn');
+  // orig.push('https://zich.shznxfxx.cn');
 }
+  orig.push('http://localhost:3000');
+  orig.push('http://znxf.localhost:3000');
+  orig.push('http://127.0.0.1:3000');
 //console.log("origin:",orig);
 var corsOptions = {
   //origin: ['http://spc.shznxfxx.cn:3000','http://spc.shznxfxx.cn:3003','http://shm.shznxfxx.cn:3000','http://znxf.shznxfxx.cn:3000','http://znxf.shznxfxx.cn:3003','http://shznxfxx.cn:3000','http://spc.localhost:3000','http://shm.localhost:3000','http://znxf.localhost:3000','http://127.0.0.1:3000','http://localhost:8082','http://znxf.localhost:8082','http://spc.localhost:8082','http://yuc.localhost:8082','http://shznxfxx.cn','http://spc.shznxfxx.cn','http://znxf.shznxfxx.cn','http://shznxfxx.cn:8082','http://spc.shznxfxx.cn:8082','http://znxf.shznxfxx.cn:8082'],
