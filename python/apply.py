@@ -1340,6 +1340,91 @@ def enter_by_list11(elist, classID, courseName, reex):
     return result
 
 
+def enter_by_list12(classID):
+    # 根据指定开班编号（enterID list)查询考试成绩。如果没有班级编号，则查询所有可能班级的考试成绩。
+    # 获取名单完整信息
+    cursor = conn.cursor()  # 使用cursor()方法获取操作游标
+    sql = "exec getApplyClassList '" + classID + "'"  # 数据库查询语句
+    cursor.execute(sql)  # 执行sql语句
+
+    # 考试管理菜单
+    driver.find_elements(By.XPATH, "//span[contains(text(),'考试管理')]")[0].click()  # 点击考试管理菜单
+    time.sleep(1)
+    driver.find_elements(By.XPATH, "//li[contains(text(),'学员打印管理')]")[0].click()  # 点击学员打印管理菜单
+    time.sleep(1)
+    # 每页显示100条记录
+    name_input = driver.find_elements(By.XPATH, "//span[@class='el-pagination__sizes']//input[contains(@placeholder, '请选择')]")[0].click()
+    time.sleep(1)
+    # 点击符合要求的项目
+    name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'100条')]")[0].click()
+    time.sleep(1)
+    f12_courseName = ""
+    # f12_classID = ""
+    f12_kind = ""
+    rs = cursor.fetchall()
+    for row in rs:
+        try:
+            # 选择课程
+            if f12_courseName != row[1]:
+                f12_courseName = row[1]
+                # 点击下拉框
+                name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'资格类型')]/following-sibling::div//input[@class='el-input__inner']")[0].click()
+                time.sleep(1)
+                # 点击符合要求的项目
+                name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + row[1] + "')]")[0].click()
+                time.sleep(1)
+
+            # 选择类型
+            # 点击下拉框
+            # name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
+            # time.sleep(1)
+            # 点击符合要求的类型
+            # name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + row[2] + "')]")[0].click()
+            # 开班编号
+            name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'开班编号')]/following-sibling::div/input[@class='el-input__inner']")[0]
+            clean_send(name_input, row[0])
+
+            if f12_kind != row[3]:
+                f12_kind = row[3]
+                # 考试类型
+                name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'考试类型')]/following-sibling::div//input[@class='el-input__inner']")[0].click()
+                name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + row[3] + "')]")[0].click()
+                time.sleep(1)
+            # 查找按钮
+            search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '查询')]")[0]
+            search_btn.click()
+            time.sleep(1)
+            wait.until(EC.presence_of_element_located((By.XPATH, "//tbody")))
+            data = driver.find_elements(By.XPATH, "//tbody/tr")
+            for tr in data:
+                # 处理每一行数据
+                tds = tr.find_elements(By.TAG_NAME, "td")
+                if len(tds) >= 10:
+                    r_name = tds[1].find_elements(By.TAG_NAME, "div")[0].text
+                    r_classID = tds[2].find_elements(By.TAG_NAME, "div")[0].text
+                    r_kind = tds[4].find_elements(By.TAG_NAME, "div")[0].text
+                    r_examDate = tds[8].find_elements(By.TAG_NAME, "div")[0].text
+                    r_score = tds[10].find_elements(By.TAG_NAME, "div")[0].text.replace(" ", "").replace("&nbsp;", "")
+                    if r_score > "":
+                        result["count_s"] += 1
+                        sql = "exec generateApplyScore2 '" + r_name + "', '" + r_classID + "', '" + r_kind + "', '" + r_examDate + "', '" + r_score + "', '" + register + "'"
+                        execSQL(sql)
+                pass
+
+        except Exception:
+            # print(e)
+            # result["err"] = 1
+            # result["errMsg"] = "action failed"
+            pass
+
+    # 关闭数据库
+    cursor.close()
+    # conn.close()
+    # print("window:", driver.window_handles)
+    # driver.quit()
+    return result
+
+
 def add_alpha_channel(img):
     """ 为jpg图像添加alpha通道 """
 
@@ -1413,12 +1498,13 @@ if __name__ == '__main__':
     #         # enter_by_list8(d_list, '0110092606207', courseName, '复审')
     #         # enter_by_list9(d_list, '0110092605105', courseName, '初证')
     #         # enter_by_list9A(d_list, '0110102606123', courseName, '初证')
-    #         enter_by_list9B(d_list, '0110102606123', courseName, '初证')
+    #         # enter_by_list9B(d_list, '0110102606123', courseName, '初证')
     #         # enter_by_list10(d_list, sys.argv[5], sys.argv[6], sys.argv[7])
     #         # enter_by_list11(d_list, '0110092507105', courseName, '初证')
     #         i += 1
     #         if i > 3:
     #             break
+    #         enter_by_list12('0110102607131')
     #     conn.close()
     #     driver.quit()
     #     print(result)
@@ -1467,6 +1553,8 @@ if __name__ == '__main__':
                 i += 1
                 if i > 3:
                     break
+            if reexamine == '12':   # 查询考试成绩
+                enter_by_list12(sys.argv[5])
             conn.close()
             driver.quit()
         print(result)

@@ -8490,8 +8490,12 @@ BEGIN
 	if @examDate>''
 	begin
 		update applyInfo set applyNo=@examNo,examDate=@examDate,statusApply=1,examAddress=@examAddress, memo=iif(@name=@name1,memo,isnull(memo,'') + ' 准考证中姓名与系统中不一致') + @kind from applyInfo where ID=@applyID
-		if exists(select 1 from applyDetail where applyID=@applyID and kind=@kindID and (examNo is null or examNo=''))
-			update applyDetail set examNo=@examNo,examDate=@examDate,examAddress=@examAddress,dateExam=getDate(),examCheckerID=@registerID where applyID=@applyID and kind=@kindID and examNo is null
+		if exists(select 1 from applyDetail where applyID=@applyID and kind=@kindID and (examNo is null or examNo='' or examNo=@examNo))
+		begin
+			declare @seq int
+			select @seq=max(seq) from applyDetail where applyID=@applyID and kind=@kindID and (examNo is null or examNo='' or examNo=@examNo)
+			update applyDetail set examNo=@examNo,examDate=@examDate,examAddress=@examAddress,dateExam=getDate(),examCheckerID=@registerID where applyID=@applyID and kind=@kindID and seq=@seq
+		end
 		else
 			insert into applyDetail(applyID,examNo,examDate,examAddress,kind,seq,classID,registerID) values(@applyID,@examNo,@examDate,@examAddress,@kindID,[dbo].[getApplyDetailNewSeq](@applyID, @kindID),@classID,@registerID)
 		update generateApplyInfo set importApplyDate=getDate() where ID=@batchID and importApplyDate is null
@@ -12783,7 +12787,7 @@ BEGIN
 	end
 
 	--如果收费，自动创建一个收费报名
-	if @free=1 and not exists(select 1 from studentCourseList where username=@username and oldNo=@ID)
+	if @free=1 and not exists(select 1 from studentCourseList where username=@username and courseID=@courseID and oldNo=@ID)
 	begin
 		select @price=priceExam, @mem='来自'+shortName+cast(@batchID as varchar)+'班(编号'+@classID+')'+iif(@kind=0,'理论','实操')+'第'+cast(@seq as varchar)+'次考试' from v_courseInfo where courseID=@courseID
 		exec [dbo].[doEnter] 0,@username,'CC103',@price,@price,'','',0,'PC103','',0,0,0,0,0,'','','','','','',0,0,'','','',@ID,@mem,'znxf',@registerID
@@ -12864,6 +12868,22 @@ BEGIN
 	select @username=b.username from applyInfo a, studentCourseList b, applyDetail c where a.enterID=b.ID and a.ID=c.applyID and c.ID=@ID
 	select @re=ID from studentCourseList where username=@username and oldNo=@ID
 	RETURN isnull(@re,'')
+END
+GO
+
+
+-- CREATE DATE: 2026-08-4
+-- 返回指定申报班级的信息，如果未指定，查找所有待录入成绩的班级
+ALTER PROCEDURE [dbo].[getApplyClassList]
+	@classID varchar(50)
+AS
+BEGIN
+	if @classID>'' and exists(select 1 from generateApplyInfo where applyID=@classID)
+		select applyID,courseName,reexamine,b.kind from v_generateApplyInfo a, (select '理论' as kind union select '实操') b where applyID=@classID order by courseName,kind,applyID
+	else
+		select applyID,courseName,reexamine,iif(kind=0, '理论', '实操') as kind from
+		(select a.applyID,a.courseName,a.reexamine,b.kind from v_generateApplyInfo a, [applyDetail] b, applyInfo c where a.ID=c.refID and b.applyID=c.ID and b.examDate>'' and b.dateScore is null group by a.applyID,a.courseName,a.reexamine,b.kind) d
+		order by courseName,kind,applyID
 END
 GO
 
