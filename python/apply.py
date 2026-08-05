@@ -1364,37 +1364,40 @@ def enter_by_list12(classID, cID, cName):
     time.sleep(1)
     name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'100条')]")[0].click()
     time.sleep(1)
-    # 点击下拉框
-    wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(),'资格类型')]/following-sibling::div//input[@class='el-input__inner']")))
-    time.sleep(1)
-    name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'资格类型')]/following-sibling::div//input[@class='el-input__inner']")[0].click()
-    time.sleep(1)
-    # 点击符合要求的项目
-    name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + cName + "')]")[0].click()
-    time.sleep(1)
+    if classID != '**':
+        # 点击下拉框
+        wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(),'资格类型')]/following-sibling::div//input[@class='el-input__inner']")))
+        time.sleep(1)
+        name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'资格类型')]/following-sibling::div//input[@class='el-input__inner']")[0].click()
+        time.sleep(1)
+        # 点击符合要求的项目
+        name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + cName + "')]")[0].click()
+        time.sleep(1)
     f12_courseName = ""
     # f12_classID = ""
     f12_kind = ""
     rs = cursor.fetchall()
     for row in rs:
         try:
-            # 选择课程
-            # if f12_courseName != row[1]:
-            #     f12_courseName = row[1]
-            #     # 点击下拉框
-            #     wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(),'资格类型')]/following-sibling::div//input[@class='el-input__inner']")))
-            #     time.sleep(1)
-            #     name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'资格类型')]/following-sibling::div//input[@class='el-input__inner']")[0].click()
-            #     # 点击符合要求的项目
-            #     name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + row[1] + "')]")[0].click()
-            #     time.sleep(1)
+            if classID == '**':
+                # 选择课程
+                if f12_courseName != row[1]:
+                    f12_courseName = row[1]
+                    # 点击下拉框
+                    wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(),'资格类型')]/following-sibling::div//input[@class='el-input__inner']")))
+                    time.sleep(1)
+                    name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'资格类型')]/following-sibling::div//input[@class='el-input__inner']")[0].click()
+                    time.sleep(1)
+                    # 点击符合要求的项目
+                    name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + row[1] + "')]")[0].click()
+                    time.sleep(1)
 
-            # 选择类型
-            # 点击下拉框
-            # name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
-            # time.sleep(1)
-            # 点击符合要求的类型
-            # name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + row[2] + "')]")[0].click()
+                # 选择类型
+                # 点击下拉框
+                # name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'培训类别')]/following-sibling::div//input[contains(@placeholder, '请选择')]")[0].click()
+                # time.sleep(1)
+                # # 点击符合要求的类型
+                # name_input = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//div/ul/li/span[contains(text(),'" + row[2] + "')]")[0].click()
             # 开班编号
             name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'开班编号')]/following-sibling::div//input[@class='el-input__inner']")[0]
             clean_send(name_input, row[0])
