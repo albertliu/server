@@ -8498,7 +8498,7 @@ BEGIN
 		end
 		else
 			insert into applyDetail(applyID,examNo,examDate,examAddress,kind,seq,classID,registerID) values(@applyID,@examNo,@examDate,@examAddress,@kindID,[dbo].[getApplyDetailNewSeq](@applyID, @kindID),@classID,@registerID)
-		update generateApplyInfo set importApplyDate=getDate() where ID=@batchID and importApplyDate is null
+		update generateApplyInfo set importApplyDate=getDate(), importApplyID=@registerID where ID=@batchID and importApplyDate is null
 	end
 END
 GO
@@ -12871,19 +12871,98 @@ BEGIN
 END
 GO
 
-
--- CREATE DATE: 2026-08-4
--- 返回指定申报班级的信息，如果未指定，查找所有待录入成绩的班级
-ALTER PROCEDURE [dbo].[getApplyClassList]
-	@classID varchar(50)
+-- CREATE DATE: 2026-08-2
+-- 根据申报信息，获取相关的补考收费是否已支付
+CREATE FUNCTION [dbo].[getApplyDetailPayment]
+(	
+	@applyID int
+)
+RETURNS int
 AS
 BEGIN
-	if @classID>'' and exists(select 1 from generateApplyInfo where applyID=@classID)
-		select applyID,courseName,reexamine,b.kind from v_generateApplyInfo a, (select '理论' as kind union select '实操') b where applyID=@classID order by courseName,kind,applyID
-	else
-		select applyID,courseName,reexamine,iif(kind=0, '理论', '实操') as kind from
+	declare @re int, @username varchar(50)
+	select @username=b.username from applyInfo a, studentCourseList b where a.enterID=b.ID and a.ID=@applyID
+	if exists(select 1 from studentCourseList a, applyDetail b where a.username=@username and a.oldNo=b.ID and b.applyID=@applyID and a.pay_status<>1)
+		select @re=0
+	RETURN isnull(@re,1)
+END
+GO
+
+
+-- CREATE DATE: 2026-08-4
+-- 返回指定申报班级的信息，如果@classID=*，查找该课程所有待录入成绩的班级, @classID=**, 查找所有待录入成绩的班级
+ALTER PROCEDURE [dbo].[getApplyClassList]
+	@classID varchar(50), @courseID varchar(50)
+AS
+BEGIN
+	declare @certID varchar(50)
+	select @certID=certID from courseInfo where courseID=@courseID
+	if @classID<>'*' and @classID<>'**' and exists(select 1 from generateApplyInfo where applyID=@classID)
+		select applyID,courseName,reexamine,b.kind,applyID+b.kind as keys from v_generateApplyInfo a, (select N'理论' as kind union select N'实操') b where applyID=@classID order by courseName,kind,applyID
+	if @classID='*'
+		select applyID,courseName,reexamine,iif(kind=0, N'理论', N'实操') as kind,applyID+iif(kind=0, N'理论', N'实操') as keys from
+		(select a.applyID,a.courseName,a.reexamine,b.kind from v_generateApplyInfo a, [applyDetail] b, applyInfo c where a.ID=c.refID and b.applyID=c.ID and a.certID=@certID and b.examDate>'' and b.dateScore is null group by a.applyID,a.courseName,a.reexamine,b.kind) d
+		order by courseName,kind,applyID
+	if @classID='**'
+		select applyID,courseName,reexamine,iif(kind=0, N'理论', N'实操') as kind,applyID+iif(kind=0, N'理论', N'实操') as keys from
 		(select a.applyID,a.courseName,a.reexamine,b.kind from v_generateApplyInfo a, [applyDetail] b, applyInfo c where a.ID=c.refID and b.applyID=c.ID and b.examDate>'' and b.dateScore is null group by a.applyID,a.courseName,a.reexamine,b.kind) d
 		order by courseName,kind,applyID
+END
+GO
+
+------------------
+-- CREATE DATE: 2026-08-4
+-- 根据给定的参数，添加或者更新导入申报成绩(安监自动下载)
+-- USE CASE: exec generateApplyScore2 2,1,'xxxx'...
+ALTER PROCEDURE [dbo].[generateApplyScore2]
+	@name nvarchar(50),@classID varchar(50),@kind nvarchar(50),@examDate varchar(50),@score varchar(50),@registerID varchar(50)
+
+AS
+BEGIN
+	declare @applyID int, @kindID int,@batchID int, @enterID int, @score1 varchar(50), @score2 varchar(50)
+	select @batchID=ID from generateApplyInfo where applyID=@classID
+	select @applyID=ID, @enterID=enterID from v_applyInfo where refID=@batchID and name=@name
+	select @kindID=iif(charindex('理论',@kind)>0,0,1), @examDate=replace(@examDate,' ','')
+
+	--更新申报信息
+	if @kindID=0
+		update applyInfo set score1=@score where ID=@applyID
+	else
+		update applyInfo set score2=@score where ID=@applyID
+	if exists(select 1 from applyDetail where applyID=@applyID and kind=@kindID and left(examDate,10)=@examDate)
+		update applyDetail set score=@score,dateScore=getDate(),scoreCheckerID=@registerID where applyID=@applyID and kind=@kindID and left(examDate,10)=@examDate
+	else
+		insert into applyDetail(applyID,examDate,kind,seq,classID,score,registerID) values(@applyID,@examDate,@kindID,[dbo].[getApplyDetailNewSeq](@applyID, @kindID),@classID,@score,@registerID)
+	update generateApplyInfo set importScoreDate=getDate(), importScoreID= @registerID where ID=@batchID and importScoreDate is null
+	--如果合格，关闭课程
+	if exists(select 1 from applyInfo where ID=@applyID and (score1>='80' or score1 ='100') and (score2>='80' or score2 ='100'))
+	begin
+		select @enterID=enterID, @score1=score1, @score2=score2 from applyInfo where ID=@applyID
+		exec [setEnterPass] @enterID, @score1, @score2, @registerID
+	end
+END
+GO
+
+
+-- CREATE DATE: 2026-08-5
+-- 考试合格的，关闭课程，添加证书
+CREATE PROCEDURE [dbo].[setEnterPass]
+	@enterID int, @score1 varchar(50), @score2 varchar(50), @registerID varchar(50)
+AS
+BEGIN
+	declare @refID int, @certID varchar(50), @courseID varchar(50), @username varchar(50)
+	select @refID=refID, @courseID=courseID, @username=username from studentCourseList where ID=@enterID
+	select @certID=certID from courseInfo where courseID=@courseID
+
+	--更新报名信息
+	update studentCertList set result=1,status=1,diplomaID=username,score=@score1,score1=@score1,score2=@score2,closeDate=getDate() where ID=@refID
+	update studentCourseList set status=2,endDate=getDate(),closeDate=getDate() where ID=@enterID
+
+	--添加证书信息
+	if exists(select 1 from diplomaInfo where username=@username and certID=@certID)
+		delete from diplomaInfo where username=@username and certID=@certID
+
+	insert into diplomaInfo(diplomaID,username,batchID,refID,certID,score,score1,score2,term,startDate,endDate,host,registerID) select @username,@username,1,@refID,@certID,@score1,@score1,@score2,6,getDate(),convert(varchar(20),dateadd(d,-1,dateadd(yy,6,getDate())),23),'znxf',@registerID
 END
 GO
 

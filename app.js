@@ -10,6 +10,7 @@ const cors = require('cors');
 const redis = require('redis');
 const compression = require('compression');
 const schedule = require('node-schedule');
+const shell = require('shelljs');
 const face = require("./utils/face");
 require('events').EventEmitter.defaultMaxListeners = 0;
 
@@ -159,6 +160,17 @@ let job = schedule.scheduleJob('55 55 23 * * *', async () => {
   let x = await face.addFullFace();
   let y = await face.delFreezFace();
   console.log("addFullFace log:", new Date());
+});
+// 每天的 1:10:10 执行成绩导入任务
+let job1 = schedule.scheduleJob('10 10 1 * * *', async () => {
+  let pyUrl = path.resolve(__dirname, '..') + "/python";
+  shell.exec('@echo off')
+  // shell.exec('chcp 65001')
+  let url = pyUrl + '/apply.py 1 12 znxf auto. ** 低压电工作业 L12';
+  // console.log('url code:', url);
+  shell.exec(url, function (code, stdout, stderr) {
+    console.log("score check log:", new Date());
+  });
 });
 
 module.exports = app;
