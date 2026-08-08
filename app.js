@@ -162,8 +162,8 @@ let job = schedule.scheduleJob('55 55 23 * * *', async () => {
   console.log("addFullFace log:", new Date());
 });
 // 每天的 1:10:10 执行成绩导入任务
-let job1 = schedule.scheduleJob('10 10 1 * * *', async () => {
-  let pyUrl = path.resolve(__dirname, '..') + "/python";
+let job1 = schedule.scheduleJob('10 * * * * *', async () => {
+  let pyUrl = path.join(__dirname, 'python');
   shell.exec('@echo off')
   // shell.exec('chcp 65001')
   let url = pyUrl + '/apply.py 1 12 znxf auto. ** 低压电工作业 L12';

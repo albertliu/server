@@ -2952,7 +2952,7 @@ RETURN
 
 	--第三方线下考试
 	union
-	select 0,0,'线下',0,'准备',b.courseName,b.examDate,0,'',b.address,c.username,d.name from v_applyInfo b, studentCourseList c, studentInfo d where b.enterID=c.ID and c.username=d.username and b.examDate>=convert(varchar(20),getDate(),23) and b.username=@username
+	select 0,0,'线下',0,'准备',b.courseName,b.examDate,0,'',b.examAddress,c.username,d.name from v_applyInfo b, studentCourseList c, studentInfo d where b.enterID=c.ID and c.username=d.username and b.examDate>=convert(varchar(20),getDate(),23) and b.username=@username
 )
 GO
 
