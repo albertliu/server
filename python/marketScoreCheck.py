@@ -79,9 +79,9 @@ def enter_by_list0(elist, kindID, refID):
     for row in rs:
         try:
             # 输入证件号码
-            name_input = driver.find_element(By.ID, "sfzh")
+            name_input = driver.find_element(By.ID, "zsfzh")
             clean_send(name_input, row[2])
-            name_input = driver.find_element(By.NAME, "Submit2")  # 查询按钮
+            name_input = driver.find_element(By.NAME, "Submit")  # 查询按钮
             name_input.click()
             wait.until(EC.presence_of_element_located((By.XPATH, "//div[@id='verify-title']/span[contains(text(), '请先完成安全验证')]")))
 
@@ -133,7 +133,8 @@ def enter_by_list0(elist, kindID, refID):
                 except NoAlertPresentException:
                     # print("No alert is present")
                     try:
-                        wait.until(EC.presence_of_element_located((By.XPATH, "//span[@id='_Title_0' and contains(text(), '考试成绩信息')]")))
+                        # wait.until(EC.presence_of_element_located((By.XPATH, "//span[@id='_Title_0' and contains(text(), '考试成绩信息')]")))
+                        wait.until(EC.presence_of_element_located((By.XPATH, "//span[@id='_Title_0' and contains(text(), '办事结果')]")))
                         # 进入成绩页面
                         # frame = driver.find_element(By.ID, "_DialogFrame_0")
                         driver.switch_to.frame(0)
@@ -151,16 +152,17 @@ def enter_by_list0(elist, kindID, refID):
                             }
                         """)
                         # tds = driver.find_elements(By.XPATH, "//td[contains(text(), '特种设备安全管理')]")
-                        tds = driver.find_elements(By.XPATH, "//td[contains(text(), '特种设备安全管理')]")
+                        tds = driver.find_elements(By.XPATH, "//td/u[contains(text(), '特种设备安全管理')]")
                         examDate = ""
                         score = ""
-                        if len(tds)>0:
-                            examDate = driver.find_elements(By.XPATH, "//tbody//td[contains(text(), '特种设备安全管理')]/../td")[2].text[:10]
+                        if len(tds) > 0:
+                            examDate = driver.find_elements(By.XPATH, "//tbody//td/u[contains(text(), '特种设备安全管理')]/../../td")[2].text[:10]
                             examDate = datetime.strptime(examDate, "%Y-%m-%d")
                             examDate += timedelta(days=30)
                             examDate = examDate.strftime("%Y-%m-%d")
                             if examDate >= row[6]:
-                                score = driver.find_elements(By.XPATH, "//tbody//td[contains(text(), '特种设备安全管理')]/../td")[6].text
+                                # score = driver.find_elements(By.XPATH, "//tbody//td/[contains(text(), '特种设备安全管理')]/../../td")[6].text
+                                score = driver.find_elements(By.XPATH, "//tbody//td/u[contains(text(), '特种设备安全管理')]/../../td//text()[contains(., '理论考试结果：')]/following-sibling::u[1]").text
                         # else:
                         # 保存结果
                         result["count_s"] += 1
