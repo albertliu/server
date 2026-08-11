@@ -2981,7 +2981,7 @@ END
 GO
 
 --获取某个销售相关班级列表
-CREATE FUNCTION getClassListBySaler
+ALTER FUNCTION getClassListBySaler
 (	
 	@fromID varchar(50)
 )
@@ -2989,7 +2989,7 @@ RETURNS TABLE
 AS
 RETURN 
 (
-	select classID from v_studentCourseList where fromID=@fromID group by classID
+	select classID from studentCourseList where fromID=@fromID group by classID
 )
 GO
 
@@ -11130,7 +11130,7 @@ GO
 -- CREATE DATE: 2025-05-14
 -- 市监局成绩查询登记
 -- USE CASE: exec [setMarketScoreCheck] 1
-CREATE PROCEDURE [dbo].[setMarketScoreCheck]
+ALTER PROCEDURE [dbo].[setMarketScoreCheck]
 	@enterID int, @score varchar(50), @examDate varchar(50), @registerID varchar(50)
 AS
 BEGIN
@@ -11138,7 +11138,7 @@ BEGIN
 	begin
 		declare @status int, @refID int
 		select @refID=refID from studentCourseList where ID=@enterID
-		select @status=(case when @score='缺考' then 3 when @score='不合格' then 2 when @score='合格' then 1 else 0 end)
+		select @status=(case when charindex('成绩合格',@score)>0 then 1 when charindex('不合格',@score)>0 then 2 else 0 end)
 		update studentCertList set result=@status,status=(case when @status>0 then 2 else status end),score=iif(@status=1,80,0), score1=iif(@status=1,80,0), examDate=@examDate,closeDate=getDate() from studentCertList where ID=@refID
 		update studentCourseList set status=(case when @status>0 then 2 else status end),endDate=getDate(),closeDate=getDate() where ID=@enterID
 	end
@@ -12924,21 +12924,24 @@ BEGIN
 	select @applyID=ID, @enterID=enterID from v_applyInfo where refID=@batchID and name=@name
 	select @kindID=iif(charindex('理论',@kind)>0,0,1), @examDate=replace(@examDate,' ','')
 
-	--更新申报信息
-	if @kindID=0
-		update applyInfo set score1=@score where ID=@applyID
-	else
-		update applyInfo set score2=@score where ID=@applyID
-	if exists(select 1 from applyDetail where applyID=@applyID and kind=@kindID and left(examDate,10)=@examDate)
-		update applyDetail set score=@score,dateScore=getDate(),scoreCheckerID=@registerID where applyID=@applyID and kind=@kindID and left(examDate,10)=@examDate
-	else
-		insert into applyDetail(applyID,examDate,kind,seq,classID,score,registerID) values(@applyID,@examDate,@kindID,[dbo].[getApplyDetailNewSeq](@applyID, @kindID),@classID,@score,@registerID)
-	update generateApplyInfo set importScoreDate=getDate(), importScoreID= @registerID where ID=@batchID and importScoreDate is null
-	--如果合格，关闭课程
-	if exists(select 1 from applyInfo where ID=@applyID and (score1>='80' or score1 ='100') and (score2>='80' or score2 ='100'))
+	if @applyID>0
 	begin
-		select @enterID=enterID, @score1=score1, @score2=score2 from applyInfo where ID=@applyID
-		exec [setEnterPass] @enterID, @score1, @score2, @registerID
+		--更新申报信息
+		if @kindID=0
+			update applyInfo set score1=@score where ID=@applyID
+		else
+			update applyInfo set score2=@score where ID=@applyID
+		if exists(select 1 from applyDetail where applyID=@applyID and kind=@kindID and left(examDate,10)=@examDate)
+			update applyDetail set score=@score,dateScore=getDate(),scoreCheckerID=@registerID where applyID=@applyID and kind=@kindID and left(examDate,10)=@examDate
+		else
+			insert into applyDetail(applyID,examDate,kind,seq,classID,score,registerID) values(@applyID,@examDate,@kindID,[dbo].[getApplyDetailNewSeq](@applyID, @kindID),@classID,@score,@registerID)
+		update generateApplyInfo set importScoreDate=getDate(), importScoreID= @registerID where ID=@batchID and importScoreDate is null
+		--如果合格，关闭课程
+		if exists(select 1 from applyInfo where ID=@applyID and (score1>='80' or score1 ='100') and (score2>='80' or score2 ='100'))
+		begin
+			select @enterID=enterID, @score1=score1, @score2=score2 from applyInfo where ID=@applyID
+			exec [setEnterPass] @enterID, @score1, @score2, @registerID
+		end
 	end
 END
 GO
