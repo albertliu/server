@@ -152,17 +152,20 @@ def enter_by_list0(elist, kindID, refID):
                             }
                         """)
                         # tds = driver.find_elements(By.XPATH, "//td[contains(text(), '特种设备安全管理')]")
-                        tds = driver.find_elements(By.XPATH, "//td/u[contains(text(), '特种设备安全管理')]")
+                        tds = driver.find_elements(By.XPATH, "//td//u[contains(text(), '特种设备安全管理')]")
                         examDate = ""
                         score = ""
                         if len(tds) > 0:
-                            examDate = driver.find_elements(By.XPATH, "//tbody//td/u[contains(text(), '特种设备安全管理')]/../../td")[2].text[:10]
-                            examDate = datetime.strptime(examDate, "%Y-%m-%d")
-                            examDate += timedelta(days=30)
-                            examDate = examDate.strftime("%Y-%m-%d")
+                            # examDate = driver.find_elements(By.XPATH, "//tbody//td//u[contains(text(), '特种设备安全管理')]/../..//td//text()[contains(., '理论考试时间：')]/following-sibling::u[1]").text[:10]
+                            examDate = driver.find_element(By.XPATH, "//text()[contains(., '理论考试时间：')]/following-sibling::u[1]")
+                            examDate = examDate.text
+                            # examDate = datetime.strptime(examDate, "%Y-%m-%d")
+                            # examDate += timedelta(days=30)
+                            # examDate = examDate.strftime("%Y-%m-%d")
                             if examDate >= row[6]:
                                 # score = driver.find_elements(By.XPATH, "//tbody//td/[contains(text(), '特种设备安全管理')]/../../td")[6].text
-                                score = driver.find_elements(By.XPATH, "//tbody//td/u[contains(text(), '特种设备安全管理')]/../../td//text()[contains(., '理论考试结果：')]/following-sibling::u[1]").text
+                                score = driver.find_element(By.XPATH, "//text()[contains(., '理论考试结果：')]/following-sibling::u[1]")
+                                score = score.text
                         # else:
                         # 保存结果
                         result["count_s"] += 1
@@ -251,7 +254,7 @@ def execSQL(text: str):
 if __name__ == '__main__':
     # 以下是测试代码
     # register = "test"
-    # enter_by_list0('310109198409184514', 2, 4214)
+    # enter_by_list0('310107197909161231', 2, 4369)
     # 以上是测试代码
     enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 applyID  1 enterID  2 username  argv[3]:classInfo.ID
     print(result)
