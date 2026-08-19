@@ -776,39 +776,44 @@ def enter_by_list8(elist, classID, courseName, reex):
     search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '查询')]")[0]
     search_btn.click()
     time.sleep(1)
-    # wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'" + classID + "')]")))
+    
     driver.find_elements(By.XPATH, "//div[contains(text(),'" + classID + "')]")[0].click()  # 点击班级记录
     # 照片打印
     search_btn = driver.find_elements(By.XPATH, "//button/span[contains(text(), '照片打印')]")[0]
     search_btn.click()
     time.sleep(2)
-    # 标记当前窗口
-    original_window = driver.current_window_handle
-    # 切换新窗口
+
     driver.switch_to.window(driver.window_handles[-1])
     wait.until(EC.presence_of_element_located((By.XPATH, "//span[@id='kbwyh']")))
-    # wait.until(EC.presence_of_element_located((By.XPATH, "//p[contains(text(), '开班编号')]/span[contains(text(),'" + classID + "')]")))
+    
     rs = cursor.fetchall()
     # print(len(rs))
     for row in rs:
         try:
-            # 如果没有身份证文件，或者文件名不包含身份证，不上传。
+            # 如果没有照片文件，或者文件名不包含身份证，不上传。
             if row[10] == "" or row[10].find(row[3]) == -1:   # 照片文件
                 result["count_e"] += 1
                 d_list.remove(str(row[13]))     # 从列表中删除无照片数据
                 continue
-            if driver.find_elements(By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/img"):
-                # wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/img")))
-                # search_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div[contains(@title, '点击上传考核申请材料')]/div")[0]
-                search_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/img")))
+
+            search_btn = None
+
+            photo_elements = driver.find_elements(By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/img")
+            no_photo_elements = driver.find_elements(By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/div[contains(text(), '无照片')]")
+
+            if photo_elements:
+                search_btn = photo_elements[0]
+            elif no_photo_elements:
+                search_btn = no_photo_elements[0]
             else:
-                if driver.find_elements(By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/div[contains(text(), '无照片')]"):
-                    search_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), '" + row[3] + "')]/../../../div/div/div[contains(text(), '无照片')]")))
+                # 当前人员不在页面中，直接跳过
+                d_list.remove(str(row[13]))     # 从列表中删除查无此人数据
+                result["count_e"] += 1
+                continue
+
             search_btn.click()
-            # search_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//img")[0]
-            # search_btn.click()
-            # 上传报名表
-            # print(1)
+
+            # 上传照片
             wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), '本地上传')]/following-sibling::div//input[@type='file']")))
             if row[10].find(row[3]) == -1:   # 照片文件
                 continue

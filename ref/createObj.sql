@@ -2589,7 +2589,7 @@ AS
 RETURN 
 (
 	-- Add the SELECT statement with parameter references here
-	SELECT ID as batchID,classID,className,status,classNameMemo,classIDName,pre from v_classInfo where dbo.pf_inStrArray(projectID,',',@projectID)=1
+	SELECT ID as batchID,classID,className,status,className + N' ' + ISNULL(memo, N'') as classNameMemo,CAST(ID AS varchar) + N'*' + className + N' ' + ISNULL(memo, N'') as classIDName,pre from classInfo where dbo.pf_inStrArray(projectID,',',@projectID)=1
 )
 GO
 
@@ -3357,7 +3357,7 @@ BEGIN
 				select @title=item from dictionaryDoc where kind='SPCtitle'	--报账类型的部门，选取石化公司统一开票信息
 		end
 	end
-	select @type=type, @fromID=iif(@fromID='arma.','amra.',@fromID) from certificateInfo where certID=@certID
+	select @type=type, @fromID=iif(@fromID='arma.','amra.',@fromID), @reexamine=iif(@certID='C14',0,@reexamine) from certificateInfo where certID=@certID
 	if @type=0	--非石化项目
 	begin
 		select top 1 @projectID = projectID,@price=[dbo].[getProjectPrice](projectID,@fromID) from projectInfo where host=@host and status=1 and certID=@certID and reexamine=@reexamine order by projectID desc -- and (dept='' or [dbo].[pf_inStrArray](dept,',',@dept1)=1)
@@ -6513,10 +6513,10 @@ BEGIN
 		begin
 			if @dateInvoice>'' and @invoice>'' and exists(select 1 from studentCourseList where ID=@ID and (dateInvoice is null or dateInvoice=''))
 				update studentCourseList set dateInvoice=@dateInvoice where invoice=@invoice and ID<>@ID	--团体发票更新开票日期
-			update studentCourseList set source=iif(@source>'',@source,source),host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),fromKind=@fromKind,classID=@classID,SNo=@pNo,noReceive=iif(@type=3 and @status=1 and noReceive=0,1,noReceive),checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),pay_memo=@pay_memo,signatureType=@signatureType,payNow=@payNow,needInvoice=@needInvoice,title=@title,pay_kindID=@kindID,pay_type=@type,pay_status=@status,price=@price,amount=@amount,invoice=@invoice,receipt=@receipt,invoice_amount=@invoice_amount,dateInvoice=[dbo].[whenull](@dateInvoice,null),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),datePay=iif(@datePay>'' and @status>0,@datePay,iif(@status=1 and pay_status=0 and datePay is null,getDate(),datePay)),pay_checker=iif(@status=1 and pay_status=0 and pay_checker is null,@registerID,pay_checker),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
+			update studentCourseList set source=iif(@source>'',@source,source),oldNo=iif(@oldNo>0,@oldNo,oldNo),host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),fromKind=@fromKind,classID=@classID,SNo=@pNo,noReceive=iif(@type=3 and @status=1 and noReceive=0,1,noReceive),checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),pay_memo=@pay_memo,signatureType=@signatureType,payNow=@payNow,needInvoice=@needInvoice,title=@title,pay_kindID=@kindID,pay_type=@type,pay_status=@status,price=@price,amount=@amount,invoice=@invoice,receipt=@receipt,invoice_amount=@invoice_amount,dateInvoice=[dbo].[whenull](@dateInvoice,null),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),datePay=iif(@datePay>'' and @status>0,@datePay,iif(@status=1 and pay_status=0 and datePay is null,getDate(),datePay)),pay_checker=iif(@status=1 and pay_status=0 and pay_checker is null,@registerID,pay_checker),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
 		end
 		else
-			update studentCourseList set source=@source,host=@host,overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),fromKind=@fromKind,classID=@classID,SNo=@pNo,checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),signatureType=@signatureType,needInvoice=@needInvoice,title=iif(autoInvoice=0,@title,title),invoice=iif(autoInvoice=0,@invoice,invoice),receipt=@receipt,invoice_amount=iif(autoInvoice=0,@invoice_amount,invoice_amount),dateInvoice=iif(autoInvoice=0,[dbo].[whenull](@dateInvoice,null),dateInvoice),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
+			update studentCourseList set source=@source,host=@host,oldNo=iif(@oldNo>0,@oldNo,oldNo),overdue=@overdue,express=@express,fromID=dbo.whenull(@fromID,null),fromKind=@fromKind,classID=@classID,SNo=@pNo,checked=1,checkDate=iif(checkDate is null,getDate(),checkDate),checker=iif(checker is null,@registerID,checker),submited=1,submitDate=iif(submitDate is null,getDate(),submitDate),submiter=iif(submiter is null,@registerID,submiter),signatureType=@signatureType,needInvoice=@needInvoice,title=iif(autoInvoice=0,@title,title),invoice=iif(autoInvoice=0,@invoice,invoice),receipt=@receipt,invoice_amount=iif(autoInvoice=0,@invoice_amount,invoice_amount),dateInvoice=iif(autoInvoice=0,[dbo].[whenull](@dateInvoice,null),dateInvoice),dateInvoicePick=[dbo].[whenull](@dateInvoicePick,null),currDiplomaID=@currDiplomaID,currDiplomaDate=@currDiplomaDate,memo=@memo where ID=@ID
 		select @event='修改报名信息',@mem=''
 		exec writeOpLog '',@event,'enter',@registerID,@mem,@ID
 
@@ -12931,8 +12931,8 @@ BEGIN
 			update applyInfo set score1=@score where ID=@applyID
 		else
 			update applyInfo set score2=@score where ID=@applyID
-		if exists(select 1 from applyDetail where applyID=@applyID and kind=@kindID and left(examDate,10)=@examDate)
-			update applyDetail set score=@score,dateScore=getDate(),scoreCheckerID=@registerID where applyID=@applyID and kind=@kindID and left(examDate,10)=@examDate
+		if exists(select 1 from applyDetail where applyID=@applyID and kind=@kindID and left(examDate,10)=@examDate)	--相同分数的不再覆盖
+			update applyDetail set score=@score,dateScore=getDate(),scoreCheckerID=@registerID where applyID=@applyID and kind=@kindID and left(examDate,10)=@examDate and score<>@score
 		else
 			insert into applyDetail(applyID,examDate,kind,seq,classID,score,registerID) values(@applyID,@examDate,@kindID,[dbo].[getApplyDetailNewSeq](@applyID, @kindID),@classID,@score,@registerID)
 		update generateApplyInfo set importScoreDate=getDate(), importScoreID= @registerID where ID=@batchID and importScoreDate is null
@@ -12945,7 +12945,6 @@ BEGIN
 	end
 END
 GO
-
 
 -- CREATE DATE: 2026-08-5
 -- 考试合格的，关闭课程，添加证书
@@ -12966,6 +12965,26 @@ BEGIN
 		delete from diplomaInfo where username=@username and certID=@certID
 
 	insert into diplomaInfo(diplomaID,username,batchID,refID,certID,score,score1,score2,term,startDate,endDate,host,registerID) select @username,@username,1,@refID,@certID,@score1,@score1,@score2,6,getDate(),convert(varchar(20),dateadd(d,-1,dateadd(yy,6,getDate())),23),'znxf',@registerID
+END
+GO
+
+-- CREATE DATE: 2026-08-13
+-- 查找指定的字典数据
+CREATE PROCEDURE [dbo].[getDicItem]
+	@kind varchar(50), @ID varchar(50)
+AS
+BEGIN
+	select item, isnull(description,'') as description, isnull(eID,0) as eID, isnull(memo,'') as memo from [dbo].[dictionaryDoc] where kind=@kind and ID=@ID
+END
+GO
+
+-- CREATE DATE: 2026-08-13
+-- 查找指定的project数据
+CREATE PROCEDURE [dbo].[getProjectInfo]
+	@projectID varchar(50)
+AS
+BEGIN
+	select * from [projectInfo] where projectID=@projectID
 END
 GO
 
