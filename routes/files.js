@@ -363,7 +363,9 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
     let idx = 0;
     let job = "";
     let tax = "";
-    data1.forEach(function (val) {
+    // data1.forEach(function (val) {
+    for (let i = 0; i < data1.length; i++) {
+      let val = data1[i];
       pn = val["单位地址"];
       if (typeof (pn) == "undefined") {
         pn = '';
@@ -393,9 +395,9 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
         sqlstr = "generateStudent";
         params = { "username": p1.replace(/\s+/g, ""), "name": p2.replace(/\s+/g, ""), "dept1Name": val["单位名称"] || "", "tax": val["单位代码"] || "", "dept2Name": val["加油站"] || "", "currDiplomaDate": p3, "job": job, "mobile": "" + mn, "address": "" + pn, "education": val["文化程度"], "memo": val["备注"], "classID": key, "oldNo": val["序号"], "registerID": currUser };
         // console.log("params.",params);
-        db.excuteProc(sqlstr, params, function (err, data) {
+        await db.executeProcAsync(sqlstr, params, function (err, data) {
           if (err) {
-            console.log(err);
+            console.log("generateStudent", err);
             let response = { "status": 9 };
             return res.send(response);
           }
@@ -416,29 +418,25 @@ router.post('/uploadSingle', upload.single('avatar'), async function (req, res, 
           }
           //生成签名资料
           comFunc.generate_entryform_sign(data.recordset[0]["enterID"]);
-          //
-          idx += 1;
-          if (idx == data1.length) {
-            sqlstr = "autoSetClassSNo";   //adjuest student No in the class
-            params = { "classID": key };
-            //console.log("params:", params);
-            db.excuteProc(sqlstr, params, function (err, data2) {
-              if (err) {
-                console.log(err);
-                let response = { "status": 9 };
-                return res.send(response);
-              }
-            });
-            response.count = data1.length - r_err - r_exist - r_existOther - r_null;
-            response.err_msg = r_err_msg > "" ? "身份证号码错误，未导入：" + r_err_msg + "\n" : "";
-            r_exist_msg = r_exist_msg > "" ? "学员已在本班级，未导入：" + r_exist_msg + "\n" : "";
-            response.exist_msg = r_existOther_msg > "" ? r_exist_msg + "学员已在其他班级，未导入：" + r_existOther_msg : r_exist_msg;
-            //console.log("res1:",response,"r_err_msg:",r_err_msg);
-            return res.send(response);
-          }
         });        
       // }
+    };
+    sqlstr = "autoSetClassSNo";   //adjuest student No in the class
+    params = { "classID": key };
+    // console.log("autoSetClassSNo params:", params);
+    await db.executeProcAsync(sqlstr, params, function (err, data2) {
+      if (err) {
+        console.log("autoSetClassSNo", err);
+        let response = { "status": 9 };
+        return res.send(response);
+      }
     });
+    response.count = data1.length - r_err - r_exist - r_existOther - r_null;
+    response.err_msg = r_err_msg > "" ? "身份证号码错误，未导入：" + r_err_msg + "\n" : "";
+    r_exist_msg = r_exist_msg > "" ? "学员已在本班级，未导入：" + r_exist_msg + "\n" : "";
+    response.exist_msg = r_existOther_msg > "" ? r_exist_msg + "学员已在其他班级，未导入：" + r_existOther_msg : r_exist_msg;
+    //console.log("res1:",response,"r_err_msg:",r_err_msg);
+    return res.send(response);
   }
 
   //deal xlsx 成绩单

@@ -5097,10 +5097,9 @@ AS
 BEGIN
 	declare @password varchar(50),@kindID int,@companyID varchar(50),@dept1 varchar(50),@dept2 varchar(50),@fromID varchar(50),@price int,@unit varchar(100),@educationID int,@certID varchar(50),@courseID varchar(50),@projectID varchar(50),@host varchar(50),@err int,@exist int,@existOther int,@null int,@Tai int,@msg varchar(50)
 	declare @retireDay int, @enterID int, @refID int
-	select @name=replace(@name,' ',''),@dept1=0, @dept2=0, @unit=null, @educationID=0,@err=0,@exist=0,@existOther=0,@null=0,@oldNo=(case when @oldNo>0 then @oldNo else 0 end),@Tai=charindex('台',@username),@host='znxf',@username = upper(@username), @tax= UPPER(replace(dbo.whenull(@tax,''),' ','')), @address=REPLACE(dbo.whenull(@address,''),' ','')
+	select @currDiplomaDate=[dbo].[getValidDate](@currDiplomaDate),@name=replace(@name,' ',''),@dept1=0, @dept2=0, @unit=null, @educationID=0,@err=0,@exist=0,@existOther=0,@null=0,@oldNo=(case when @oldNo>0 then @oldNo else 0 end),@Tai=charindex('台',@username),@host='znxf',@username = upper(@username), @tax= UPPER(replace(dbo.whenull(@tax,''),' ','')), @address=REPLACE(dbo.whenull(@address,''),' ','')
 	select @password = item,@kindID=0 from dictionaryDoc where kind='studentPasswd'
 	select @educationID=ID from dictionaryDoc where kind='education' and item=@education
-	if @currDiplomaDate='' or @currDiplomaDate='null' or @currDiplomaDate='undefined' set @currDiplomaDate=''
 	select @classID=classID,@host=isnull(host,''),@certID=certID,@courseID=courseID,@projectID=dbo.pf_getStrArrayOfIndex(projectID,',',0) from classInfo where ID=@classID
 	if @host=''
 		select @host=host from projectInfo where projectID=@projectID
@@ -12985,6 +12984,40 @@ CREATE PROCEDURE [dbo].[getProjectInfo]
 AS
 BEGIN
 	select * from [projectInfo] where projectID=@projectID
+END
+GO
+
+-- CREATE DATE: 2026-08-20
+-- 处理给定的字符，转换成yyyy-mm-dd格式，空值及非法字符，返回null
+ALTER FUNCTION [dbo].[getValidDate]
+(	
+	@str nvarchar(50)
+)
+RETURNS varchar(50)
+AS
+BEGIN
+	declare @re varchar(50)
+	SELECT @re=
+    CONVERT(
+        varchar(10),
+        CASE 
+            -- 先处理空值
+            WHEN @str IS NULL OR @str = '' THEN NULL
+            -- 标准 yyyy-MM-dd 直接尝试
+            WHEN @str LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' 
+                THEN TRY_CONVERT(date, @str, 120)
+            -- 中文格式 yyyy年MM月dd日 替换为 yyyy-MM-dd
+            WHEN @str LIKE '%年%月%日%' 
+                THEN TRY_CONVERT(
+                        date, 
+                        REPLACE(REPLACE(REPLACE(@str, '年', '-'), '月', '-'), '日', ''),
+                        120
+                    )
+            ELSE NULL
+        END,
+        120
+    )
+	RETURN @re
 END
 GO
 
