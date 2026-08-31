@@ -1290,6 +1290,17 @@ CREATE TABLE [dbo].[applyDetail](
 ) ON [PRIMARY]
 GO
 
+--考点空位信息
+CREATE TABLE [dbo].[examPlaceInfo](
+	[ID] int IDENTITY(1,1) NOT NULL,
+	[examAddress] [nvarchar](100) NULL,
+	[examDate] [varchar](50) NULL,
+	[s_all] [int] NULL default(0),	--总考位
+	[s_used] [int] NULL default(0), --已占用
+	[regDate] [datetime] NULL
+) ON [PRIMARY]
+GO
+
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
 -- function
@@ -9250,19 +9261,22 @@ BEGIN
 END
 GO
 
+--exec [autoSetClassSNo] 'C12-2356'
 --自动调整班级内重复的学号，重复的自动放到最后
 --可以接受classID or ID in classInfo
-ALTER PROCEDURE autoSetClassSNo
+ALTER PROCEDURE [dbo].[autoSetClassSNo]
 	@classID varchar(50)
 AS
 BEGIN
-	declare @ID int,@pNo varchar(50),@SNo varchar(50),@SNo0 varchar(50),@cID int,@mark int
+	declare @ID int,@pNo varchar(50),@SNo varchar(50),@SNo0 varchar(50),@cID int,@mark int,@pre int
 	if exists(select 1 from classInfo where classID=@classID)
-		select @cID=ID from classInfo where classID=@classID
+		select @cID=ID, @pre=pre from classInfo where classID=@classID
 	else
-		select @classID=classID,@cID=ID from classInfo where ID=@classID
+		select @classID=classID,@cID=ID,@pre=pre from classInfo where ID=@classID
 
 	select @SNo0=''
+	if @pre=1
+		update studentCourseList set SNo='' where classID=@classID 
 	declare rc cursor for select ID,isnull(SNo,'') from studentCourseList where classID=@classID order by SNo
 	open rc
 	fetch next from rc into @ID,@SNo
@@ -12772,10 +12786,11 @@ AS
 BEGIN
 	declare @event nvarchar(50), @classID varchar(50), @username varchar(50), @enterID int, @price decimal(18,2), @batchID int, @courseID varchar(50), @mem nvarchar(100), @maxSeq int, @applyScore varchar(50)
 	select @seq=iif(@seq>0,@seq,[dbo].[getApplyDetailNewSeq](@applyID, @kind))
+	select @batchID=a.refID, @enterID=a.enterID, @username=b.username, @courseID=b.courseID from applyInfo a, studentCourseList b where a.enterID=b.ID and a.ID=@applyID
+	select @classID=applyID from generateApplyInfo where ID=@batchID
+	
 	if @ID=0
 	begin
-		select @batchID=a.refID, @enterID=a.enterID, @username=b.username, @courseID=b.courseID from applyInfo a, studentCourseList b where a.enterID=b.ID and a.ID=@applyID
-		select @classID=applyID from generateApplyInfo where ID=@batchID
 		insert into applyDetail(applyID,kind,seq,classID,free,memo,registerID) values(@applyID,@kind,@seq,@classID,@free,@memo,@registerID)
 		select @ID=max(ID) from applyDetail where applyID=@applyID
 	end
@@ -12784,15 +12799,16 @@ BEGIN
 		update applyDetail set examNo=@examNo,examDate=dbo.whenull(@examDate,''),examAddress=dbo.whenull(@examAddress,''),kind=@kind, seq=@seq, score=@score, free=@free, classID=@classID, memo=dbo.whenull(@memo,'') where ID=@ID
 		exec writeOpLog '', '修改申报记录','updateApplyDetailInfo',@registerID,@memo,@examNo
 	end
-
-	--如果收费，自动创建一个收费报名
+	
+	-- select @username,@courseID,@ID,@batchID,@classID
+	-- 如果收费，自动创建一个收费报名
 	if @free=1 and not exists(select 1 from studentCourseList where username=@username and courseID=@courseID and oldNo=@ID)
 	begin
 		select @price=priceExam, @mem='来自'+shortName+cast(@batchID as varchar)+'班(编号'+@classID+')'+iif(@kind=0,'理论','实操')+'第'+cast(@seq as varchar)+'次考试' from v_courseInfo where courseID=@courseID
 		exec [dbo].[doEnter] 0,@username,'CC103',@price,@price,'','',0,'PC103','',0,0,0,0,0,'','','','','','',0,0,'','','',@ID,@mem,'znxf',@registerID
 	end
 
-	--如果最新成绩有变化，自动更新主记录
+	-- 如果最新成绩有变化，自动更新主记录
 	select @maxSeq=max(seq) from applyDetail where applyID=@applyID and kind=@kind
 	select @applyScore=iif(@kind=0,score1,score2) from applyInfo where ID=@applyID
 	if @maxSeq=@seq and @applyScore<>@score
@@ -12804,6 +12820,20 @@ BEGIN
 	end
 		
 	select isnull(@ID,0) as re
+END
+GO
+
+-- 删除申报记录
+CREATE PROCEDURE [dbo].[deleteApplyDetailInfo]
+	@ID int, @registerID varchar(50)
+AS
+BEGIN
+	declare @event nvarchar(50), @memo nvarchar(500)
+	delete from applyDetail where ID=@ID
+	-- 写操作日志
+	select @event='删除申报记录'
+	exec writeOpLog '', @event,'deleteApplyDetailInfo',@registerID,'',@ID
+	select 0 as re
 END
 GO
 
@@ -13018,6 +13048,22 @@ BEGIN
         120
     )
 	RETURN @re
+END
+GO
+
+-- CREATE DATE: 2026-08-31
+-- 更新考点考位数据
+CREATE PROCEDURE [dbo].[autoCheckPlace]
+	@examAddress nvarchar(50), @examDate varchar(50), @s_all varchar(50), @s_used varchar(50)
+AS
+BEGIN
+	if exists(select 1 from [dbo].[examPlaceInfo] where examAddress=@examAddress and examDate=@examDate)
+		update [dbo].[examPlaceInfo] set s_all=@s_all, s_used=@s_used where examAddress=@examAddress and examDate=@examDate
+	else if @s_all<>@s_used
+		insert into [dbo].[examPlaceInfo](examAddress, examDate, s_all, s_used) values(@examAddress, @examDate, @s_all, @s_used)
+
+	-- 将过期的考位信息删除
+	delete from [dbo].[examPlaceInfo] where examDate<=convert(varchar(20),getDate(),23)
 END
 GO
 
