@@ -636,7 +636,8 @@ def enter_by_list7(adviser, classID, courseName, reex):
             # _form1 = driver.find_elements(By.XPATH, "//colgroup/following-sibling::tbody/tr[" + str(_no+1) + "]")[0]
             _td = driver.find_elements(By.XPATH, "//colgroup/following-sibling::tbody/tr/td")
             # 填写日期
-            name_input = _td[_i].find_elements(By.XPATH, ".//input")[0]
+            name_input = _td[_i].find_elements(By.XPATH, ".//input")[0] 
+            name_input.click()
             clean_send(name_input, row[1])
             # name_input.send_keys(Keys.ENTER)  # 按下Enter键确认选择
             # 填写上下午
