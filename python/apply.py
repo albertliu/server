@@ -14,6 +14,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import TimeoutException
 import pymssql
 from datetime import date
+from datetime import datetime, timedelta
 # wd = webdriver.Chrome()
 # wd.implicitly_wait(3)
 # wd.get('ks.51safe.com.cn/aksManage/login')
@@ -1359,6 +1360,12 @@ def enter_by_list12(classID, cID, cName):
     time.sleep(1)
     name_input = driver.find_elements(By.XPATH, "//label[contains(text(),'开班编号')]/following-sibling::div//input[@class='el-input__inner']")[0]
     clean_send(name_input, '123')
+    # 填写开始日期
+    start_input = driver.find_element(By.XPATH, "//input[@placeholder='开始日期']")
+    startDate = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+    start_input.click() # must do it
+    clean_send(start_input, startDate)
+
     # 每页显示100条记录
     wait.until(EC.presence_of_element_located((By.XPATH, "//span[@class='el-pagination__sizes']//input")))
     time.sleep(1)

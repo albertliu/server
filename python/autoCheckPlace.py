@@ -179,10 +179,11 @@ def autoCheckPlace(courseName):
                             r_examDate = tds[1].find_elements(By.TAG_NAME, "div")[0].text
                             r_all = tds[2].find_elements(By.TAG_NAME, "div")[0].text
                             r_now = tds[3].find_elements(By.TAG_NAME, "div")[0].text
-                            sql = "exec autoCheckPlace '" + r_name + "', '" + r_examDate + "', '" + r_all + "', '" + r_now + "'"
+                            sql = "exec autoCheckPlace '" + courseName + "', '" + r_name + "', '" + r_examDate + "', '" + r_all + "', '" + r_now + "'"
+                            # print(sql)
                             execSQL(sql)
                         pass
-                time.sleep(1 * 60)
+                time.sleep(1 * 30)
 
         except Exception as e:
             # result["err"] = 1

@@ -1454,6 +1454,9 @@ router.post('/postCommInfo', function (req, res, next) {
   sqlstr = req.body.proc;
   params = req.body.params;
   // console.log(sqlstr, params);
+  if(! sqlstr>""){
+    return res.send([]);
+  }
   db.excuteProc(sqlstr, params, function (err, data) {
     if (err) {
       console.log(err);
