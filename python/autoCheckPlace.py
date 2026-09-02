@@ -162,6 +162,9 @@ def autoCheckPlace(courseName):
             # 点击符合要求的项目
             driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//ul/li/span[contains(text(),'上海城建职业学院考试点')]")[0].click()
             time.sleep(1)
+            # 设置超时时间（秒）
+            TIMEOUT = 60 * 55  # 55minutes
+            start_time = time.time()
 
             while True:
                 # 每隔1分钟执行一次查询任务
@@ -183,7 +186,10 @@ def autoCheckPlace(courseName):
                             # print(sql)
                             execSQL(sql)
                         pass
-                time.sleep(1 * 30)
+                time.sleep(1 * 30)# 每次循环检查是否超时
+                if time.time() - start_time > TIMEOUT:
+                    print(f"运行时间超过 {TIMEOUT} 秒，自动退出")
+                    break
 
         except Exception as e:
             # result["err"] = 1
