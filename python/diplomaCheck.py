@@ -1,308 +1,293 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-import time
+import asyncio
+import base64
 import os
 import sys
-from selenium.webdriver.common.keys import Keys
-import base64
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
-from PIL import Image   # pip install Pillow
-from io import BytesIO
-import ddddocr
+import time
 import pymssql
-# wd = webdriver.Chrome()
-# wd.implicitly_wait(3)
-# wd.get('ks.51safe.com.cn/aksManage/login')
-# wd.maximize_window()
-# 13601947578/Znxf123456
-# 13651648767/P200516@
-# from selenium.webdriver.chrome.service import Service
-# pip install -i https://mirrors.aliyun.com/pypi/simple/ opencv_python  # this is cv2's package
+import ddddocr
+import nodriver as uc
+from PIL import Image
+from io import BytesIO
+
+# ---------- 数据库连接 ----------
 env_dist = os.environ
-options = webdriver.ChromeOptions()
-options.add_argument('ignore-certificate-errors')
-# 指定为无界面模式
-# options.add_argument('headless')
-driver = webdriver.Chrome(options=options)
-# driver = webdriver.Chrome()
-# wait = WebDriverWait(driver, 5)
-# 创建连接字符串  （sqlserver默认端口为1433）
-img_path = env_dist.get('NODE_ENV_IMG')
-py_path = env_dist.get('NODE_ENV_PYTHON')
 conn = pymssql.connect(
-    server=env_dist.get('NODE_ENV_DB'),  # 本地服务器
-    port="14333",  # TCP端口
+    server=env_dist.get('NODE_ENV_DB'),
+    port="14333",
     user="sqlrw",
     password=env_dist.get('NODE_ENV_DB_PASSWD'),
     database="elearning",
-    autocommit=True   # 自动提交
-    )
-result = {"count_s": 0, "count_e": 0, "err": 0, "errMsg": "", "msg": ""}
-host = ""
+    autocommit=True
+)
+py_path = env_dist.get('NODE_ENV_PYTHON')
 register = "操作员"
-username = ""
-password = ""
+result = {"count_s": 0, "count_e": 0, "err": 0, "errMsg": "", "msg": ""}
+
+# ---------- 辅助函数 ----------
+def img_to_code(imgpath):
+    ocr = ddddocr.DdddOcr()
+    with open(imgpath, 'rb') as f:
+        return ocr.classification(f.read())
+
+def base64_to_photo(file_data):
+    # 防御性检查：如果是 RemoteObject，提取 value
+    if hasattr(file_data, 'value'):
+        file_data = file_data.value
+    if not file_data or not isinstance(file_data, str):
+        print(f"base64_to_photo 收到非字符串类型: {type(file_data)}")
+        return None
+    try:
+        if ';base64,' in file_data:
+            b64_data = file_data.split(';base64,')[1]
+        else:
+            b64_data = file_data
+        data = base64.b64decode(b64_data)
+        img_dir = os.path.join(py_path, "temp")
+        os.makedirs(img_dir, exist_ok=True)
+        imgpath = os.path.join(img_dir, "code.png")
+        with open(imgpath, "wb") as f:
+            f.write(data)
+        return imgpath
+    except Exception as e:
+        print(f"base64_to_photo 错误: {e}")
+        return None
+
+def extract_value(obj):
+    if hasattr(obj, 'value'):
+        return obj.value
+    return obj
+
+def execSQL(text: str):
+    curs = conn.cursor()
+    curs.execute(text)
+    curs.close()
+
+async def set_input_value_by_xpath(tab, xpath, value):
+    # 转义 value 中的单引号
+    safe_value = str(value).replace("'", "\\'")
+    js = f"""
+    (function() {{
+        var el = document.evaluate("{xpath}", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+        if (el) {{
+            el.value = '';
+            el.value = '{safe_value}';
+            el.dispatchEvent(new Event('input', {{bubbles: true}}));
+        }}
+    }})();
+    """
+    await tab.evaluate(js)
 
 
-def enter_by_list0(elist, kindID, refID):
-    # 根据指定开班编号及名单（kindID:0 applyID  1 enterID  2 username)查询特种作业/安全生产应复训日期。
-    # 获取名单完整信息
-    cursor = conn.cursor()  # 使用cursor()方法获取操作游标
-    sql = "exec getStudentListByList '" + elist + "', " + str(kindID) + ", " + str(refID)  # 数据库查询语句
-    cursor.execute(sql)  # 执行sql语句
-    rs = cursor.fetchall()
+# ---------- 通用等待函数（支持 CSS 和 XPath）----------
+async def wait_for_element(tab, selector, timeout=10, selector_type='css'):
+    """
+    轮询等待元素出现，返回第一个找到的元素，超时返回 None
+    selector_type: 'css' 或 'xpath'
+    """
+    start = asyncio.get_event_loop().time()
+    while True:
+        try:
+            if selector_type == 'xpath':
+                elements = await tab.find_all(selector)  # find_all 支持 XPath
+                if elements:
+                    return elements[0]
+            else:
+                elem = await tab.find(selector)
+                if elem is not None:
+                    return elem
+        except Exception:
+            pass
+        if asyncio.get_event_loop().time() - start > timeout:
+            return None
+        await asyncio.sleep(0.3)
 
-    # 打开网址
-    url = r'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/inquirySpecialCertificate?personTypeCode=03'
-    driver.get(url)
+# ---------- 核心异步函数 ----------
+async def enter_by_list0(elist, kindID, refID):
+    cursor = conn.cursor()
+    sql = f"exec getStudentListByList '{elist}', {kindID}, {refID}"
+    cursor.execute(sql)
+    rows = cursor.fetchall()
+    cursor.close()
+
+    browser = await uc.start(headless=False)
+    tab = await browser.get('https://cx.mem.gov.cn/wxcx/pages/certificateQuery/inquirySpecialCertificate?personTypeCode=03')
+
     safy = 0
     d = ["应复审日期", "有效期结束日期"]
 
-    # 浏览器全屏，可有可无
-    # driver.maximize_window()
-
-    for row in rs:
+    for row in rows:
         try:
-            if row[5] == "C16" or row[5] == "C17":  # 安全生产
-                url = r'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/safetyManagement?personTypeCode=02'
+            if row[5] in ("C16", "C17"):
+                url = 'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/safetyManagement?personTypeCode=02'
                 safy = 1
-            driver.execute_script("window.open('" + url + "','_self');")
-            # 查找验证码的元素
-            wait = WebDriverWait(driver, 5)
-            wait.until(EC.presence_of_element_located((By.XPATH, "//img[@class='code_img']")))
+            else:
+                url = 'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/inquirySpecialCertificate?personTypeCode=03'
+                safy = 0
 
-            if wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(), '请选择证件类型')]"))):
-                # 选择证件类型
-                # name_input = driver.find_elements(By.XPATH, "//div[contains(text(), '请选择证件类型')]/following-sibling::input[@class='uni-input-input']")[0].click()
-                name_input = driver.find_elements(By.XPATH, "//uni-view[@class='u-form-item__body__right__content__slot']")[0]
-                name_input.click()
-                time.sleep(1)
-                # 点击符合要求的项目
-                name_input = driver.find_elements(By.XPATH, "//uni-text[@class='u-action-sheet__item-wrap__item__name']/span[contains(text(),'身份证')]")[0].click()
-                # time.sleep(1)
-                # 输入证件号码
-                # name_input = wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(), '请输入证件号码')]/following-sibling::input")))
-                name_input = driver.find_elements(By.XPATH, "//div[contains(text(), '请输入证件号码')]/following-sibling::input")[0]
-                name_input.send_keys(row[2])
-                # 输入姓名
-                name_input = driver.find_elements(By.XPATH, "//div[contains(text(), '请输入姓名')]/following-sibling::input[@class='uni-input-input']")[0]
-                name_input.send_keys(row[1])
+            # 导航到目标URL
+            await tab.get(url)
+            await asyncio.sleep(2)  # 初始渲染等待
 
-            # 循环获取验证码，知道输入的验证码正确
+            # 等待验证码图片出现（保持不变）
+            img_elem = await wait_for_element(tab, 'img.code_img', timeout=10, selector_type='css')
+            if not img_elem:
+                print("验证码图片未出现，跳过")
+                continue
+
+            # 处理证件类型选择（如果有）
+            try:
+                type_label = await wait_for_element(tab, "//div[contains(text(), '请选择证件类型')]", timeout=2, selector_type='xpath')
+                if type_label:
+                    # 点击证件类型选择框（父容器）
+                    await tab.evaluate("""
+                        var el = document.evaluate("//div[contains(text(), '请选择证件类型')]/ancestor::uni-view[contains(@class, 'u-form-item__body__right__content__slot')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                        if (el) el.click();
+                    """)
+                    await asyncio.sleep(0.5)
+                    # 点击身份证选项
+                    await tab.evaluate("""
+                        var opt = document.evaluate("//uni-text[@class='u-action-sheet__item-wrap__item__name']/span[contains(text(),'身份证')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                        if (opt) opt.click();
+                    """)
+            except Exception as e:
+                print(f"证件类型选择处理失败: {e}")
+                pass
+
+            # ---- 输入证件号码 ----
+            try:
+                xpath_id = "//div[contains(text(), '请输入证件号码')]/following-sibling::input"
+                await set_input_value_by_xpath(tab, xpath_id, row[2])
+            except Exception as e:
+                print(f"操作证件号码输入框失败: {e}")
+                continue
+
+            # ---- 输入姓名 ----
+            try:
+                xpath_name = "//div[contains(text(), '请输入姓名')]/following-sibling::input[@class='uni-input-input']"
+                await set_input_value_by_xpath(tab, xpath_name, row[1])
+            except Exception as e:
+                print(f"操作姓名输入框失败: {e}")
+                continue
+            
+            # 识别验证码
+# ---------- 验证码循环 ----------
             while True:
-                # 验证码截取、保存
-                img = driver.find_elements(By.XPATH, "//img[@class='code_img']")[0].get_attribute("src")  # 要截图的元素
-                imgpath = base64_to_photo(img)
-                # imgpath = img_save(img, driver)  # 将验证码的部分使用图片保存
-                res = img_to_code(imgpath)  # 将图片解析为验证码，每次验证码不一定正确，所以代码逻辑使用循环处理，直到拿到正确的验证码
-                # 输入验证码
-                name_input = driver.find_elements(By.XPATH, "//div[contains(text(), '请输入验证码')]/following-sibling::input[@class='uni-input-input']")[0]
-                # name_input.send_keys(Keys.CONTROL, 'a')     # 模拟全选然后清空内容
-                # time.sleep(1)
-                # name_input.clear()
-                # name_input.send_keys(res)
-                clean_send(name_input, res)
-                time.sleep(1)
-
-                driver.find_elements(By.XPATH, "//uni-button/uni-text/span[contains(text(), '查询')]/../..")[0].click()  # 点击【查询】
-                time.sleep(1)
-
-                # 验证码获取失败，再重新获取
-                # 我的网页的情况是当在登录页面时，url里带有login，如果登录成功，则没有login字符串，所以这里采用这样条件来判断是否登录成功
-                if "Results" in driver.current_url:  # 根据自己的实际网页情况，编写不同的判断条件
-                    break   # 登录成功，则跳出循环，不再获取验证码
+                # 1. 获取验证码图片的 src（安全提取字符串）
+                src_raw = await tab.evaluate("""
+                    (function() {
+                        try {
+                            var img = document.querySelector('img.code_img');
+                            return img ? img.src : '';
+                        } catch(e) {
+                            return '';
+                        }
+                    })();
+                """)
+                if hasattr(src_raw, 'value'):
+                    src = src_raw.value
                 else:
-                    # 刷新验证码
-                    driver.find_elements(By.XPATH, "//img[@class='code_img']")[0].click()
-                    continue  # 如果验证码校验失败，则重新获取验证码
+                    src = src_raw
+                if not isinstance(src, str):
+                    src = str(src)
 
-            wait.until(EC.presence_of_element_located((By.XPATH, "//uni-text/span[contains(text(), '查询结果')]")))
-            # 查找作业项目
-            name_input = driver.find_elements(By.XPATH, "//td[contains(text(), '" + row[3] + "')]")
-            if len(name_input) > 0:
-                checkDate = driver.find_elements(By.XPATH, "//td[contains(text(), '" + row[3] + "')]/../../tr/td[contains(text(), '" + d[safy] + "')]/following-sibling::td")[0].text
-                # 保存结果
-                result["count_s"] += 1
-                # @enterID int, @date varchar(50), @registerID varchar(50)
-                sql = "exec setDiplomaCheckDate " + str(row[4]) + ", '" + checkDate.replace(" ", "") + "', '" + register + "'"
-                # print(sql)
-                execSQL(sql)
-                time.sleep(1)
+                if not src:
+                    print("验证码图片未加载或获取失败，刷新页面")
+                    await tab.reload()
+                    await asyncio.sleep(1)
+                    continue
+
+                # 2. 保存并识别验证码
+                imgpath = base64_to_photo(src)
+                if not imgpath:
+                    print("验证码图片保存失败，刷新验证码")
+                    await tab.evaluate("document.querySelector('img.code_img')?.click()")
+                    continue
+
+                code_text = img_to_code(imgpath)
+                if not code_text:
+                    print("验证码识别为空，刷新验证码")
+                    await tab.evaluate("document.querySelector('img.code_img')?.click()")
+                    continue
+
+                # 3. 输入验证码（使用纯 JS 方式，不传递 Element）
+                xpath_code = "//div[contains(text(), '请输入验证码')]/following-sibling::input[@class='uni-input-input']"
+                await set_input_value_by_xpath(tab, xpath_code, code_text)
+
+                # 4. 点击查询
+                query_btn = await wait_for_element(tab, "//uni-button/uni-text/span[contains(text(), '查询')]/../..", timeout=5, selector_type='xpath')
+                if query_btn is None:
+                    print("查询按钮未找到，刷新页面")
+                    await tab.reload()
+                    continue
+                await query_btn.click()
+
+                await asyncio.sleep(1.5)
+                # 检查是否出现“查询结果”
+                result_elem = await wait_for_element(tab, "//*[contains(text(), '查询结果')]", timeout=3, selector_type='xpath')
+                if result_elem is not None:
+                    break  # 成功进入结果页
+                else:
+                    # 刷新验证码继续
+                    await tab.evaluate("document.querySelector('img.code_img')?.click()")
+                    continue
+
+            # 查找作业项目（改进版）
+            project_name = str(row[3]).replace("'", "\\'")
+            xpath_expr = f"//td[contains(., '{project_name}')]"
+            count_js = f"""
+                (function() {{
+                    var xpath = "{xpath_expr}";
+                    var result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                    return result.snapshotLength;
+                }})();
+            """
+            count_raw = await tab.evaluate(count_js)
+            count = extract_value(count_raw)  # 使用您之前定义的 extract_value 函数
+
+            print(f"DEBUG: 作业项目 '{row[3]}' 匹配数量: {count}")  # 调试输出
+
+            if count > 0:
+                # 获取日期（同样使用 contains(., ...)）
+                date_xpath = f"//td[contains(., '{project_name}')]/../../tr/td[contains(., '{d[safy]}')]/following-sibling::td"
+                date_js = f"""
+                    (function() {{
+                        var xpath = "{date_xpath}";
+                        var result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                        var node = result.singleNodeValue;
+                        return node ? node.textContent : null;
+                    }})();
+                """
+                check_date_raw = await tab.evaluate(date_js)
+                check_date = extract_value(check_date_raw)
+                if check_date:
+                    check_date = check_date.replace(" ", "")
+                    sql = f"exec setDiplomaCheckDate {row[4]}, '{check_date}', '{register}'"
+                    execSQL(sql)
+                    result["count_s"] += 1
+                else:
+                    result["count_e"] += 1
             else:
                 result["count_e"] += 1
 
         except Exception as e:
-            # print(e)
-            # result["err"] = 1
-            # result["errMsg"] = "action failed"
-            pass
+            print(f"Error processing row {row}: {e}")
+            continue
 
-    # 关闭数据库
-    cursor.close()
     conn.close()
-    # print("window:", driver.window_handles)
-    driver.quit()
     return result
 
 
-def enter_by_list1(username, name, courseName):
-    # 根据指定身份证，查询应复训日期。
-    # 获取名单完整信息
-    cursor = conn.cursor()  # 使用cursor()方法获取操作游标
-    url = r'https://cx.mem.gov.cn/wxcx/pages/certificateQuery/inquirySpecialCertificate?personTypeCode=03'
-
-    # 打开网址
-    driver.get(url)
-
-    # 浏览器全屏，可有可无
-    driver.maximize_window()
-
-    try:
-        driver.execute_script("window.open('" + url + "','_self');")
-        # 查找验证码的元素
-        wait = WebDriverWait(driver, 5)
-        wait.until(EC.presence_of_element_located((By.XPATH, "//img[@class='code_img']")))
-
-        if wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(), '请选择证件类型')]"))):
-            # 选择证件类型
-            name_input = driver.find_elements(By.XPATH, "//div[contains(text(), '请选择证件类型')]/following-sibling::input[@class='uni-input-input']")[0].click()
-            time.sleep(1)
-            # 点击符合要求的项目
-            name_input = driver.find_elements(By.XPATH, "//uni-text[@class='u-action-sheet__item-wrap__item__name']/span[contains(text(),'身份证')]")[0].click()
-            # time.sleep(1)
-            # 输入证件号码
-            # name_input = wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(), '请输入证件号码')]/following-sibling::input")))
-            name_input = driver.find_elements(By.XPATH, "//div[contains(text(), '请输入证件号码')]/following-sibling::input")[0]
-            name_input.send_keys(username)
-            # 输入姓名
-            name_input = driver.find_elements(By.XPATH, "//div[contains(text(), '请输入姓名')]/following-sibling::input[@class='uni-input-input']")[0]
-            name_input.send_keys(name)
-
-        # 循环获取验证码，知道输入的验证码正确
-        while True:
-            # 验证码截取、保存
-            img = driver.find_elements(By.XPATH, "//img[@class='code_img']")[0].get_attribute("src")  # 要截图的元素
-            imgpath = base64_to_photo(img)
-            # imgpath = img_save(img, driver)  # 将验证码的部分使用图片保存
-            res = img_to_code(imgpath)  # 将图片解析为验证码，每次验证码不一定正确，所以代码逻辑使用循环处理，直到拿到正确的验证码
-            # 输入验证码
-            name_input = driver.find_elements(By.XPATH, "//div[contains(text(), '请输入验证码')]/following-sibling::input[@class='uni-input-input']")[0]
-            # name_input.send_keys(Keys.CONTROL, 'a')     # 模拟全选然后清空内容
-            # time.sleep(1)
-            # name_input.clear()
-            # name_input.send_keys(res)
-            clean_send(name_input, res)
-            time.sleep(1)
-
-            driver.find_elements(By.XPATH, "//uni-button/uni-text/span[contains(text(), '查询')]/../..")[0].click()  # 点击【查询】
-            time.sleep(1)
-
-            # 验证码获取失败，再重新获取
-            # 我的网页的情况是当在登录页面时，url里带有login，如果登录成功，则没有login字符串，所以这里采用这样条件来判断是否登录成功
-            if "Results" in driver.current_url:  # 根据自己的实际网页情况，编写不同的判断条件
-                break   # 登录成功，则跳出循环，不再获取验证码
-            else:
-                # 刷新验证码
-                driver.find_elements(By.XPATH, "//img[@class='code_img']")[0].click()
-                continue  # 如果验证码校验失败，则重新获取验证码
-
-        wait.until(EC.presence_of_element_located((By.XPATH, "//uni-text/span[contains(text(), '查询结果')]")))
-        # 查找作业项目
-        name_input = driver.find_elements(By.XPATH, "//td[contains(text(), '" + courseName + "')]")
-        if len(name_input) > 0:
-            checkDate = driver.find_elements(By.XPATH, "//td[contains(text(), '" + courseName + "')]/../../tr/td[contains(text(), '应复审日期')]/following-sibling::td")[0].text
-            # 保存结果
-            result["msg"] = checkDate
-        else:
-            result["count_e"] += 1
-
-    except Exception as e:
-        print(e)
-        # result["err"] = 1
-        # result["errMsg"] = "action failed"
-        pass
-
-    # 关闭数据库
-    cursor.close()
-    conn.close()
-    # print("window:", driver.window_handles)
-    driver.quit()
-    return result
-
-
-def base64_to_photo(file_data):
-    imgpath = py_path + "/temp/code.png"
-    if file_data:
-        b64_data = file_data.split(';base64,')[1]
-        data = base64.b64decode(b64_data)
-        with open(imgpath, "wb") as f:
-            f.write(data)
-        return imgpath
-
-
-# 截取验证码，保存
-def img_save(img, driver):
-    x, y = img.location.values()  # 元素 坐标数据
-    h, w = img.size.values()  # 元素高宽
-    # 将截图以二进制的形式返回
-    img_data = driver.get_screenshot_as_png()
-    # 以新图片的形式打开返回的数据
-    sreenshots = Image.open(BytesIO(img_data))
-    # 对截图进行剪切
-    result = sreenshots.crop((x, y, x + w, y + h))  # 元素大小放缩
-    # 存储
-    imgpath = py_path + "/temp/code.png"
-    result.save(imgpath)
-    return imgpath
-
-
-# 将图片转换为验证码
-def img_to_code(imgpath):
-    # 创建对象
-    ocr = ddddocr.DdddOcr()
-    res = ""
-    # 使用二进制的方式读取图片
-    with open(imgpath, 'rb') as f:
-        img_tytes = f.read()
-        # 调用识别方法
-        res = ocr.classification(img_tytes)
-        # print(f'验证码为：{res}')
-        return res
-
-
-def clean_send(element, text: str):
-    """
-    清空输入框并且输入内容
-    :param element: 需要操作的元素
-    :param text: 输入的内容
-    """
-    element.clear()
-    element.send_keys(text)
-
-
-def execSQL(text: str):
-    """
-    执行SQL语句, 无返回结果
-    """
-    curs = conn.cursor()  # 使用cursor()方法获取操作游标
-    curs.execute(text)  # 执行sql语句
-    curs.close()
-
-
+# ---------- 入口 ----------
 if __name__ == '__main__':
-    # 以下是测试代码
+    # 测试代码（可注释掉）
     # username = "13817866150"
     # password = "123456Asdf"
     # register = "desk."
-    # enter_by_list0('310113198006251414', 2, 4283)
-    # enter_by_list1('321281198711034057', '高正友', '低压电工作业')
-    # 以上是测试代码
-    kind = sys.argv[2]     # 0 applyID  1 enterID  2 username  
+    # asyncio.run(enter_by_list0('310113198006251414', 2, 4283))
+
+    kind = sys.argv[2]
     register = sys.argv[4]
-    # print(kind, sys.argv[3], sys.argv[4])
     if kind != '3':
-        enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3])   # argv[2]:0 0 applyID  1 enterID  2 username
-    # if kind == '3':
-    #     enter_by_list1(sys.argv[1], sys.argv[3], sys.argv[4])   # argv[2]:3 username/name
-    print(result)
+        asyncio.run(enter_by_list0(sys.argv[1], sys.argv[2], sys.argv[3]))
+    # else:
+    #     asyncio.run(enter_by_list1(sys.argv[1], sys.argv[3], sys.argv[4]))
