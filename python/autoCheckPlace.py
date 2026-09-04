@@ -11,8 +11,12 @@ import traceback
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver import ActionChains
-from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    TimeoutException,
+    ElementNotInteractableException,
+    ElementClickInterceptedException
+)
 import pymssql
 from datetime import datetime
 
@@ -25,10 +29,16 @@ py_path = env_dist.get('NODE_ENV_PYTHON')
 if not py_path:
     print("【致命错误】环境变量 NODE_ENV_PYTHON 未配置")
     sys.exit(1)
-
 LOG_FILE = os.path.join(py_path, "autoCheckPlace_run.log")
 HEARTBEAT_FILE = os.path.join(py_path, "heartbeat.txt")
 os.makedirs(os.path.join(py_path, "temp"), exist_ok=True)
+
+# 每次启动清空日志
+try:
+    with open(LOG_FILE, "w", encoding="utf-8") as f:
+        f.write("")
+except Exception:
+    pass
 
 def log_write(msg: str):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -47,22 +57,53 @@ def write_heartbeat():
     except Exception:
         pass
 
-# ===================== Chrome 配置，修复中文减号bug =====================
+# 安全点击函数：普通click失败，用JS原生click兜底，绕过Selenium可见性拦截
+def safe_click(el):
+    try:
+        el.click()
+    except (ElementClickInterceptedException, ElementNotInteractableException):
+        log_write("检测到click被拦截，使用JS原生点击兜底")
+        driver.execute_script("arguments[0].click();", el)
+
+# 关闭弹窗：同时隐藏dialog本体 + el-dialog__wrapper外层遮罩，解决z-index遮挡页面问题
+def closeExamDialog():
+    try:
+        close_btns = driver.find_elements(By.XPATH, "//div[@aria-label='实操考试预约']/div[@class='el-dialog__header']/button[@aria-label='Close']")
+        if len(close_btns) > 0:
+            btn = close_btns[0]
+            if btn.is_displayed() and btn.is_enabled():
+                safe_click(btn)
+                log_write("已点击按钮关闭实操考试预约弹窗")
+                time.sleep(2)
+                return
+        # JS同时隐藏弹窗本体 + 外层wrapper遮罩容器（重点修复）
+        driver.execute_script("""
+            var dialog = document.querySelector('div[aria-label="实操考试预约"].el-dialog');
+            if(dialog){dialog.style.display='none';}
+            var wrapper = document.querySelector('.el-dialog__wrapper');
+            if(wrapper){wrapper.style.display='none';}
+            var mask = document.querySelector('.el-dialog__mask');
+            if(mask){mask.style.display='none';}
+        """)
+        log_write("JS强制隐藏弹窗+外层wrapper遮罩")
+        time.sleep(2.5)
+    except Exception as e:
+        log_write(f"关闭弹窗异常(忽略): {str(e)}")
+
+# ===================== Chrome 配置 =====================
 options = webdriver.ChromeOptions()
 options.add_argument('ignore-certificate-errors')
-options.add_argument("--headless=new")
+# options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-gpu")
-options.add_argument("--disable-dev-shm-usage")  # 修复：原始是中文破折号，会导致参数失效
+options.add_argument("--disable-dev-shm-usage")
 
 driver = None
 wait = None
 conn = None
 
-# 创建连接字符串  （sqlserver默认端口为1433）
 img_path = env_dist.get('NODE_ENV_IMG')
 py_path = env_dist.get('NODE_ENV_PYTHON')
-
 result = {"count_s": 0, "count_e": 0, "err": 0, "errMsg": ""}
 host = ""
 register = "操作员"
@@ -70,7 +111,6 @@ username = ""
 password = ""
 
 def login_fr():
-    # 在指定网页上进行登录：输入用户名、密码、登录，拉动滑块进行验证。
     aim_url = {
         'login_url':
         r'https://zwdtuser.sh.gov.cn/uc/login/login.jsp?redirect_uri=https%3a%2f%2fks.51safe.com.cn%2faks_platform%2fauth%2fgetToken%3f',
@@ -87,7 +127,7 @@ def login_fr():
         login_btn = driver.find_element(by=By.ID, value="login-btn")
         user_input.send_keys(aim_url['username'])
         pw_input.send_keys(aim_url['password'])
-        login_btn.click()
+        safe_click(login_btn)
         time.sleep(1)
         n = 0
         while 1:
@@ -98,28 +138,23 @@ def login_fr():
                                                 "data:image/png;base64,", "")
             template_link = driver.find_element(By.ID,
                                                 "puzzleShadow").get_attribute('style')
-
             str_url = 'url("'
             url_start = template_link.find(str_url)
             if url_start > -1:
                 url_start += len(str_url)
             str_url = '") no-repeat;'
             url_end = template_link.find(str_url)
-
             template_link = template_link[url_start:url_end].replace(
                 "data:image/png;base64,", "")
-
             target_data = base64.b64decode(target_link)
             with open(os.path.join(py_path, 'temp/target.jpg'), 'wb') as f:
                 f.write(target_data)
             template_data = base64.b64decode(template_link)
             with open(os.path.join(py_path, 'temp/template.png'), 'wb') as f:
                 f.write(template_data)
-
             distance = match(os.path.join(py_path, 'temp/target.jpg'), os.path.join(py_path, 'temp/template.png'))
             distance = distance / 400 * 398 + 4
             log_write(f"滑块计算偏移：{distance:.2f}")
-
             slider = wait.until(
                 EC.element_to_be_clickable((By.CLASS_NAME, 'slider-btn')))
             ActionChains(driver).click_and_hold(slider).perform()
@@ -143,59 +178,121 @@ def login_fr():
         result["errMsg"] = "login failed"
         return 1
 
-def autoCheckPlace(courseName):
-    log_write(f"进入抓取流程，课程：{courseName}")
+def autoCheckPlace(course_list):
+    log_write(f"==== 进入抓取流程，课程列表：{course_list} ====")
     cursor = conn.cursor()
     try:
-        driver.find_elements(By.XPATH, "//span[contains(text(),'考试管理')]")[0].click()
-        time.sleep(1)
-        driver.find_elements(By.XPATH, "//li[contains(text(),'实操考试预约')]")[0].click()
-        time.sleep(1)
+        # 进入实操考试预约菜单
+        menu1 = driver.find_elements(By.XPATH, "//span[contains(text(),'考试管理')]")
+        if len(menu1) == 0:
+            raise Exception("找不到【考试管理】菜单")
+        safe_click(menu1[0])
+        time.sleep(1.5)
+        menu2 = driver.find_elements(By.XPATH, "//li[contains(text(),'实操考试预约')]")
+        if len(menu2) ==0:
+            raise Exception("找不到【实操考试预约】子菜单")
+        safe_click(menu2[0])
+        time.sleep(2)
 
-        driver.find_elements(By.XPATH, "//div[@class='el-select']//input[@placeholder='请选择工种']")[0].click()
-        time.sleep(1)
-        driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//ul/li/span[contains(text(),'" + courseName + "')]")[0].click()
-        time.sleep(1)
+        GLOBAL_TIMEOUT = 60 * 55
+        global_start = time.time()
 
-        data = driver.find_elements(By.XPATH, "//div[@class='main-app']//div[@class='el-table__body-wrapper is-scrolling-none']//tbody/tr")
-        if len(data) > 0:
-            data[0].find_elements(By.XPATH, ".//td/div/label//span[@class='el-checkbox__inner']")[0].click()
-            try:
-                driver.find_element(By.XPATH, "//div//button/span[contains(text(),'选择考点与时间')]/..").click()
-                time.sleep(1)
-                driver.find_elements(By.XPATH, "//div[@class='el-select']//input[@placeholder='请选择考点']")[0].click()
-                time.sleep(1)
-                driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//ul/li/span[contains(text(),'上海城建职业学院考试点')]")[0].click()
-                time.sleep(1)
+        while True:
+            if time.time() - global_start > GLOBAL_TIMEOUT:
+                log_write(f"全局总运行时间到达 {GLOBAL_TIMEOUT} 秒，整体退出抓取循环")
+                break
 
-                TIMEOUT = 60 * 55
-                start_time = time.time()
-                while True:
-                    write_heartbeat()
-                    log_write("执行一轮查询考点")
-                    driver.find_element(By.XPATH, "//div[@class='el-dialog__body']//button/span[contains(text(),'查询')]/..").click()
+            for one_course in course_list:
+                write_heartbeat()
+                log_write(f"------ 当前处理课程：{one_course} ------")
+                try:
+                    # 点开工种下拉框
+                    # driver.find_elements(By.XPATH, "//div[@class='el-select']//input[@placeholder='请选择工种']")[0].click()
+                    time.sleep(3)
+                    work_inputs = driver.find_elements(By.XPATH, "//div[@class='el-select']//input[@placeholder='请选择工种']")
+                    if len(work_inputs) == 0:
+                        log_write(f"课程[{one_course}]：找不到【请选择工种】输入框，跳过本课程")
+                        continue
+                    # safe_click(work_inputs[0])
+                    work_inputs[0].click()
+                    time.sleep(1)
+
+                    # 选中工种
+                    work_items = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//ul/li/span[contains(text(),'" + one_course + "')]")
+                    if len(work_items) == 0:
+                        log_write(f"课程[{one_course}]：下拉列表找不到工种[{one_course}]，跳过本课程")
+                        continue
+                    # safe_click(work_items[0])
+                    work_items[0].click()
+                    time.sleep(1)
+                    # 点击查询
+                    driver.find_element(By.XPATH, "//div[@class='main-app']//button/span[contains(text(),'查询')]/..").click()
+
+                    rows = driver.find_elements(By.XPATH, "//div[@class='main-app']//div[@class='el-table__body-wrapper is-scrolling-none']//tbody/tr")
+                    if len(rows) == 0:
+                        log_write(f"课程[{one_course}]：表格无数据行，跳过本课程")
+                        continue
+
+                    check_boxes = rows[0].find_elements(By.XPATH, ".//td/div/label//span[@class='el-checkbox__inner']")
+                    if len(check_boxes) > 0:
+                        # safe_click(check_boxes[0])
+                        check_boxes[0].click()
+                    time.sleep(1.5)
+
+                    sel_btn_list = driver.find_elements(By.XPATH, "//div//button/span[contains(text(),'选择考点与时间')]/..")
+                    if len(sel_btn_list) ==0:
+                        log_write(f"课程[{one_course}]：找不到【选择考点与时间】按钮，跳过本课程")
+                        continue
+                    # safe_click(sel_btn_list[0])
+                    sel_btn_list[0].click()
+                    time.sleep(1)
+
+                    site_inputs = driver.find_elements(By.XPATH, "//div[@class='el-dialog__body']//input[@placeholder='请选择考点']")
+                    if len(site_inputs) == 0:
+                        log_write(f"课程[{one_course}]：找不到【请选择考点】输入框，跳过本课程")
+                        closeExamDialog()
+                        continue
+                    # safe_click(site_inputs[0])
+                    site_inputs[0].click()
                     time.sleep(2)
-                    place = driver.find_elements(By.XPATH, "//div[@class='el-dialog__body']//div[@class='el-table__body-wrapper is-scrolling-none']//tbody/tr")
-                    if len(place) > 0:
-                        for tr in place:
+
+                    site_items = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//ul/li/span[contains(text(),'上海城建职业学院考试点')]")
+                    if len(site_items) == 0:
+                        log_write(f"课程[{one_course}]：未找到考点【上海城建职业学院考试点】，跳过本课程")
+                        closeExamDialog()
+                        continue
+                    # safe_click(site_items[0])
+                    site_items[0].click()
+                    log_write(f"课程[{one_course}]：成功选中考点【上海城建职业学院考试点】")
+                    time.sleep(1)
+
+                    log_write(f"课程[{one_course}]执行单次查询")
+                    query_btns = driver.find_elements(By.XPATH, "//div[@class='el-dialog__body']//button/span[contains(text(),'查询')]/..")
+                    if len(query_btns) >0:
+                        # safe_click(query_btns[0])
+                        query_btns[0].click()
+                    time.sleep(1)
+
+                    place_rows = driver.find_elements(By.XPATH, "//div[@class='el-dialog__body']//div[@class='el-table__body-wrapper is-scrolling-none']//tbody/tr")
+                    if len(place_rows) > 0:
+                        for tr in place_rows:
                             tds = tr.find_elements(By.TAG_NAME, "td")
                             if len(tds) >= 4:
                                 r_name = tds[0].find_elements(By.TAG_NAME, "div")[0].text.replace("'","''")
                                 r_examDate = tds[1].find_elements(By.TAG_NAME, "div")[0].text.replace("'","''")
                                 r_all = tds[2].find_elements(By.TAG_NAME, "div")[0].text.replace("'","''")
                                 r_now = tds[3].find_elements(By.TAG_NAME, "div")[0].text.replace("'","''")
-                                sql = "exec autoCheckPlace '" + courseName + "', '" + r_name + "', '" + r_examDate + "', '" + r_all + "', '" + r_now + "'"
+                                sql = "exec autoCheckPlace '" + one_course + "', '" + r_name + "', '" + r_examDate + "', '" + r_all + "', '" + r_now + "'"
                                 execSQL(sql)
                                 log_write(f"入库：{r_name}|{r_examDate}|{r_all}/{r_now}")
+                    time.sleep(1)
+                    closeExamDialog()
 
-                    time.sleep(30)
-                    if time.time() - start_time > TIMEOUT:
-                        log_write(f"运行时间超过 {TIMEOUT} 秒，自动退出")
-                        break
-            except Exception as e:
-                log_write(f"业务内异常: {str(e)}\n{traceback.format_exc()}")
-                result["err"] = 1
-                result["errMsg"] = f"action failed:{str(e)}"
+                except Exception as course_err:
+                    log_write(f"课程[{one_course}]执行异常，关闭弹窗后跳过该课程：{str(course_err)}\n{traceback.format_exc()}")
+                    # closeExamDialog()
+                    continue
+            time.sleep(1)
     finally:
         cursor.close()
     return result
@@ -226,10 +323,6 @@ def match(img_jpg_path, img_png_path):
     value = value[3][0]
     return value
 
-def clean_send(element, text: str):
-    element.clear()
-    element.send_keys(text)
-
 def execSQL(text: str):
     curs = conn.cursor()
     curs.execute(text)
@@ -238,7 +331,6 @@ def execSQL(text: str):
 if __name__ == '__main__':
     log_write("==== autoCheckPlace 程序启动 ====")
     try:
-        # 数据库连接
         conn = pymssql.connect(
             server=env_dist.get('NODE_ENV_DB'),
             port="14333",
@@ -248,11 +340,9 @@ if __name__ == '__main__':
             autocommit=True,
             tds_version="7.0"
         )
-        # 初始化浏览器
         driver = webdriver.Chrome(options=options)
         wait = WebDriverWait(driver, 30)
 
-        # 原有逻辑：从 hostInfo 表读取账号密码
         cursor = conn.cursor()
         sql = "select accountA, passwdA from hostInfo where hostNo= 'znxf'"
         cursor.execute(sql)
@@ -266,13 +356,13 @@ if __name__ == '__main__':
         cursor.close()
 
         register = "desk."
-        courseName = "低压电工作业"
+        course_list = ["低压电工作业", "焊接", "高处作业"]
 
         login_ret = login_fr()
         if login_ret == 0:
-            autoCheckPlace(courseName)
+            autoCheckPlace(course_list)
         else:
-            log_write("登录失败，跳过业务抓取")
+            log_write("登录失败，跳过全部课程抓取")
 
     except Exception as main_e:
         log_write(f"【顶层异常】{str(main_e)}\n{traceback.format_exc()}")
