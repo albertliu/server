@@ -140,7 +140,7 @@ def enter_exam_menu():
 def build_chrome_options():
     opts = webdriver.ChromeOptions()
     opts.add_argument('ignore-certificate-errors')
-    # opts.add_argument("--headless=new")
+    opts.add_argument("--headless=new")
     opts.add_argument("--no-sandbox")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--disable-dev-shm-usage")
