@@ -11,9 +11,10 @@ import traceback
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver import ActionChains
+from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import (
-    NoSuchElementException,
     TimeoutException,
+    NoSuchElementException,
     ElementNotInteractableException,
     ElementClickInterceptedException
 )
@@ -57,26 +58,61 @@ def write_heartbeat():
     except Exception:
         pass
 
-# 安全点击函数：普通click失败，用JS原生click兜底，绕过Selenium可见性拦截
+# 安全点击：普通click失败时用JS原生click兜底
 def safe_click(el):
     try:
         el.click()
     except (ElementClickInterceptedException, ElementNotInteractableException):
-        log_write("检测到click被拦截，使用JS原生点击兜底")
+        # log_write("检测到click被拦截/不可交互，使用JS原生点击兜底")
         driver.execute_script("arguments[0].click();", el)
 
-# 关闭弹窗：同时隐藏dialog本体 + el-dialog__wrapper外层遮罩，解决z-index遮挡页面问题
+# 等待全屏loading遮罩层消失
+def wait_loading_gone(timeout=10):
+    try:
+        masks = driver.find_elements(By.CLASS_NAME, "el-loading-mask")
+        if len(masks) > 0:
+            wait.until(
+                EC.invisibility_of_element_located((By.CLASS_NAME, "el-loading-mask")),
+                timeout
+            )
+            # log_write("loading遮罩已消失")
+    except TimeoutException:
+        log_write(f"等待loading遮罩消失超时（{timeout}秒），继续执行")
+    except Exception as e:
+        log_write(f"等待loading遮罩异常: {e}")
+
+# 等待el-dialog弹窗wrapper完全消失（关闭弹窗后调用，避免淡出中的遮罩拦截点击）
+def wait_dialog_gone(timeout=5):
+    try:
+        wrappers = driver.find_elements(By.CLASS_NAME, "el-dialog__wrapper")
+        if len(wrappers) > 0:
+            wait.until(
+                EC.invisibility_of_element_located((By.CLASS_NAME, "el-dialog__wrapper")),
+                timeout
+            )
+            # log_write("弹窗wrapper已完全消失")
+    except TimeoutException:
+        log_write(f"等待弹窗wrapper消失超时（{timeout}秒），继续执行")
+    except Exception as e:
+        log_write(f"等待弹窗wrapper异常: {e}")
+
+# 关闭实操考试预约弹窗：同时隐藏dialog本体 + el-dialog__wrapper外层遮罩
 def closeExamDialog():
     try:
-        close_btns = driver.find_elements(By.XPATH, "//div[@aria-label='实操考试预约']/div[@class='el-dialog__header']/button[@aria-label='Close']")
+        close_btns = driver.find_elements(
+            By.XPATH,
+            "//div[@aria-label='实操考试预约']/div[@class='el-dialog__header']/button[@aria-label='Close']"
+        )
         if len(close_btns) > 0:
             btn = close_btns[0]
             if btn.is_displayed() and btn.is_enabled():
                 safe_click(btn)
-                log_write("已点击按钮关闭实操考试预约弹窗")
-                time.sleep(2)
+                # log_write("已点击按钮关闭实操考试预约弹窗")
+                time.sleep(1.5)
+                # 等待弹窗wrapper完全消失，避免淡出中的遮罩拦截下一次点击
+                wait_dialog_gone()
                 return
-        # JS同时隐藏弹窗本体 + 外层wrapper遮罩容器（重点修复）
+        # 按钮不可用，JS同时隐藏dialog本体 + 外层wrapper遮罩容器
         driver.execute_script("""
             var dialog = document.querySelector('div[aria-label="实操考试预约"].el-dialog');
             if(dialog){dialog.style.display='none';}
@@ -85,18 +121,30 @@ def closeExamDialog():
             var mask = document.querySelector('.el-dialog__mask');
             if(mask){mask.style.display='none';}
         """)
-        log_write("JS强制隐藏弹窗+外层wrapper遮罩")
-        time.sleep(2.5)
+        # log_write("JS强制隐藏弹窗+外层wrapper遮罩")
+        time.sleep(2)
+        # JS隐藏后也等待确认消失
+        wait_dialog_gone()
     except Exception as e:
         log_write(f"关闭弹窗异常(忽略): {str(e)}")
 
+# 进入"考试管理" → "实操考试预约"菜单（登录成功后调用一次，不放在课程循环内）
+def enter_exam_menu():
+    log_write("进入菜单：考试管理 → 实操考试预约")
+    driver.find_elements(By.XPATH, "//span[contains(text(),'考试管理')]")[0].click()
+    time.sleep(1)
+    driver.find_elements(By.XPATH, "//li[contains(text(),'实操考试预约')]")[0].click()
+    time.sleep(1)
+
 # ===================== Chrome 配置 =====================
-options = webdriver.ChromeOptions()
-options.add_argument('ignore-certificate-errors')
-# options.add_argument("--headless=new")
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-gpu")
-options.add_argument("--disable-dev-shm-usage")
+def build_chrome_options():
+    opts = webdriver.ChromeOptions()
+    opts.add_argument('ignore-certificate-errors')
+    # opts.add_argument("--headless=new")
+    opts.add_argument("--no-sandbox")
+    opts.add_argument("--disable-gpu")
+    opts.add_argument("--disable-dev-shm-usage")
+    return opts
 
 driver = None
 wait = None
@@ -178,121 +226,238 @@ def login_fr():
         result["errMsg"] = "login failed"
         return 1
 
+# 关闭当前浏览器并重新登录，然后重新进入菜单；返回True表示成功
+def restart_browser_and_login():
+    global driver, wait
+    log_write("==== 异常恢复：关闭当前浏览器，重新登录 ====")
+    if driver is not None:
+        try:
+            driver.quit()
+            log_write("旧浏览器已关闭")
+        except Exception as e:
+            log_write(f"关闭旧浏览器异常: {e}")
+        driver = None
+        wait = None
+    time.sleep(2)
+    try:
+        driver = webdriver.Chrome(options=build_chrome_options())
+        wait = WebDriverWait(driver, 5)
+        log_write("新浏览器已启动")
+    except Exception as e:
+        log_write(f"启动新浏览器失败: {e}\n{traceback.format_exc()}")
+        return False
+    ret = login_fr()
+    if ret != 0:
+        log_write("重新登录失败")
+        return False
+    log_write("重新登录成功，重新进入菜单")
+    try:
+        enter_exam_menu()
+    except Exception as e:
+        log_write(f"重新进入菜单失败: {e}")
+        return False
+    log_write("恢复完成，继续抓取流程")
+    return True
+
 def autoCheckPlace(course_list):
+    """
+    course_list: 课程数组，循环遍历，每个课程查询一次后切换下一个；
+    全局55分钟计时不重置；
+    登录成功后先进入菜单（循环外），再进入课程循环；
+    异常时关闭浏览器→重新登录→重新进入菜单→继续循环（计时继续）。
+    下拉框选择使用显式等待，等选项出现后再点击。
+    每个课程循环查询多个考点，全部查完后再关闭弹窗。
+    """
+    global driver, wait
     log_write(f"==== 进入抓取流程，课程列表：{course_list} ====")
     cursor = conn.cursor()
+
+    # ===== 登录成功后立刻进入菜单（只执行一次，不在课程循环内）=====
+    enter_exam_menu()
+
+    GLOBAL_TIMEOUT = 60 * 55
+    global_start = time.time()          # 55分钟计时起点，全程不重置
+    relogin_fail_count = 0              # 连续重登失败计数，防止死循环
+    MAX_RELOGIN_FAIL = 5
+    DROPDOWN_WAIT = 4                  # 下拉框选项等待超时（秒）
+    TABLE_WAIT = 4                     # 表格数据加载等待超时（秒）
+    LOADING_WAIT = 4                   # loading遮罩等待超时（秒）
+    DIALOG_WAIT = 5                    # 弹窗wrapper消失等待超时（秒）
+
+    # 考点列表：每个课程依次查询这两个考点，全部查完后再关闭弹窗
+    SITE_LIST = ["上海城建职业学院考试点", "沪东中华"]
+
     try:
-        # 进入实操考试预约菜单
-        menu1 = driver.find_elements(By.XPATH, "//span[contains(text(),'考试管理')]")
-        if len(menu1) == 0:
-            raise Exception("找不到【考试管理】菜单")
-        safe_click(menu1[0])
-        time.sleep(1.5)
-        menu2 = driver.find_elements(By.XPATH, "//li[contains(text(),'实操考试预约')]")
-        if len(menu2) ==0:
-            raise Exception("找不到【实操考试预约】子菜单")
-        safe_click(menu2[0])
-        time.sleep(2)
-
-        GLOBAL_TIMEOUT = 60 * 55
-        global_start = time.time()
-
         while True:
-            if time.time() - global_start > GLOBAL_TIMEOUT:
-                log_write(f"全局总运行时间到达 {GLOBAL_TIMEOUT} 秒，整体退出抓取循环")
+            # 全局55分钟超时判断（计时继续，不因重登重置）
+            elapsed = time.time() - global_start
+            if elapsed > GLOBAL_TIMEOUT:
+                log_write(f"全局运行时间到达 {GLOBAL_TIMEOUT:.0f} 秒，整体退出抓取循环")
                 break
 
+            # ===== 循环遍历课程列表，每个课程查询一次后切换下一个 =====
             for one_course in course_list:
                 write_heartbeat()
-                log_write(f"------ 当前处理课程：{one_course} ------")
+                log_write(f"------ 当前处理课程：{one_course}（已运行 {elapsed:.0f}s / {GLOBAL_TIMEOUT}s）------")
+
+                # 标记：本轮是否已经打开了"选择考点与时间"弹窗
+                # 只有点击了该按钮后弹窗才出现，之前出错不需要关闭
+                dialog_opened = False
+
                 try:
-                    # 点开工种下拉框
-                    # driver.find_elements(By.XPATH, "//div[@class='el-select']//input[@placeholder='请选择工种']")[0].click()
-                    time.sleep(3)
+                    # ===== 修复：点击工种前，先等待上一个弹窗wrapper完全消失 =====
+                    wait_dialog_gone(DIALOG_WAIT)
+
+                    # ===== 选工种：点击下拉框后，显式等待课程选项出现再点击（用safe_click）=====
                     work_inputs = driver.find_elements(By.XPATH, "//div[@class='el-select']//input[@placeholder='请选择工种']")
                     if len(work_inputs) == 0:
-                        log_write(f"课程[{one_course}]：找不到【请选择工种】输入框，跳过本课程")
-                        continue
-                    # safe_click(work_inputs[0])
-                    work_inputs[0].click()
+                        raise Exception("找不到【请选择工种】输入框")
+                    safe_click(work_inputs[0])
+                    # log_write(f"已点击工种下拉框，等待选项[{one_course}]出现...")
+
+                    work_option_xpath = "//div[@class='el-select-dropdown el-popper']//ul/li/span[contains(text(),'" + one_course + "')]"
+                    try:
+                        work_option = wait.until(
+                            EC.element_to_be_clickable((By.XPATH, work_option_xpath)),
+                            DROPDOWN_WAIT
+                        )
+                        work_option.click()
+                        # log_write(f"工种选项[{one_course}]已出现并点击")
+                    except TimeoutException:
+                        raise Exception(f"等待工种选项[{one_course}]出现超时（{DROPDOWN_WAIT}秒）")
                     time.sleep(1)
 
-                    # 选中工种
-                    work_items = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//ul/li/span[contains(text(),'" + one_course + "')]")
-                    if len(work_items) == 0:
-                        log_write(f"课程[{one_course}]：下拉列表找不到工种[{one_course}]，跳过本课程")
-                        continue
-                    # safe_click(work_items[0])
-                    work_items[0].click()
-                    time.sleep(1)
-                    # 点击查询
-                    driver.find_element(By.XPATH, "//div[@class='main-app']//button/span[contains(text(),'查询')]/..").click()
+                    # ===== 点击主页面的"查询"按钮，加载该工种的考试点数据 =====
+                    # log_write("点击主页面查询按钮，加载工种数据...")
+                    main_query_btns = driver.find_elements(
+                        By.XPATH,
+                        "//div[@class='main-app']//button/span[contains(text(),'查询')]/.."
+                    )
+                    if len(main_query_btns) > 0:
+                        main_query_btns[0].click()
+                        # log_write("主页面查询按钮已点击，等待表格数据加载...")
+                    else:
+                        log_write("未找到主页面查询按钮，直接尝试读取表格")
 
-                    rows = driver.find_elements(By.XPATH, "//div[@class='main-app']//div[@class='el-table__body-wrapper is-scrolling-none']//tbody/tr")
-                    if len(rows) == 0:
-                        log_write(f"课程[{one_course}]：表格无数据行，跳过本课程")
-                        continue
+                    # 等待loading遮罩层消失，避免点击checkbox被拦截
+                    wait_loading_gone(LOADING_WAIT)
 
-                    check_boxes = rows[0].find_elements(By.XPATH, ".//td/div/label//span[@class='el-checkbox__inner']")
-                    if len(check_boxes) > 0:
-                        # safe_click(check_boxes[0])
-                        check_boxes[0].click()
-                    time.sleep(1.5)
+                    # 显式等待表格数据行出现
+                    table_row_xpath = "//div[@class='main-app']//div[@class='el-table__body-wrapper is-scrolling-none']//tbody/tr"
+                    try:
+                        wait.until(
+                            EC.presence_of_element_located((By.XPATH, table_row_xpath)),
+                            TABLE_WAIT
+                        )
+                        log_write("表格数据已加载")
+                    except TimeoutException:
+                        log_write(f"等待表格数据加载超时（{TABLE_WAIT}秒），可能该工种无数据")
 
-                    sel_btn_list = driver.find_elements(By.XPATH, "//div//button/span[contains(text(),'选择考点与时间')]/..")
-                    if len(sel_btn_list) ==0:
-                        log_write(f"课程[{one_course}]：找不到【选择考点与时间】按钮，跳过本课程")
-                        continue
-                    # safe_click(sel_btn_list[0])
-                    sel_btn_list[0].click()
-                    time.sleep(1)
+                    # ===== 勾选数据行（用safe_click，被拦截时JS兜底）=====
+                    data = driver.find_elements(By.XPATH, table_row_xpath)
+                    if len(data) > 0:
+                        check_boxes = data[0].find_elements(By.XPATH, ".//td/div/label//span[@class='el-checkbox__inner']")
+                        if len(check_boxes) > 0:
+                            safe_click(check_boxes[0])
+                            # log_write("已勾选第一行数据")
+                        else:
+                            log_write("未找到checkbox，跳过勾选")
 
-                    site_inputs = driver.find_elements(By.XPATH, "//div[@class='el-dialog__body']//input[@placeholder='请选择考点']")
-                    if len(site_inputs) == 0:
-                        log_write(f"课程[{one_course}]：找不到【请选择考点】输入框，跳过本课程")
+                        # ===== 点击"选择考点与时间"按钮 —— 此后弹窗才出现 =====
+                        driver.find_element(By.XPATH, "//div//button/span[contains(text(),'选择考点与时间')]/..").click()
+                        dialog_opened = True   # 标记弹窗已打开，后续异常需要关闭
+                        time.sleep(1)
+
+                        # ===== 循环查询多个考点，全部查完后再关闭弹窗 =====
+                        for site_name in SITE_LIST:
+                            # 点击考点下拉框（用safe_click，被拦截时JS兜底）
+                            site_inputs = driver.find_elements(By.XPATH, "//div[@class='el-select']//input[@placeholder='请选择考点']")
+                            if len(site_inputs) == 0:
+                                raise Exception("找不到【请选择考点】输入框")
+                            safe_click(site_inputs[0])
+                            # log_write(f"已点击考点下拉框，等待选项[{site_name}]出现...")
+
+                            site_option_xpath = "//div[@class='el-select-dropdown el-popper']//ul/li/span[contains(text(),'" + site_name + "')]"
+                            try:
+                                site_option = wait.until(
+                                    EC.element_to_be_clickable((By.XPATH, site_option_xpath)),
+                                    DROPDOWN_WAIT
+                                )
+                                site_option.click()
+                                log_write(f"课程[{one_course}]：成功选中考点【{site_name}】")
+                            except TimeoutException:
+                                # 该考点不存在：点击考点输入框让下拉框收起，跳过该考点
+                                log_write(f"课程[{one_course}]：未找到考点【{site_name}】，跳过")
+                                safe_click(site_inputs[0])
+                                continue
+                            time.sleep(1)
+
+                            # 点击弹窗内的"查询"按钮，获取考点预约数据
+                            # log_write(f"课程[{one_course}] 考点[{site_name}] 执行弹窗内查询")
+                            dialog_query_btns = driver.find_elements(
+                                By.XPATH,
+                                "//div[@class='el-dialog__body']//button/span[contains(text(),'查询')]/.."
+                            )
+                            if len(dialog_query_btns) > 0:
+                                dialog_query_btns[0].click()
+                            else:
+                                log_write("未找到弹窗内查询按钮")
+                            time.sleep(2)
+
+                            place = driver.find_elements(By.XPATH, "//div[@class='el-dialog__body']//div[@class='el-table__body-wrapper is-scrolling-none']//tbody/tr")
+                            if len(place) > 0:
+                                for tr in place:
+                                    tds = tr.find_elements(By.TAG_NAME, "td")
+                                    if len(tds) >= 4:
+                                        r_name = tds[0].find_elements(By.TAG_NAME, "div")[0].text.replace("'","''")
+                                        r_examDate = tds[1].find_elements(By.TAG_NAME, "div")[0].text.replace("'","''")
+                                        r_all = tds[2].find_elements(By.TAG_NAME, "div")[0].text.replace("'","''")
+                                        r_now = tds[3].find_elements(By.TAG_NAME, "div")[0].text.replace("'","''")
+                                        sql = "exec autoCheckPlace '" + one_course + "', '" + r_name + "', '" + r_examDate + "', '" + r_all + "', '" + r_now + "'"
+                                        execSQL(sql)
+                                        log_write(f"入库：{r_name}|{r_examDate}|{r_all}/{r_now}")
+
+                        # ===== 全部考点查询完成，关闭弹窗，回到选择课程页面 =====
                         closeExamDialog()
-                        continue
-                    # safe_click(site_inputs[0])
-                    site_inputs[0].click()
+                    else:
+                        log_write(f"课程[{one_course}]：表格无数据行，跳过本课程")
+
+                    # 本课程正常完成，重置重登失败计数
+                    relogin_fail_count = 0
                     time.sleep(2)
 
-                    site_items = driver.find_elements(By.XPATH, "//div[@class='el-select-dropdown el-popper']//ul/li/span[contains(text(),'上海城建职业学院考试点')]")
-                    if len(site_items) == 0:
-                        log_write(f"课程[{one_course}]：未找到考点【上海城建职业学院考试点】，跳过本课程")
-                        closeExamDialog()
-                        continue
-                    # safe_click(site_items[0])
-                    site_items[0].click()
-                    log_write(f"课程[{one_course}]：成功选中考点【上海城建职业学院考试点】")
-                    time.sleep(1)
+                except Exception as e:
+                    # ===== 异常处理 =====
+                    log_write(f"课程[{one_course}]异常: {str(e)}\n{traceback.format_exc()}")
+                    result["err"] = 1
+                    result["errMsg"] = f"action failed:{str(e)}"
 
-                    log_write(f"课程[{one_course}]执行单次查询")
-                    query_btns = driver.find_elements(By.XPATH, "//div[@class='el-dialog__body']//button/span[contains(text(),'查询')]/..")
-                    if len(query_btns) >0:
-                        # safe_click(query_btns[0])
-                        query_btns[0].click()
-                    time.sleep(1)
+                    # 只有弹窗已经打开（点击过"选择考点与时间"按钮）才需要关闭弹窗
+                    if dialog_opened:
+                        log_write("弹窗已打开，尝试关闭弹窗")
+                        try:
+                            closeExamDialog()
+                        except Exception:
+                            pass
+                    else:
+                        log_write("弹窗未打开（错误发生在点击'选择考点与时间'之前），无需关闭弹窗")
 
-                    place_rows = driver.find_elements(By.XPATH, "//div[@class='el-dialog__body']//div[@class='el-table__body-wrapper is-scrolling-none']//tbody/tr")
-                    if len(place_rows) > 0:
-                        for tr in place_rows:
-                            tds = tr.find_elements(By.TAG_NAME, "td")
-                            if len(tds) >= 4:
-                                r_name = tds[0].find_elements(By.TAG_NAME, "div")[0].text.replace("'","''")
-                                r_examDate = tds[1].find_elements(By.TAG_NAME, "div")[0].text.replace("'","''")
-                                r_all = tds[2].find_elements(By.TAG_NAME, "div")[0].text.replace("'","''")
-                                r_now = tds[3].find_elements(By.TAG_NAME, "div")[0].text.replace("'","''")
-                                sql = "exec autoCheckPlace '" + one_course + "', '" + r_name + "', '" + r_examDate + "', '" + r_all + "', '" + r_now + "'"
-                                execSQL(sql)
-                                log_write(f"入库：{r_name}|{r_examDate}|{r_all}/{r_now}")
-                    time.sleep(1)
-                    closeExamDialog()
+                    # 关闭浏览器 → 重新登录 → 重新进入菜单 → 继续循环（55分钟计时不重置）
+                    ok = restart_browser_and_login()
+                    if ok:
+                        relogin_fail_count = 0
+                        log_write("恢复成功，继续下一个课程（55分钟计时继续）")
+                    else:
+                        relogin_fail_count += 1
+                        log_write(f"恢复失败，第 {relogin_fail_count}/{MAX_RELOGIN_FAIL} 次")
+                        if relogin_fail_count >= MAX_RELOGIN_FAIL:
+                            log_write("连续重登失败达到上限，终止抓取循环")
+                            return result
+                        time.sleep(10)
+                    # 继续for循环下一个课程，计时不重置
 
-                except Exception as course_err:
-                    log_write(f"课程[{one_course}]执行异常，关闭弹窗后跳过该课程：{str(course_err)}\n{traceback.format_exc()}")
-                    # closeExamDialog()
-                    continue
-            time.sleep(1)
+            # 一轮全部课程遍历完成，短暂休眠，再进入下一轮循环
+            time.sleep(5)
     finally:
         cursor.close()
     return result
@@ -323,6 +488,10 @@ def match(img_jpg_path, img_png_path):
     value = value[3][0]
     return value
 
+def clean_send(element, text: str):
+    element.clear()
+    element.send_keys(text)
+
 def execSQL(text: str):
     curs = conn.cursor()
     curs.execute(text)
@@ -331,6 +500,7 @@ def execSQL(text: str):
 if __name__ == '__main__':
     log_write("==== autoCheckPlace 程序启动 ====")
     try:
+        # 数据库连接
         conn = pymssql.connect(
             server=env_dist.get('NODE_ENV_DB'),
             port="14333",
@@ -340,9 +510,10 @@ if __name__ == '__main__':
             autocommit=True,
             tds_version="7.0"
         )
-        driver = webdriver.Chrome(options=options)
+        # 初始化浏览器
+        driver = webdriver.Chrome(options=build_chrome_options())
         wait = WebDriverWait(driver, 30)
-
+        # 原有逻辑：从 hostInfo 表读取账号密码
         cursor = conn.cursor()
         sql = "select accountA, passwdA from hostInfo where hostNo= 'znxf'"
         cursor.execute(sql)
@@ -356,13 +527,14 @@ if __name__ == '__main__':
         cursor.close()
 
         register = "desk."
+        # 课程列表
         course_list = ["低压电工", "熔化焊接", "高处安装"]
 
         login_ret = login_fr()
         if login_ret == 0:
             autoCheckPlace(course_list)
         else:
-            log_write("登录失败，跳过全部课程抓取")
+            log_write("登录失败，跳过业务抓取")
 
     except Exception as main_e:
         log_write(f"【顶层异常】{str(main_e)}\n{traceback.format_exc()}")
