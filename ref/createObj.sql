@@ -1297,7 +1297,16 @@ CREATE TABLE [dbo].[examPlaceInfo](
 	[examDate] [varchar](50) NULL,
 	[s_all] [int] NULL default(0),	--总考位
 	[s_used] [int] NULL default(0), --已占用
+	[warning] [int] NULL default(0), --警告
 	[regDate] [datetime] NULL
+) ON [PRIMARY]
+GO
+
+--警告项目信息
+CREATE TABLE [dbo].[warningCourseInfo](
+	[certID] [varchar](50) NULL,
+	[warning] [int] NULL default(0), --警告
+	[regDate] [datetime] NULL default(getDate())
 ) ON [PRIMARY]
 GO
 
@@ -13053,17 +13062,86 @@ GO
 
 -- CREATE DATE: 2026-08-31
 -- 更新考点考位数据
-CREATE PROCEDURE [dbo].[autoCheckPlace]
-	@examAddress nvarchar(50), @examDate varchar(50), @s_all varchar(50), @s_used varchar(50)
+ALTER PROCEDURE [dbo].[autoCheckPlace]
+	@courseName nvarchar(50), @examAddress nvarchar(50), @examDate varchar(50), @s_all varchar(50), @s_used varchar(50)
 AS
 BEGIN
-	if exists(select 1 from [dbo].[examPlaceInfo] where examAddress=@examAddress and examDate=@examDate)
-		update [dbo].[examPlaceInfo] set s_all=@s_all, s_used=@s_used where examAddress=@examAddress and examDate=@examDate
+	declare @certID varchar(50), @warning int
+	select @warning = 0
+	select @certID=certID from certificateInfo where CHARINDEX(@courseName,certName)>0
+	select @warning = warning from [dbo].[warningCourseInfo] where certID=@certID
+	if exists(select 1 from [dbo].[examPlaceInfo] where courseName=@courseName and examAddress=@examAddress and examDate=@examDate)
+		update [dbo].[examPlaceInfo] set s_all=@s_all, s_used=@s_used, warning=@warning, certID=@certID where courseName=@courseName and examAddress=@examAddress and examDate=@examDate
 	else if @s_all<>@s_used
-		insert into [dbo].[examPlaceInfo](examAddress, examDate, s_all, s_used) values(@examAddress, @examDate, @s_all, @s_used)
+		insert into [dbo].[examPlaceInfo](certID, courseName, examAddress, examDate, s_all, s_used, warning) values(@certID, @courseName, @examAddress, @examDate, @s_all, @s_used, @warning)
 
 	-- 将过期的考位信息删除
 	delete from [dbo].[examPlaceInfo] where examDate<=convert(varchar(20),getDate(),23)
+END
+GO
+
+-- CREATE DATE: 2026-08-31
+-- 获取考点空余考位数据
+ALTER PROCEDURE [dbo].[getExamPlaceFreeList]
+AS
+BEGIN
+	select ID, courseName, examAddress, examDate, s_all, s_used, s_all-s_used as s_free, warning from [dbo].[examPlaceInfo] where s_used<s_all
+END
+GO
+
+-- CREATE DATE: 2026-08-31
+-- 获取考点空余考位数据
+ALTER PROCEDURE [dbo].[getExamPlaceFreeCount]
+AS
+BEGIN
+	declare @re int
+	select @re = sum(s_all-s_used) from [dbo].[examPlaceInfo] where s_used<s_all and warning=0
+	select isnull(@re,0) as re
+END
+GO
+
+-- CREATE DATE: 2026-08-31
+-- 获取考点空余考位数据
+CREATE PROCEDURE [dbo].[getExamPlaceInfo]
+	@ID int
+AS
+BEGIN
+	select ID, courseName, examAddress, examDate, s_all, s_used, s_all-s_used as s_free, warning from [dbo].[examPlaceInfo] where ID=@ID
+END
+GO
+
+-- CREATE DATE: 2026-08-31
+-- 更新考点空余考位警告标识
+ALTER PROCEDURE [dbo].[updateExamPlaceInfo]
+	@ID int, @warning int, @registerID varchar(50)
+AS
+BEGIN
+	update [dbo].[examPlaceInfo] set warning=@warning where ID=@ID
+END
+GO
+
+-- CREATE DATE: 2026-08-31
+-- 获取警告项目数据
+CREATE PROCEDURE [dbo].[getWarningCourseList]
+AS
+BEGIN
+	select * from [dbo].[warningCourseInfo]
+END
+GO
+
+-- CREATE DATE: 2026-08-31
+-- 更新警告项目
+ALTER PROCEDURE [dbo].[updatetWarningCourse]
+	@C12 int, @C15 int, @C24 int, @C25A int, @C16 int, @C17 int
+AS
+BEGIN
+	update [dbo].[warningCourseInfo] set warning = @C12 where certID='C12'
+	update [dbo].[warningCourseInfo] set warning = @C15 where certID='C15'
+	update [dbo].[warningCourseInfo] set warning = @C24 where certID='C24'
+	update [dbo].[warningCourseInfo] set warning = @C25A where certID='C25A'
+	update [dbo].[warningCourseInfo] set warning = @C16 where certID='C16'
+	update [dbo].[warningCourseInfo] set warning = @C17 where certID='C17'
+	update [examPlaceInfo] set warning=b.warning from [examPlaceInfo] a, [warningCourseInfo] b where a.certID=b.certID
 END
 GO
 

@@ -356,7 +356,7 @@ if __name__ == '__main__':
         cursor.close()
 
         register = "desk."
-        course_list = ["低压电工作业", "焊接", "高处作业"]
+        course_list = ["低压电工", "熔化焊接", "高处安装"]
 
         login_ret = login_fr()
         if login_ret == 0:
