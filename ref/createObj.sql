@@ -13141,7 +13141,7 @@ BEGIN
 	update [dbo].[warningCourseInfo] set warning = @C25A where certID='C25A'
 	update [dbo].[warningCourseInfo] set warning = @C16 where certID='C16'
 	update [dbo].[warningCourseInfo] set warning = @C17 where certID='C17'
-	update [examPlaceInfo] set warning=b.warning from [examPlaceInfo] a, [warningCourseInfo] b where a.certID=b.certID
+	--update [examPlaceInfo] set warning=b.warning from [examPlaceInfo] a, [warningCourseInfo] b where a.certID=b.certID
 END
 GO
 
