@@ -11769,7 +11769,7 @@ BEGIN
 	-- 写操作日志
 	select @event='解绑团体发票'
 	exec writeOpLog '', @event,'setInvoiceGroupCancel',@registerID,@selList,@invoice
-	select 0 as status, '操作成功' as msg, @qty as qty
+	select 0 as status, '操作成功' as msg, isnull(@qty,0) as qty
 END
 GO
 
@@ -13132,7 +13132,7 @@ GO
 -- CREATE DATE: 2026-08-31
 -- 更新警告项目
 ALTER PROCEDURE [dbo].[updatetWarningCourse]
-	@C12 int, @C15 int, @C24 int, @C25A int, @C16 int, @C17 int
+	@C12 int, @C15 int, @C24 int, @C25A int, @C16 int, @C17 int, @registerID varchar(50)
 AS
 BEGIN
 	update [dbo].[warningCourseInfo] set warning = @C12 where certID='C12'
@@ -13142,6 +13142,10 @@ BEGIN
 	update [dbo].[warningCourseInfo] set warning = @C16 where certID='C16'
 	update [dbo].[warningCourseInfo] set warning = @C17 where certID='C17'
 	--update [examPlaceInfo] set warning=b.warning from [examPlaceInfo] a, [warningCourseInfo] b where a.certID=b.certID
+	-- 写操作日志
+	declare @event nvarchar(100), @memo nvarchar(500)
+	select @event='更新警告项目', @memo = 'C12:' + cast(@C12 as varchar) + ' C15:' + cast(@C15 as varchar) + ' C24:' + cast(@C24 as varchar) + ' C25A:' + cast(@C25A as varchar) + ' C16:' + cast(@C16 as varchar) + ' C17:' + cast(@C17 as varchar)
+	exec writeOpLog '', @event,'updatetWarningCourse',@registerID,'',@memo
 END
 GO
 

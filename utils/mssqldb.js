@@ -12,20 +12,62 @@ const config = {
   connectionTimeout: 15000,
   requestTimeout: 15000,
   pool: {
-    min: 25,
-    max: 100,
-    idleTimeoutMillis: 60000
+    min: 20,
+    max: 50,
+    idleTimeoutMillis: 30000
   }
 };
 
-const pool = new mssql.ConnectionPool(config);
-const poolConnect = pool.connect();
+let pool = null;
+let poolConnect = null;
 
-pool.on('error', err => {
-  console.error('SQL connection pool error:', err);
-});
+function markDatabaseError(err) {
+  if (err && (typeof err === 'object' || typeof err === 'function')) {
+    err.isDatabaseError = true;
+  }
+  return err;
+}
+
+function createPool() {
+  const newPool = new mssql.ConnectionPool(config);
+
+  newPool.on('error', err => {
+    markDatabaseError(err);
+    console.error('SQL connection pool error:', err);
+  });
+
+  pool = newPool;
+  const connecting = newPool.connect();
+  poolConnect = connecting;
+
+  // Attach a rejection handler immediately so a database outage during startup
+  // cannot become an unhandled rejection before the first request arrives.
+  connecting.catch(err => {
+    markDatabaseError(err);
+    console.error('SQL connection failed:', err);
+    if (poolConnect === connecting) {
+      poolConnect = null;
+      pool = null;
+    }
+    newPool.close().catch(closeErr => {
+      console.error('Failed to close unusable SQL pool:', closeErr);
+    });
+  });
+
+  return connecting;
+}
+
+function getConnectedPool() {
+  return poolConnect || createPool();
+}
+
+createPool();
 
 setInterval(() => {
+  if (!pool || !pool.connected) {
+    console.log('SQL pool is disconnected');
+    return;
+  }
   console.log('Pool size:', pool.size);
   console.log('Available:', pool.available);
   console.log('Pending:', pool.pending);
@@ -111,9 +153,18 @@ function bindInputs(request, params) {
 function toCallback(promise, callback) {
   if (typeof callback !== 'function') return promise;
 
-  promise
-    .then(result => callback(null, result))
-    .catch(err => callback(err, null));
+  promise.then(
+    result => Promise.resolve(callback(null, result)).catch(err => {
+      console.error('Database callback failed:', err);
+    }),
+    err => Promise.resolve(callback(markDatabaseError(err), null)).catch(callbackErr => {
+      console.error('Database error callback failed:', callbackErr);
+    })
+  ).catch(err => {
+    // The branches above already handle callback failures. This is a final
+    // safeguard against a callback-generated unhandled rejection.
+    console.error('Unexpected database callback failure:', err);
+  });
 
   return undefined;
 }
@@ -125,9 +176,11 @@ async function executeSQLAsync(sql, params = {}) {
   // const startedAt = Date.now();
 
   try {
-    const connectedPool = await poolConnect;
+    const connectedPool = await getConnectedPool();
     const request = bindInputs(connectedPool.request(), params);
     return await request.query(sql);
+  } catch (err) {
+    throw markDatabaseError(err);
   } finally {
     // const elapsed = Date.now() - startedAt;
     // if (elapsed > 1500) {
@@ -147,10 +200,12 @@ async function executeProcAsync(proc, params = {}) {
   // const startedAt = Date.now();
 
   try {
-    const connectedPool = await poolConnect;
+    const connectedPool = await getConnectedPool();
     const request = bindInputs(connectedPool.request(), params);
 
     return await request.execute(proc);
+  } catch (err) {
+    throw markDatabaseError(err);
   } finally {
     // const elapsed = Date.now() - startedAt;
     // if (elapsed > 1500) {
@@ -172,16 +227,19 @@ function executeProc(proc, params, callback) {
 }
 
 async function close() {
-  await pool.close();
+  const currentPool = pool;
+  pool = null;
+  poolConnect = null;
+  if (currentPool) await currentPool.close();
 }
 
 module.exports = {
   config,
   mssql,
-  pool,
   close,
   bindInputs,
   inferSqlType,
+  isDatabaseError: err => Boolean(err && err.isDatabaseError),
 
   executeSQL,
   executeProc,
@@ -193,3 +251,8 @@ module.exports = {
   excuteProc: executeProc,
   excuteProcAsync: executeProcAsync
 };
+
+Object.defineProperty(module.exports, 'pool', {
+  enumerable: true,
+  get: () => pool
+});

@@ -5,10 +5,24 @@
  */
 
 const fs = require('fs');
-var app = require('../app');
+var db = require('../utils/mssqldb');
 // var debug = require('debug')('etraingserver:server');
 var http = require('http');
 var https = require('https');
+
+process.on('unhandledRejection', function (reason) {
+  if (db.isDatabaseError(reason)) {
+    console.error('Unhandled database operation failed; service will continue:', reason);
+    return;
+  }
+
+  // Do not conceal programming errors or unrelated infrastructure failures.
+  setImmediate(function () {
+    throw reason instanceof Error ? reason : new Error(String(reason));
+  });
+});
+
+var app = require('../app');
 
 /**
  * Get port from environment and store in Express.

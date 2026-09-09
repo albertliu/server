@@ -892,7 +892,7 @@ router.post('/uploadBase64img', async function (req, res, next) {
 
 //22. generate_diploma_byCertID
 //status: 0 成功  9 其他  msg, filename
-router.get('/generate_diploma_byCertID', function (req, res, next) {
+router.get('/generate_diploma_byCertID', async function (req, res, next) {
   sqlstr = "generateDiplomaByCertID";
   params = { certID: req.query.certID, batchID: req.query.batchID, selList: req.query.selList, selList1: req.query.selList1, host: req.query.host, registerID: req.query.username };
   //console.log(params);
@@ -910,7 +910,7 @@ router.get('/generate_diploma_byCertID', function (req, res, next) {
     if (batchID > 0) {
       sqlstr = "select *,'No.' as diplomaNo from v_diplomaInfo where type=1 and batchID=" + batchID;   //企业内证书
       params = {};
-      db.excuteSQL(sqlstr, params, function (err, data1) {
+      db.excuteSQL(sqlstr, params, async function (err, data1) {
         if (err) {
           console.log(err);
           response = [];
@@ -928,14 +928,14 @@ router.get('/generate_diploma_byCertID', function (req, res, next) {
           pages.push(sqlstr);
           paths.push(path);
         }
-        pdf.genPDF(pages, paths, '180mm', '120mm', '1', false, 1, false);
+        await pdf.genPDF(pages, paths, '180mm', '120mm', '1', false, 1, false);
         //publish diploma on A4 with pdf
         //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
         sqlstr = env + "/pdfs.asp?refID=" + batchID;
         //console.log(sqlstr);
         let path = 'users/upload/students/diplomaPublish/' + batchID + '.pdf';
         filename = path;
-        pdf.genPDF([sqlstr], [path], '297mm', '210mm', '', false, 0.5, false);
+        await pdf.genPDF([sqlstr], [path], '297mm', '210mm', '', false, 0.5, false);
         //console.log('the path:',path);
         //return publish file path
         response = [filename];
@@ -950,11 +950,11 @@ router.get('/generate_diploma_byCertID', function (req, res, next) {
 
 //22. re-generate diploma with username list, incloude all live diplomas under the username
 //status: 0 成功  9 其他  msg, filename
-router.post('/generate_diploma_byUsername', function (req, res, next) {
+router.post('/generate_diploma_byUsername', async function (req, res, next) {
   sqlstr = "generate_diploma_byUsername";
   params = { selList: req.body.selList, registerID: req.body.username };
   console.log('params',params);
-  db.excuteProc(sqlstr, params, function (err, data1) {
+  db.excuteProc(sqlstr, params, async function (err, data1) {
     if (err) {
       console.log(err);
       response = [0];
@@ -972,7 +972,7 @@ router.post('/generate_diploma_byUsername', function (req, res, next) {
       pages.push(sqlstr);
       paths.push(path);
     }
-    pdf.genPDF(pages, paths, '180mm', '120mm', '1', false, 1, false);
+    await pdf.genPDF(pages, paths, '180mm', '120mm', '1', false, 1, false);
     response = [1+parseInt(i)];
     return res.send(response);
   });
@@ -980,14 +980,14 @@ router.post('/generate_diploma_byUsername', function (req, res, next) {
 
 //22. generate_diploma_byClassID
 //status: 0 成功  9 其他  msg, filename
-router.post('/generate_diploma_byClassID', function (req, res, next) {
+router.post('/generate_diploma_byClassID', async function (req, res, next) {
   sqlstr = "updateGenerateDiplomaInfo";
   //@ID int,@classID varchar(50), @selList varchar(4000),@printed int,@printDate varchar(50),@delivery int,@deliveryDate varchar(50),@host nvarchar(50),@memo nvarchar(500),@registerID varchar(50)
   params = { ID: req.query.ID, certID: req.query.certID, selList: req.body.selList, startDate: req.query.startDate, class_startDate: req.query.class_startDate, class_endDate: req.query.class_endDate, printed: 0, printDate: '', delivery: 0, deliveryDate: '', styleID: req.query.card, host: '', memo: req.query.memo, registerID: req.query.registerID };
   console.log("params:", params);
   //generate diploma data
   let response = [];
-  db.excuteProc(sqlstr, params, function (err, data) {
+  db.excuteProc(sqlstr, params, async function (err, data) {
     if (err) {
       console.log(err);
       response = [];
@@ -1000,7 +1000,7 @@ router.post('/generate_diploma_byClassID', function (req, res, next) {
       //sqlstr = "select * from v_diplomaInfo where batchID=" + batchID;   //证书
       sqlstr = "getDiplomaListByBatchID";
       params = { batchID: batchID };
-      db.excuteProc(sqlstr, params, function (err, data1) {
+      db.excuteProc(sqlstr, params, async function (err, data1) {
         if (err) {
           console.log(err);
           response = [];
@@ -1045,12 +1045,12 @@ router.post('/generate_diploma_byClassID', function (req, res, next) {
           //pdf.genPDF(sqlstr, path, pW1, pH1, '1', false, 1, false);
         }
         if (req.query.card == 0) {
-          pdf.genPDF(pages, paths, pW1, pH1, '1', false, 1, true);
+          await pdf.genPDF(pages, paths, pW1, pH1, '1', false, 1, true);
         } else {
           //************ */ card diploma style
           pW2 = '86mm';
           pH2 = '54mm';
-          pdf.genPDF(pages, paths, pW2, pH2, '1', false, 0.5, true);
+          await pdf.genPDF(pages, paths, pW2, pH2, '1', false, 0.5, true);
         }
         //publish diploma on A4 with pdf
         //sqlstr = "http://localhost:8082/pdfs.asp?kindID=" + (arr.join("|"));
@@ -1065,7 +1065,7 @@ router.post('/generate_diploma_byClassID', function (req, res, next) {
 
         filename = path;
         //pdf.genPDF(sqlstr, path, pW2, pH2, '', false, 0.5, false);
-        pdf.genPDF([sqlstr], [path], pW2, pH2, '', false, 0.5, false);
+        await pdf.genPDF([sqlstr], [path], pW2, pH2, '', false, 0.5, false);
         //console.log('the path:',path);
         //return publish file path
         response = [batchID];
@@ -1110,10 +1110,10 @@ router.post('/cancel_diploma', function (req, res, next) {
 
 //22.1. re_generate_diploma_spc 重新生成企业内证书
 //status: 0 成功  9 其他  msg, filename
-router.get('/re_generate_diploma_spc', function (req, res, next) {
+router.get('/re_generate_diploma_spc', async function (req, res, next) {
   sqlstr = "select *,'No.' as diplomaNo from v_diplomaInfo where type=1 and diplomaID=@diplomaID";   //企业内证书
   params = { diplomaID: req.query.diplomaID };
-  db.excuteSQL(sqlstr, params, function (err, data1) {
+  db.excuteSQL(sqlstr, params, async function (err, data1) {
     if (err) {
       console.log(err);
       response = [];
@@ -1127,14 +1127,14 @@ router.get('/re_generate_diploma_spc', function (req, res, next) {
     let path = 'users/upload/students/diplomas/' + data1.recordset[i]["diplomaID"] + '.pdf';
     pages.push(sqlstr);
     paths.push(path);
-    pdf.genPDF(pages, paths, '180mm', '120mm', '1', false, 1, false);
+    await pdf.genPDF(pages, paths, '180mm', '120mm', '1', false, 1, false);
   });
 });
 
 //22a. generate_student_photos
 //status: 0 成功  9 其他  msg, filename
 //kindID: 0 照片  1 身份证正面  2 身份证背面  3 学历证书  4 其他证书
-router.get('/generate_student_photos', function (req, res, next) {
+router.get('/generate_student_photos', async function (req, res, next) {
   let response = [];
   let filename = "";
   sqlstr = env + "/pdfs_student_photos.asp?item=" + req.query.item + "&kindID=" + req.query.kindID;
@@ -1143,7 +1143,7 @@ router.get('/generate_student_photos', function (req, res, next) {
   let path = 'users/public/temp/student_photos_' + Date.parse(new Date()).toString() + '.pdf';
   filename = path;
   //console.log(sqlstr, filename);
-  pdf.genPDF([sqlstr], [path], '297mm', '210mm', '1', false, 1, false);
+  await pdf.genPDF([sqlstr], [path], '297mm', '210mm', '1', false, 1, false);
   //pdf.genPDF(sqlstr, path, '180mm', '120mm', '1', false, 1);
 
   //return publish file path
@@ -1294,13 +1294,13 @@ router.get('/generate_entryform_sign', function (req, res, next) {
 //22. generate_diploma_byCertID
 //status: 0 成功  9 其他  msg, filename
 //mark: 0 生成准考证  1 保存信息
-router.get('/generate_passcard_byClassID', function (req, res, next) {
+router.get('/generate_passcard_byClassID', async function (req, res, next) {
   sqlstr = "updateGeneratePasscardInfo";
   params = { mark: req.query.mark, ID: req.query.ID, classID: req.query.classID, selList: req.query.selList, title: req.query.title, startNo: req.query.startNo, startDate: req.query.startDate, startTime: req.query.startTime, address: req.query.address, notes: req.query.notes, memo: req.query.memo, registerID: req.query.username };
   //console.log(params);
   //generate diploma data
   let response = [];
-  db.excuteProc(sqlstr, params, function (err, data) {
+  db.excuteProc(sqlstr, params, async function (err, data) {
     if (err) {
       console.log(err);
       response = [];
@@ -1316,7 +1316,7 @@ router.get('/generate_passcard_byClassID', function (req, res, next) {
       //console.log(sqlstr);
       let path = 'users/upload/students/passcardPublish/' + batchID + '.pdf';
       filename = path;
-      pdf.genPDF([sqlstr], [path], '297mm', '210mm', '', false, 0.5, false);
+      await pdf.genPDF([sqlstr], [path], '297mm', '210mm', '', false, 0.5, false);
       //console.log('the path:',path);
       //return publish file path
       sqlstr = "updateGeneratePasscardFile";
@@ -1324,7 +1324,7 @@ router.get('/generate_passcard_byClassID', function (req, res, next) {
       //console.log(params);
       //generate diploma data
       let response = [];
-      db.excuteProc(sqlstr, params, function (err, data) {
+      db.excuteProc(sqlstr, params, async function (err, data) {
         if (err) {
           console.log(err);
           response = [];
@@ -1343,13 +1343,13 @@ router.get('/generate_passcard_byClassID', function (req, res, next) {
 //22. generate_diploma_byCertID
 //status: 0 成功  9 其他  msg, filename
 //mark: 0 生成准考证  1 保存信息
-router.get('/generate_passcard_byExamID', function (req, res, next) {
+router.get('/generate_passcard_byExamID', async function (req, res, next) {
   sqlstr = "setPassNo4Exam";
   params = { examID: req.query.ID, registerID: req.query.username };
   //console.log(params);
   //generate diploma data
   let response = [];
-  db.excuteProc(sqlstr, params, function (err, data) {
+  db.excuteProc(sqlstr, params, async function (err, data) {
     if (err) {
       console.log(err);
       response = [];
@@ -1365,7 +1365,7 @@ router.get('/generate_passcard_byExamID', function (req, res, next) {
       //console.log(sqlstr);
       let path = 'users/upload/students/passcardPublish/' + batchID + '.pdf';
       filename = path;
-      pdf.genPDF([sqlstr], [path], '297mm', '210mm', '', false, 0.5, false);
+      await pdf.genPDF([sqlstr], [path], '297mm', '210mm', '', false, 0.5, false);
       //console.log('the path:',path);
       //return publish file path
       sqlstr = "updateGeneratePasscardFile";
@@ -1373,7 +1373,7 @@ router.get('/generate_passcard_byExamID', function (req, res, next) {
       //console.log(params);
       //generate diploma data
       let response = [];
-      db.excuteProc(sqlstr, params, function (err, data) {
+      db.excuteProc(sqlstr, params, async function (err, data) {
         if (err) {
           console.log(err);
           response = [];
@@ -1391,7 +1391,7 @@ router.get('/generate_passcard_byExamID', function (req, res, next) {
 
 //22a. generate_fireman_materials
 //status: 0 成功  9 其他  msg, filename
-router.get('/generate_fireman_materials', function (req, res, next) {
+router.get('/generate_fireman_materials', async function (req, res, next) {
   let filename = "";
   let filename1 = "";
   if (req.query.enterID > 0) {
@@ -1400,12 +1400,12 @@ router.get('/generate_fireman_materials', function (req, res, next) {
     sqlstr = env + "/pdfs_fireman.asp?item=" + req.query.username + "&refID=0";
     let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '证明材料.pdf';
     filename = path.replace("users/", "/");
-    pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
+    await pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
 
     sqlstr = env + "/pdf_entryform_C20.asp?nodeID=" + req.query.enterID;
     let path1 = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '报名表.pdf';
     filename1 = path1.replace("users/", "/");
-    pdf.genPDF([sqlstr], [path1], '210mm', '297mm', '', false, 0.5, false);
+    await pdf.genPDF([sqlstr], [path1], '210mm', '297mm', '', false, 0.5, false);
     //console.log('the path:',path);
     //return publish file path
     sqlstr = "updateFiremanMaterials";
@@ -1430,7 +1430,7 @@ router.get('/generate_fireman_materials', function (req, res, next) {
 
 //22a. generate_IDcard_materials
 //status: 0 成功  9 其他  msg, filename
-router.get('/generate_IDcard_materials', function (req, res, next) {
+router.get('/generate_IDcard_materials', async function (req, res, next) {
   let filename = "";
   if (req.query.username > "") {
     //publish diploma on A4 with pdf
@@ -1438,7 +1438,7 @@ router.get('/generate_IDcard_materials', function (req, res, next) {
     sqlstr = env + "/pdfs_fireman.asp?item=" + req.query.username + "&refID=1";
     let path = 'users/upload/students/IDcardMaterials/' + req.query.username + '身份证正反面.pdf';
     filename = path.replace("users/", "/");
-    pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
+    await pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
     sqlstr = "updateIDcardsMaterials";
     //params = {enterID:req.query.enterID, filename:filename, filename1:filename1};
     params = { username: req.query.username, filename: filename };
@@ -1524,7 +1524,7 @@ router.get('/generate_fireman_zip', function (req, res, next) {
 
 //22d. generate_emergency_materials
 //status: 0 成功  9 其他  msg, emergency item  keyID: 2 归档资料  5 报名表
-router.get('/generate_emergency_materials', function (req, res, next) {
+router.get('/generate_emergency_materials', async function (req, res, next) {
   let filename2 = "";
   let filename1 = "";
   let path = "";
@@ -1541,14 +1541,14 @@ router.get('/generate_emergency_materials', function (req, res, next) {
     sqlstr = env + "/entryform_" + req.query.entryForm + ".asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + req.query.refID + "&keyID=" + req.query.keyID;
     path = 'users/upload/students/firemanMaterials/' + req.query.refID + '_' + req.query.nodeID + '报名材料.pdf';
     filename1 = path.replace("users/", "/");
-    pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
+    await pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
 
     //报名表
     sqlstr = env + "/entryform_" + req.query.entryForm + ".asp?public=1&nodeID=" + req.query.nodeID + "&refID=" + req.query.refID + "&keyID=5";
     path = 'users/upload/students/firemanMaterials/' + req.query.refID + '_' + req.query.nodeID + '报名表.jpg';
     filename2 = path.replace("users/", "/");
     // pdf.genPDF([sqlstr], [path], '210mm', '297mm', '', false, 1, false);
-    shotimg.genImg(sqlstr, path, 2160, 1020);
+    await shotimg.genImg(sqlstr, path, 2160, 1020);
 
     //return publish file path
     sqlstr = "updateEnterMaterials";
@@ -1791,7 +1791,7 @@ router.get('/get_entryform_shot', async function (req, res, next) {
     // res.send(img);
     let path = 'users/upload/students/firemanMaterials/' + req.query.username + '_' + req.query.enterID + '报名表.jpg';
     let filename = path.replace("users/", "/");
-    shotimg.genImg(sqlstr, path, 700, 800);
+    await shotimg.genImg(sqlstr, path, 700, 800);
 
     //return publish file path
     sqlstr = "updateEnterMaterials";

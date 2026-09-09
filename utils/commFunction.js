@@ -6,7 +6,7 @@ const env = process.env.NODE_ENV_BACKEND;
 let response, sqlstr, params;
 
 const comFunc = {
-    generate_entryform_sign: function (enterID, mark = 0){
+    generate_entryform_sign: async function (enterID, mark = 0){
         if (enterID > 0) {
             let filename1 = "";
             let path = "";
@@ -18,7 +18,7 @@ const comFunc = {
             params = { enterID: enterID, filename1: (mark == 1 ? filename1 : ""), filename2: "", filename3: "", filename4: (mark == 0 ? filename1 : "") };
             //generate diploma data
             // console.log("params:", params);
-            db.excuteProc(sqlstr, params, function (err, data) {
+            db.excuteProc(sqlstr, params, async function (err, data) {
                 if (err) {
                     console.log(err);
                     response = [];
@@ -29,7 +29,7 @@ const comFunc = {
                 let username = data.recordset[0]["username"];  //报名表样式
                 //班级归档资料
                 let str = env + "/entryform_" + entryform + ".asp?public=1&nodeID=" + enterID + "&refID=" + username + "&keyID=" + (mark==0 ? 4 : 2);
-                pdf.genPDF([str], [path], '210mm', '300mm', '', false, 1, false);
+                await pdf.genPDF([str], [path], '210mm', '300mm', '', false, 1, false);
                 //return publish file path
                 return [filename1];
             });
