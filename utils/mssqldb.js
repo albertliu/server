@@ -12,9 +12,9 @@ const config = {
   connectionTimeout: 15000,
   requestTimeout: 15000,
   pool: {
-    min: 5,
-    max: 15,
-    idleTimeoutMillis: 30000
+    min: 25,
+    max: 100,
+    idleTimeoutMillis: 60000
   }
 };
 
@@ -24,6 +24,12 @@ const poolConnect = pool.connect();
 pool.on('error', err => {
   console.error('SQL connection pool error:', err);
 });
+
+setInterval(() => {
+  console.log('Pool size:', pool.size);
+  console.log('Available:', pool.available);
+  console.log('Pending:', pool.pending);
+}, 5000);
 
 function isPlainObject(value) {
   return Object.prototype.toString.call(value) === '[object Object]';

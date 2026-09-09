@@ -139,6 +139,10 @@ app.use(function(err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
+  // 如果是超时类错误，返回 503
+  if (err.name === 'TimeoutError' || err.code === 'ETIMEOUT' || err.message.includes('timeout')) {
+    return res.status(503).json({ error: 'Service temporarily unavailable' });
+  }
 
   // render the error page
   res.status(err.status || 500);
