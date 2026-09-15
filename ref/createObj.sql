@@ -4526,18 +4526,18 @@ GO
 -- 根据给定的参数，添加或者更新课程
 -- USE CASE: exec updateCourseInfo 1,1,'xxxx'...").value + "|" + rs("").value + "|" + rs("").value + "|" + rs("
 ALTER PROCEDURE [dbo].[updateCourseInfo]
-	@ID int,@courseID varchar(50),@courseName nvarchar(100),@shortName nvarchar(50),@hours int,@completionPass int,@deadline int,@deadday int,@period int,@kindID int,@reexamine int,@status int,@mark int,@certID varchar(50),@price int,@host varchar(50),@memo nvarchar(500),@registerID varchar(50)
+	@ID int,@courseID varchar(50),@courseName nvarchar(100),@shortName nvarchar(50),@hours int,@completionPass int,@deadline int,@deadday int,@period int,@kindID int,@reexamine int,@status int,@mark int,@certID varchar(50),@price int,@price1 int,@priceExam int,@host varchar(50),@memo nvarchar(500),@registerID varchar(50)
 AS
 BEGIN
 	if @shortName = ''
 		set @shortName = @courseName
 	if @ID=0	-- 新纪录
 	begin
-		insert into courseInfo(courseID,courseName,shortName,hours,completionPass,deadline,deadday,period,kindID,reexamine,status,mark,certID,price,host,memo,registerID) values(@courseID,@courseName,@shortName,@hours,@completionPass,@deadline,@deadday,@period,@kindID,@reexamine,@status,@mark,@certID,@price,@host,@memo,@registerID)
+		insert into courseInfo(courseID,courseName,shortName,hours,completionPass,deadline,deadday,period,kindID,reexamine,status,mark,certID,price,price1,priceExam,host,memo,registerID) values(@courseID,@courseName,@shortName,@hours,@completionPass,@deadline,@deadday,@period,@kindID,@reexamine,@status,@mark,@certID,@price,@price1,@priceExam,@host,@memo,@registerID)
 	end
 	else
 	begin
-		update courseInfo set kindID=@kindID,shortName=@shortName,reexamine=@reexamine,courseID=@courseID,hours=@hours,completionPass=@completionPass,deadline=@deadline,deadday=@deadday,period=@period,courseName=@courseName,mark=@mark,status=@status,certID=@certID,price=@price,host=@host,memo=@memo where ID=@ID
+		update courseInfo set kindID=@kindID,shortName=@shortName,reexamine=@reexamine,courseID=@courseID,hours=@hours,completionPass=@completionPass,deadline=@deadline,deadday=@deadday,period=@period,courseName=@courseName,mark=@mark,status=@status,certID=@certID,price=@price,price1=@price1,priceExam=@priceExam,host=@host,memo=@memo where ID=@ID
 	end
 END
 GO
@@ -10551,6 +10551,33 @@ BEGIN
 END
 GO
 
+-- CREATE DATE: 2026-09-15
+-- 录入第三方题库(从网上爬取)学习100
+-- USE CASE: exec [addNewQuestionStudy100] 1
+-- truncate table [questionStudy100]
+ALTER PROCEDURE [dbo].[addNewQuestionStudy100]
+	@No int, @kindID nvarchar(50), @questionName nvarchar(500), @image varchar(200), @A nvarchar(200), @imageA varchar(200), @B nvarchar(200), @imageB varchar(200), @C nvarchar(200), @imageC varchar(200), @D nvarchar(200), @imageD varchar(200), @E nvarchar(200), @imageE varchar(200), @F nvarchar(200), @imageF varchar(200), @answer varchar(200), @memo nvarchar(500)
+AS
+BEGIN
+	insert into [dbo].[import_question]([No], kindID, questionName, answer, memo, A, B, C, D, E, F, image, imageA, imageB, imageC, imageD, imageE, imageF) values(@No,( case when @kindID='单选题' then 1 when @kindID='判断题' then 3 else 2 end), @questionName, @answer, @memo, @A, @B, @C, @D, @E, @F, @image, @imageA, @imageB, @imageC, @imageD, @imageE, @imageF)
+END
+GO
+
+-- CREATE DATE: 2026-09-15
+-- 处理第三方题库(从网上爬取)学习100
+-- USE CASE: exec [dealQuestionStudy100]
+-- truncate table import_question
+-- select * from [import_question]
+-- select distinct kindID,questionName,answer,A,B,C,D,E,F from [import_question]
+ALTER PROCEDURE [dbo].[dealQuestionStudy100]
+AS
+BEGIN
+	update [import_question] set answer=upper(replace(answer,' ',''))
+	update [import_question] set answer=iif(answer='正确','A','B') where kindID=3
+	update [questionOther] set questionName=replace(replace(REPLACE(REPLACE(questionName, CHAR(13), ''), CHAR(10),''),char(9),''),' ','')
+END
+GO
+
 -- CREATE DATE: 2026-01-22
 -- 录入第三方题库(杰优宝，从微信爬取)
 -- USE CASE: exec [setWeixinQuestion] 1
@@ -13146,6 +13173,16 @@ BEGIN
 	declare @event nvarchar(100), @memo nvarchar(500)
 	select @event='更新警告项目', @memo = 'C12:' + cast(@C12 as varchar) + ' C15:' + cast(@C15 as varchar) + ' C24:' + cast(@C24 as varchar) + ' C25A:' + cast(@C25A as varchar) + ' C16:' + cast(@C16 as varchar) + ' C17:' + cast(@C17 as varchar)
 	exec writeOpLog '', @event,'updatetWarningCourse',@registerID,'',@memo
+END
+GO
+
+-- CREATE DATE: 2026-08-31
+-- 获取课程数据
+CREATE PROCEDURE [dbo].[getCourseInfo]
+	@courseID varchar(50)
+AS
+BEGIN
+	select * from [dbo].[v_courseInfo] where courseID=@courseID
 END
 GO
 
