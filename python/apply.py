@@ -51,8 +51,8 @@ conn = pymssql.connect(
 result = {"count_s": 0, "count_e": 0, "err": 0, "errMsg": ""}
 host = ""
 register = "操作员"
-username = ""
-password = ""
+username = "15921236798"
+password = "Zr@6931610"
 
 
 def login_fr():
@@ -1557,8 +1557,8 @@ if __name__ == '__main__':
     cursor.execute(sql)  # 执行sql语句
     rs = cursor.fetchone()  # 获取第一行数据
     if rs is not None:
-        username = rs[0]
-        password = rs[1]
+        # username = rs[0]
+        # password = rs[1]
 
         # 登录
         if login_fr() == 0:

@@ -6469,7 +6469,7 @@ BEGIN
 		end
 		select @retireDay=[dbo].[getRetireDayDiff](@username,@certID)
 
-		if len(@username)>1 and exists(select 1 from studentCourseList where username=@username and courseID=@courseID and status<2)
+		if len(@username)>1 and @courseID not in('L103','L102') and exists(select 1 from studentCourseList where username=@username and courseID=@courseID and status<2)
 			select @re=1,@msg='该课程已经报名且未结束，不能重复。'
 		if @retireDay>0
 			select @re=2,@msg=iif(@retireDay=1,'该学员已距退休不足60天，不能报名。','不满18岁不能报名。')
@@ -6499,8 +6499,8 @@ BEGIN
 				select @username,courseID,@refID,@reexamine,@payNow,@needInvoice,@title,@kindID,@type,@status,@price,@amount,iif(@type=3 and @status=1,1,0),@invoice,@receipt,@invoice_amount,[dbo].[whenull](@dateInvoice,null),[dbo].[whenull](@dateInvoicePick,null),iif(@datePay>'',@datePay,iif(@status=1,getDate(),null)),iif(@status=1,@registerID,null),@pay_memo,@t,hours,dateadd(d,period,getDate()),@projectID,@classID,@pNo,1,getDate(),'system.',1,getDate(),@registerID,@currDiplomaID,@currDiplomaDate,@overdue,@express,@saler,@fromKind,@source,@oldNo,@signatureType,@memo,@host,@registerID from courseInfo where courseID=@courseID
 			select @ID=max(ID) from studentCourseList where username=@username
 	
-			if @certID='C20' or @certID='C20A' or @certID='C21'	--消防员添加额外报名信息
-				insert into firemanEnterInfo(enterID,kind5,kind4,registerID) values(@ID,(case when @certID='C20' or @certID='C20A' then 3 else 4 end),(case when @certID='C20A' then 1 else 0 end),@registerID)
+			if @certID='C20' or @certID='C20A' or @certID='C21' or @certID='C20N' or @certID='C21N'	--消防员添加额外报名信息
+				insert into firemanEnterInfo(enterID,kind5,kind4,registerID) values(@ID,(case when @certID='C20' or @certID='C20A' or @certID='C20N' then 3 else 4 end),(case when @certID='C20A' then 1 else 0 end),@registerID)
 
 			--更新单位信息
 			if @host='spc'
@@ -7171,8 +7171,8 @@ BEGIN
 		--update studentCourseList set classID=@classID,SNo=@pNo,submited=1,submitDate=(case when submitDate is null then GETDATE() else submitDate end),submiter=@registerID,checked=(case when @mark=0 then 1 else checked end),checkDate=(case when @mark=0 then GETDATE() else checkDate end),checker=(case when @mark=0 and checker is null then 'system.' else checker end) where ID=@enterID
 		update studentCourseList set payNow=iif(@payNow<9,@payNow,payNow),title=iif(@title>'',@title,title),signatureDate=iif(@signatureDate is null,signatureDate,@signatureDate),status=(case when @diplomaID='' and status=2 then 0 else status end),classID=@classID,SNo=@pNo,overdue=@overdue,submited=iif(@classID>'',1,submited),submitDate=(case when @classID>'' and submitDate is null then GETDATE() else submitDate end),submiter=iif(@classID>'',@registerID,submiter),checked=iif(@classID>'',1,checked),checkDate=(case when @classID>'' and checkDate is null then GETDATE() else checkDate end),checker=(case when @classID>'' and checker is null then 'system.' else checker end),currDiplomaID=(case when @currDiplomaID is null then currDiplomaID else @currDiplomaID end),currDiplomaDate=(case when @currDiplomaDate is null then currDiplomaDate else @currDiplomaDate end),fromID=@fromID,signatureType=@signatureType where ID=@enterID
 		update studentCertList set status=(case when @diplomaID='' and status=2 then 0 else status end) where ID=@refID
-		if @certID='C20' or @certID='C20A' or @certID='C21' and not exists(select 1 from firemanEnterInfo where enterID=@enterID)	--消防员添加额外报名信息
-			insert into firemanEnterInfo(enterID,kind4,kind5,registerID) values(@enterID,(case when @certID='C20A' then 1 else 0 end),(case when @certID='C20' then 3 else 4 end),@registerID)
+		if @certID='C20' or @certID='C20A' or @certID='C21' or @certID='C20N' or @certID='C21N' and not exists(select 1 from firemanEnterInfo where enterID=@enterID)	--消防员添加额外报名信息
+			insert into firemanEnterInfo(enterID,kind4,kind5,registerID) values(@enterID,(case when @certID='C20A' then 1 else 0 end),(case when @certID='C20' or @certID='C20N' then 3 else 4 end),@registerID)
 
 		if not exists(select 1 from studentLessonList where refID=@enterID)
 		begin
@@ -10554,7 +10554,7 @@ GO
 -- CREATE DATE: 2026-09-15
 -- 录入第三方题库(从网上爬取)学习100
 -- USE CASE: exec [addNewQuestionStudy100] 1
--- truncate table [questionStudy100]
+-- truncate table [import_question]
 ALTER PROCEDURE [dbo].[addNewQuestionStudy100]
 	@No int, @kindID nvarchar(50), @questionName nvarchar(500), @image varchar(200), @A nvarchar(200), @imageA varchar(200), @B nvarchar(200), @imageB varchar(200), @C nvarchar(200), @imageC varchar(200), @D nvarchar(200), @imageD varchar(200), @E nvarchar(200), @imageE varchar(200), @F nvarchar(200), @imageF varchar(200), @answer varchar(200), @memo nvarchar(500)
 AS
@@ -10567,13 +10567,13 @@ GO
 -- 处理第三方题库(从网上爬取)学习100
 -- USE CASE: exec [dealQuestionStudy100]
 -- truncate table import_question
--- select * from [import_question]
+-- select * from [import_question] order by No
 -- select distinct kindID,questionName,answer,A,B,C,D,E,F from [import_question]
 ALTER PROCEDURE [dbo].[dealQuestionStudy100]
 AS
 BEGIN
 	update [import_question] set answer=upper(replace(answer,' ',''))
-	update [import_question] set answer=iif(answer='正确','A','B') where kindID=3
+	update [import_question] set answer=iif(answer='正确' or upper(answer)='A','A','B') where kindID=3
 	update [questionOther] set questionName=replace(replace(REPLACE(REPLACE(questionName, CHAR(13), ''), CHAR(10),''),char(9),''),' ','')
 END
 GO

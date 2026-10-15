@@ -155,8 +155,8 @@ py_path = env_dist.get('NODE_ENV_PYTHON')
 result = {"count_s": 0, "count_e": 0, "err": 0, "errMsg": ""}
 host = ""
 register = "操作员"
-username = ""
-password = ""
+username = "15900997842"
+password = "Cailj029201#"
 
 def login_fr():
     aim_url = {
@@ -519,8 +519,8 @@ if __name__ == '__main__':
         cursor.execute(sql)
         rs = cursor.fetchone()
         if rs is not None:
-            username = rs[0]
-            password = rs[1]
+            # username = rs[0]
+            # password = rs[1]
             log_write("从hostInfo读取登录账号成功")
         else:
             raise Exception("hostInfo表未读取到账号密码")
