@@ -51,8 +51,8 @@ conn = pymssql.connect(
 result = {"count_s": 0, "count_e": 0, "err": 0, "errMsg": ""}
 host = ""
 register = "操作员"
-username = "15921236798"
-password = "Zr@6931610"
+username = "15900997842"
+password = "Cailj029201#"
 
 
 def login_fr():
